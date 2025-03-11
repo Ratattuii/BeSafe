@@ -10,11 +10,14 @@
         .container {
             padding: 0;
             background-color: var(--background-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .page-header {
             text-align: center;
-            padding: 20px;
+            padding: 16px;
             background-color: var(--background-color);
             border-bottom: 1px solid var(--gray-light);
         }
@@ -23,41 +26,40 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--text-color);
+            margin: 0;
         }
 
         .search-bar {
-            margin: 10px 20px;
+            margin: 16px;
             position: relative;
             display: flex;
             align-items: center;
-            background-color: var(--background-color);
-            border: 1px solid var(--gray-light);
+            background-color: white;
             border-radius: 12px;
             padding: 8px 16px;
+        }
+
+        .search-icon {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-right: 8px;
         }
 
         .search-input {
             flex: 1;
             border: none;
-            background: none;
-            padding: 8px;
-            font-size: 16px;
+            font-size: 14px;
             color: var(--text-color);
+            background: none;
         }
 
         .search-input::placeholder {
             color: var(--text-secondary);
         }
 
-        .search-icon {
-            color: var(--text-secondary);
-            font-size: 16px;
-        }
-
         .voice-icon {
             color: var(--text-secondary);
             font-size: 16px;
-            margin-left: 8px;
         }
 
         .chat-list {

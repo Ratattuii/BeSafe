@@ -1,21 +1,26 @@
-/* Variáveis globais */
+/* Definição das variáveis globais de cores e estilos */
 :root {
-    --primary-color: #FF1434;
-    --secondary-color: #F8CFCF;
-    --background-color: #F6F8F9;
-    --text-color: #1A1A1A;
-    --text-secondary: #666666;
-    --white: #FFFFFF;
-    --gray-light: #F2F2F2;
-    --danger: #FF1434;
-    --success: #34C759;
-    --warning: #FFCC00;
-    --info: #5856D6;
+    /* Cores principais do tema */
+    --primary-color: #FF1434;      /* Vermelho principal usado em botões e destaques */
+    --secondary-color: #F8CFCF;    /* Rosa claro usado em elementos secundários */
+    --background-color: #F6F8F9;   /* Cor de fundo padrão da aplicação */
+    --gray-light: #F2F2F2;         /* Cinza claro para bordas e separadores */
+    
+    /* Cores de texto */
+    --text-color: #333333;         /* Cor principal para textos */
+    --text-secondary: #666666;     /* Cor para textos secundários e subtítulos */
+    --white: #FFFFFF;              /* Branco puro para contraste */
+    
+    /* Cores de feedback */
+    --success: #4CAF50;           /* Verde para mensagens de sucesso */
+    --warning: #FFC107;           /* Amarelo para alertas */
+    --danger: #FF1434;            /* Vermelho para erros e alertas críticos */
+    --info: #2196F3;              /* Azul para informações */
     --app-width: 390px;
     --app-height: 100vh;
 }
 
-/* Reset e estilos base */
+/* Estilos base para reset e configuração inicial */
 * {
     margin: 0;
     padding: 0;
@@ -23,18 +28,111 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-html, body {
-    height: 100%;
+/* Configuração do corpo da página */
+body {
     background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 }
 
-body {
+/* Barra de status no topo do app */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 16px;
+    background-color: var(--background-color);
+    font-size: 14px;
+}
+
+/* Ícones da barra de status */
+.status-bar .icons {
+    display: flex;
+    gap: 4px;
+}
+
+/* Container principal para conteúdo */
+.container {
+    max-width: 390px;             /* Largura padrão para iPhone */
+    margin: 0 auto;
+    min-height: 100vh;
+    padding-bottom: 65px;         /* Espaço para a navegação inferior */
+    position: relative;
+}
+
+/* Navegação inferior */
+.nav-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 390px;
+    background-color: var(--background-color);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    border-top: 1px solid var(--gray-light);
+}
+
+/* Itens da navegação */
+.nav-item {
     display: flex;
     flex-direction: column;
-    max-width: var(--app-width);
-    margin: 0 auto;
-    position: relative;
-    overflow-x: hidden;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    gap: 4px;
+}
+
+/* Ícones da navegação */
+.nav-item i {
+    font-size: 1.2rem;
+}
+
+/* Estado ativo dos itens de navegação */
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+/* Indicador de home (barra inferior do iPhone) */
+.home-indicator {
+    position: fixed;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    background-color: #000;
+    border-radius: 100px;
+    opacity: 0.3;
+}
+
+/* Estilos para botões */
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+/* Variações de botões */
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+}
+
+/* Estado hover dos botões */
+.btn:hover {
+    opacity: 0.9;
 }
 
 /* Frame do App */
@@ -56,38 +154,6 @@ body {
     background-color: var(--background-color);
 }
 
-/* Status bar */
-.status-bar {
-    width: 100%;
-    padding: 14px 20px 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-    color: var(--text-color);
-    background-color: var(--background-color);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.status-bar .time {
-    font-size: 14px;
-}
-
-.status-bar .icons {
-    display: flex;
-    gap: 5px;
-}
-
-/* Container principal */
-.container {
-    flex: 1;
-    padding: 20px;
-    width: 100%;
-    padding-bottom: 80px; /* Espaço para a navegação inferior */
-}
-
 /* Tipografia */
 .title {
     font-size: 24px;
@@ -107,48 +173,6 @@ body {
     color: var(--text-secondary);
     font-size: 16px;
     line-height: 1.5;
-}
-
-/* Botões */
-.btn {
-    width: 100%;
-    padding: 15px;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 15px;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-}
-
-.btn:active {
-    opacity: 0.8;
-}
-
-.btn-primary {
-    background-color: var(--primary-color);
-    color: var(--white);
-}
-
-.btn-secondary {
-    background-color: #FFE4E8;
-    color: var(--primary-color);
-}
-
-.btn-outline {
-    background-color: transparent;
-    border: 2px solid var(--primary-color);
-    color: var(--primary-color);
-}
-
-/* Cards */
-.card {
-    background-color: var(--white);
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* Inputs */
@@ -175,54 +199,6 @@ body {
 .input-field:focus {
     outline: none;
     border-color: var(--primary-color);
-}
-
-/* Navegação inferior */
-.nav-bottom {
-    position: fixed;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: var(--app-width);
-    display: flex;
-    justify-content: space-around;
-    background-color: var(--background-color);
-    padding: 8px 0 20px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    color: var(--text-secondary);
-    font-size: 0.7rem;
-    gap: 4px;
-}
-
-.nav-item i {
-    font-size: 1.2rem;
-    margin-bottom: 2px;
-}
-
-.nav-item.active {
-    color: var(--primary-color);
-}
-
-/* Home indicator */
-.home-indicator {
-    width: 135px;
-    height: 5px;
-    background-color: #000;
-    border-radius: 100px;
-    position: fixed;
-    bottom: 5px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    opacity: 0.3;
 }
 
 /* Utilitários */

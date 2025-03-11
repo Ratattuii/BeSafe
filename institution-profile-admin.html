@@ -3,224 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BeSafe - Gerenciar Instituição</title>
+    <title>BeSafe - Perfil da Instituição</title>
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Estilos específicos do perfil administrativo */
-        .profile-header {
-            text-align: center;
-            padding: 20px;
+        /* Container principal com padding ajustado */
+        .container {
+            padding: 0;
+            padding-bottom: 65px;
             background-color: var(--background-color);
-            margin-bottom: 20px;
+        }
+
+        /* Cabeçalho do perfil */
+        .profile-header {
+            background-color: var(--background-color);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        /* Container da foto do perfil */
+        .profile-photo-container {
             position: relative;
-        }
-
-        .edit-profile-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--white);
-            border: 1px solid var(--gray-light);
-            padding: 8px;
-            border-radius: 50%;
-            color: var(--text-secondary);
-        }
-
-        .profile-avatar {
             width: 120px;
             height: 120px;
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            display: block;
-            object-fit: cover;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 16px;
         }
 
+        /* Foto do perfil */
+        .profile-photo {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Botão de editar foto */
+        .edit-photo-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Nome da instituição */
+        .profile-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        /* Localização da instituição */
+        .profile-location {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* Descrição da instituição */
+        .profile-description {
+            color: var(--text-color);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            padding: 0 20px;
+        }
+
+        /* Container de estatísticas */
         .profile-stats {
             display: flex;
-            justify-content: space-around;
-            padding: 20px 0;
-            border-top: 1px solid var(--gray-light);
-            margin-top: 20px;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 16px;
         }
 
+        /* Item individual de estatística */
         .stat-item {
             text-align: center;
         }
 
-        .stat-value {
-            font-size: 20px;
-            font-weight: bold;
-            color: var(--text-color);
+        /* Número da estatística */
+        .stat-number {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
         }
 
+        /* Label da estatística */
         .stat-label {
-            font-size: 12px;
             color: var(--text-secondary);
+            font-size: 12px;
         }
 
-        .section-header {
+        /* Container de ações do perfil */
+        .profile-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        /* Botão de editar perfil */
+        .edit-profile-btn {
+            background: none;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* Botão de postar pedido */
+        .post-request-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* Seção de conteúdo */
+        .profile-content {
+            padding: 20px;
+        }
+
+        /* Título da seção */
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            padding: 0 5px;
         }
 
-        .needs-title {
-            font-size: 22px;
-            font-weight: bold;
-            color: var(--text-color);
-        }
-
-        .add-need-btn {
-            background: var(--primary-color);
-            color: var(--white);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
+        /* Link para ver mais */
+        .see-all {
+            color: var(--primary-color);
             font-size: 14px;
+            text-decoration: none;
+        }
+
+        /* Lista de pedidos */
+        .requests-list {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: opacity 0.2s;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .add-need-btn:hover {
-            opacity: 0.9;
+        /* Card de pedido */
+        .request-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
         }
 
-        .need-card {
-            position: relative;
-            background-color: var(--white);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
+        /* Cabeçalho do card */
+        .request-header {
             display: flex;
-            align-items: center;
-            gap: 15px;
+            justify-content: space-between;
+            margin-bottom: 12px;
         }
 
-        .need-image {
-            width: 60px;
-            height: 60px;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-
-        .need-info {
-            flex: 1;
-        }
-
-        .need-name {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-color);
+        /* Título do pedido */
+        .request-title {
             font-size: 16px;
+            font-weight: 500;
         }
 
-        .need-quantity {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .need-actions {
-            display: flex;
-            gap: 15px;
-            margin-left: auto;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: background-color 0.2s;
-        }
-
-        .action-btn:hover {
-            background-color: var(--gray-light);
-        }
-
-        .donation-card {
-            position: relative;
-            background-color: var(--white);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .donation-info {
-            flex: 1;
-        }
-
-        .donation-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-color);
-            font-size: 16px;
-        }
-
-        .donation-date {
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .donation-status {
-            padding: 6px 12px;
-            border-radius: 20px;
+        /* Status do pedido */
+        .request-status {
             font-size: 12px;
-            background-color: var(--success);
-            color: var(--white);
-            margin-left: auto;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
         }
 
-        .donation-image {
-            width: 60px;
-            height: 60px;
-            border-radius: 10px;
-            object-fit: cover;
+        /* Descrição do pedido */
+        .request-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
         }
 
-        .needs-section, .donations-history {
-            padding: 20px;
-            background-color: var(--background-color);
-            margin-bottom: 30px;
-        }
-
-        .admin-actions {
+        /* Container de tags */
+        .request-tags {
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .admin-btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--gray-light);
-            background: var(--white);
-            color: var(--text-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             gap: 8px;
         }
 
-        .container {
-            padding-bottom: 65px;
+        /* Tag individual */
+        .tag {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background-color: var(--gray-light);
+            color: var(--text-secondary);
+        }
+
+        /* Tag de urgência */
+        .tag.urgent {
+            background-color: var(--primary-color);
+            color: white;
         }
     </style>
 </head>
 <body>
-    <!-- Status Bar -->
+    <!-- Barra de status do dispositivo -->
     <div class="status-bar">
         <span class="time">9:41</span>
         <div class="icons">
@@ -230,135 +229,76 @@
         </div>
     </div>
 
-    <!-- Conteúdo Principal -->
+    <!-- Container principal -->
     <div class="container">
-        <!-- Perfil Header -->
-        <header class="profile-header">
-            <button class="edit-profile-btn">
-                <i class="fas fa-pen"></i>
-            </button>
-            <img src="img/cruz-vermelha-logo.jpg" alt="Cruz Vermelha Brasileira" class="profile-avatar">
-            <h1 class="profile-name">Cruz Vermelha Brasileira</h1>
-            <p class="profile-username">@cruzvermelha</p>
-            <p class="profile-description">A Cruz Vermelha Brasileira é uma instituição humanitária que atua em situações de emergência e desastres, oferecendo apoio e assistência às comunidades afetadas. Fundada em 1908, a...</p>
+        <!-- Cabeçalho do perfil -->
+        <div class="profile-header">
+            <!-- Container da foto de perfil -->
+            <div class="profile-photo-container">
+                <img src="img/cruz-vermelha-logo.jpg" alt="Logo Cruz Vermelha" class="profile-photo">
+                <button class="edit-photo-btn">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
             
+            <!-- Informações da instituição -->
+            <h1 class="profile-name">Cruz Vermelha</h1>
+            <p class="profile-location">São Paulo, SP</p>
+            <p class="profile-description">
+                Organização humanitária que atua no auxílio a pessoas em situação de vulnerabilidade.
+            </p>
+            
+            <!-- Estatísticas do perfil -->
             <div class="profile-stats">
                 <div class="stat-item">
-                    <div class="stat-value">1.2K</div>
-                    <div class="stat-label">Seguidores</div>
+                    <div class="stat-number">156</div>
+                    <div class="stat-label">Pedidos</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value">89</div>
+                    <div class="stat-number">1.2k</div>
                     <div class="stat-label">Doações</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value">12</div>
-                    <div class="stat-label">Campanhas</div>
+                    <div class="stat-number">3.5k</div>
+                    <div class="stat-label">Impactados</div>
                 </div>
-            </div>
-
-            <div class="admin-actions">
-                <button class="admin-btn">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Estatísticas</span>
-                </button>
-                <button class="admin-btn">
-                    <i class="fas fa-cog"></i>
-                    <span>Configurações</span>
-                </button>
-            </div>
-        </header>
-
-        <!-- Necessidades Atuais -->
-        <section class="needs-section">
-            <div class="section-header">
-                <h2 class="needs-title">Necessidades Atuais</h2>
-                <button class="add-need-btn">
-                    <i class="fas fa-plus"></i>
-                    <span>Adicionar</span>
-                </button>
             </div>
             
-            <!-- Água Potável -->
-            <div class="need-card">
-                <img src="img/agua.jpg" alt="Água Potável" class="need-image">
-                <div class="need-info">
-                    <h3 class="need-name">Água Potável</h3>
-                    <p class="need-quantity">10.000 litros</p>
-                </div>
-                <div class="need-actions">
-                    <button class="action-btn"><i class="fas fa-pen"></i></button>
-                    <button class="action-btn"><i class="fas fa-trash"></i></button>
-                </div>
+            <!-- Botões de ação -->
+            <div class="profile-actions">
+                <button class="edit-profile-btn">Editar Perfil</button>
+                <button class="post-request-btn">Postar Pedido</button>
             </div>
+        </div>
 
-            <!-- Alimentos -->
-            <div class="need-card">
-                <img src="img/alimentos.jpg" alt="Alimentos Não Perecíveis" class="need-image">
-                <div class="need-info">
-                    <h3 class="need-name">Alimentos Não Perecíveis</h3>
-                    <p class="need-quantity">5.000 kg</p>
-                </div>
-                <div class="need-actions">
-                    <button class="action-btn"><i class="fas fa-pen"></i></button>
-                    <button class="action-btn"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-
-            <!-- Roupas -->
-            <div class="need-card">
-                <img src="img/roupas.jpg" alt="Roupas de Inverno" class="need-image">
-                <div class="need-info">
-                    <h3 class="need-name">Roupas de Inverno</h3>
-                    <p class="need-quantity">2.000 peças</p>
-                </div>
-                <div class="need-actions">
-                    <button class="action-btn"><i class="fas fa-pen"></i></button>
-                    <button class="action-btn"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Histórico de Doações -->
-        <section class="donations-history">
-            <div class="section-header">
-                <h2 class="needs-title">Histórico de Doações</h2>
-                <button class="add-need-btn">
-                    <i class="fas fa-filter"></i>
-                    <span>Filtrar</span>
-                </button>
+        <!-- Conteúdo do perfil -->
+        <div class="profile-content">
+            <!-- Seção de pedidos ativos -->
+            <div class="section-title">
+                <h2>Pedidos Ativos</h2>
+                <a href="#" class="see-all">Ver Todos</a>
             </div>
             
-            <!-- Doação 1 -->
-            <div class="donation-card">
-                <div class="donation-info">
-                    <h3 class="donation-title">Doação de Alimentos</h3>
-                    <p class="donation-date">Recebido em 01/09/2023</p>
+            <!-- Lista de pedidos -->
+            <div class="requests-list">
+                <!-- Card de pedido individual -->
+                <div class="request-card">
+                    <div class="request-header">
+                        <h3 class="request-title">Campanha de Inverno</h3>
+                        <span class="request-status">Em Andamento</span>
+                    </div>
+                    <p class="request-description">
+                        Precisamos de cobertores e agasalhos para...
+                    </p>
+                    <div class="request-tags">
+                        <span class="tag urgent">Urgente</span>
+                        <span class="tag">Roupas</span>
+                        <span class="tag">Inverno</span>
+                    </div>
                 </div>
-                <span class="donation-status">Confirmado</span>
-                <img src="img/alimentos-doacao.jpg" alt="Doação de Alimentos" class="donation-image">
+                <!-- Mais cards de pedido seguem o mesmo padrão -->
             </div>
-
-            <!-- Doação 2 -->
-            <div class="donation-card">
-                <div class="donation-info">
-                    <h3 class="donation-title">Doação de Roupas</h3>
-                    <p class="donation-date">Recebido em 15/08/2023</p>
-                </div>
-                <span class="donation-status">Confirmado</span>
-                <img src="img/roupas-doacao.jpg" alt="Doação de Roupas" class="donation-image">
-            </div>
-
-            <!-- Doação 3 -->
-            <div class="donation-card">
-                <div class="donation-info">
-                    <h3 class="donation-title">Doação de Medicamentos</h3>
-                    <p class="donation-date">Recebido em 30/07/2023</p>
-                </div>
-                <span class="donation-status">Confirmado</span>
-                <img src="img/medicamentos-doacao.jpg" alt="Doação de Medicamentos" class="donation-image">
-            </div>
-        </section>
+        </div>
     </div>
 
     <!-- Navegação inferior -->
@@ -385,7 +325,7 @@
         </a>
     </nav>
 
-    <!-- Home Indicator -->
+    <!-- Indicador home do iPhone -->
     <div class="home-indicator"></div>
 </body>
 </html> 
