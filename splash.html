@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Estilos específicos da splash screen */
+        .logo-container {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .logo i {
+            color: var(--white);
+            font-size: 50px;
+        }
+
+        .brand-name {
+            color: var(--primary-color);
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .container {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .description {
+            margin-bottom: 40px;
+        }
+
+        .splash-screen {
+            background-color: var(--primary-color);
+        }
+
+        .loading-indicator {
+            background-color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container fade-in">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-heart"></i>
+            </div>
+            <div class="brand-name">BeSafe</div>
+        </div>
+
+        <h1 class="title">Conectando Doadores e<br>Receptores</h1>
+        <p class="text-body description">Junte-se à nossa comunidade para ajudar a fazer a diferença doando ou recebendo itens essenciais.</p>
+
+        <button class="btn btn-primary">Sou doador</button>
+        <button class="btn btn-secondary">Sou receptor</button>
+    </div>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

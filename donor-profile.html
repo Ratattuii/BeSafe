@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Perfil do Doador</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .profile-header {
+            text-align: center;
+            padding: 30px 20px;
+            background-color: var(--background-color);
+            margin-bottom: 20px;
+        }
+
+        .profile-type {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: block;
+            object-fit: cover;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+
+        .profile-username {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+
+        .donation-card {
+            background-color: var(--white);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 0 20px 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .donation-info {
+            flex: 1;
+        }
+
+        .donation-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        .donation-date {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .donation-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .listed-donations {
+            margin-top: 30px;
+        }
+
+        .listed-item {
+            background-color: var(--white);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin: 0 20px 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .item-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .item-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .item-status {
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        .donation-status {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        .status-urgent {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <!-- Perfil Header -->
+        <header class="profile-header">
+            <h2 class="profile-type">Doador</h2>
+            <img src="img/joao-silva.jpg" alt="João Silva" class="profile-avatar">
+            <h1 class="profile-name">João Silva</h1>
+            <p class="profile-username">@joaosilva</p>
+        </header>
+
+        <!-- Histórico de Doações -->
+        <section class="donations-history">
+            <h2 class="section-title">Histórico de Doações</h2>
+            
+            <!-- Doação 1 -->
+            <div class="donation-card">
+                <div class="donation-info">
+                    <h3 class="donation-title">Doação de Medicamentos</h3>
+                    <p class="donation-date">Doado em 20/10/2024</p>
+                </div>
+                <img src="img/medicamentos-doacao.jpg" alt="Doação de Medicamentos" class="donation-image">
+            </div>
+
+            <!-- Doação 2 -->
+            <div class="donation-card">
+                <div class="donation-info">
+                    <h3 class="donation-title">Doação de Roupas</h3>
+                    <p class="donation-date">Doado em 20/08/2024</p>
+                </div>
+                <img src="img/roupas-doacao.jpg" alt="Doação de Roupas" class="donation-image">
+            </div>
+
+            <!-- Doação 3 -->
+            <div class="donation-card">
+                <div class="donation-info">
+                    <h3 class="donation-title">Doação de Alimentos</h3>
+                    <p class="donation-date">Doado em 25/07/2024</p>
+                </div>
+                <img src="img/alimentos-doacao.jpg" alt="Doação de Alimentos" class="donation-image">
+            </div>
+        </section>
+
+        <!-- Doações Listadas -->
+        <section class="listed-donations">
+            <h2 class="section-title">Suas Doações Listadas</h2>
+
+            <!-- Item 1 -->
+            <div class="listed-item">
+                <img src="img/arroz.jpg" alt="Arroz" class="item-image">
+                <div class="item-info">
+                    <h3 class="item-name">Arroz</h3>
+                    <p class="item-description">Arroz branco</p>
+                </div>
+                <div class="item-status">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="listed-item">
+                <img src="img/camisetas.jpg" alt="Camisetas" class="item-image">
+                <div class="item-info">
+                    <h3 class="item-name">Camisetas</h3>
+                    <p class="item-description">Camisetas de algodão</p>
+                </div>
+                <div class="item-status">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="listed-item">
+                <img src="img/paracetamol.jpg" alt="Paracetamol" class="item-image">
+                <div class="item-info">
+                    <h3 class="item-name">Paracetamol</h3>
+                    <p class="item-description">Paracetamol 500mg</p>
+                </div>
+                <div class="item-status">
+                    <i class="fas fa-lock"></i>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Navegação inferior -->
+    <nav class="nav-bottom">
+        <a href="#" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-comment-alt"></i>
+            <span>Mensagens</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-user"></i>
+            <span>Perfil</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-bell"></i>
+            <span>Notificações</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-search"></i>
+            <span>Pesquisar</span>
+        </a>
+    </nav>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

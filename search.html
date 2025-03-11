@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Ajuda Humanitária</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container {
+            padding: 0;
+            background-color: var(--background-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-header {
+            text-align: center;
+            padding: 16px;
+            background-color: var(--background-color);
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .search-bar {
+            margin: 16px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            background-color: white;
+            border-radius: 12px;
+            padding: 8px 16px;
+        }
+
+        .search-icon {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            font-size: 14px;
+            color: var(--text-color);
+            background: none;
+        }
+
+        .voice-icon {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .filter-section {
+            padding: 0 16px 16px;
+        }
+
+        .filter-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 12px;
+        }
+
+        .filter-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .filter-button {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            border: none;
+            background-color: white;
+            color: var(--text-color);
+        }
+
+        .filter-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .location-input {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .location-button {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            border: none;
+            background-color: white;
+            color: var(--text-color);
+        }
+
+        .filter-actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .clear-button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .apply-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .sort-options {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            background-color: var(--background-color);
+        }
+
+        .sort-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--text-color);
+            background: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sort-button i {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+
+        .results-list {
+            padding: 16px;
+        }
+
+        .institution-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+
+        .institution-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-right: 16px;
+            object-fit: cover;
+        }
+
+        .institution-info {
+            flex: 1;
+        }
+
+        .institution-name {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--text-color);
+        }
+
+        .institution-location {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .institution-action {
+            color: var(--text-secondary);
+            font-size: 20px;
+        }
+
+        /* Navegação inferior customizada */
+        .nav-bottom {
+            border-top: 1px solid var(--gray-light);
+            box-shadow: none;
+            padding: 8px 0;
+        }
+
+        .nav-item {
+            color: var(--text-secondary);
+        }
+
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+
+        .nav-item.active i {
+            color: var(--primary-color);
+        }
+
+        .nav-item i {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-item span {
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <header class="page-header">
+            <h1 class="page-title">Ajuda Humanitária</h1>
+        </header>
+
+        <!-- Barra de Pesquisa -->
+        <div class="search-bar">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Buscar por instituições, tipos de doação o">
+            <i class="fas fa-microphone voice-icon"></i>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-section">
+            <h2 class="filter-title">Filtrar por Tipo de Doação</h2>
+            <div class="filter-options">
+                <button class="filter-button active">Alimentos</button>
+                <button class="filter-button">Roupas</button>
+                <button class="filter-button">Medicamentos</button>
+            </div>
+
+            <h2 class="filter-title">Filtrar por Localização</h2>
+            <div class="filter-options">
+                <button class="location-input">Digite a localização</button>
+                <button class="location-button">Usar localização atual</button>
+            </div>
+
+            <h2 class="filter-title">Filtrar por Tipo de Instituição</h2>
+            <div class="filter-options">
+                <button class="filter-button active">ONGs</button>
+                <button class="filter-button">Abrigos</button>
+                <button class="filter-button">Centros Comunitários</button>
+            </div>
+        </div>
+
+        <!-- Ações dos Filtros -->
+        <div class="filter-actions">
+            <button class="clear-button">Limpar</button>
+            <button class="apply-button">Aplicar</button>
+        </div>
+
+        <!-- Ordenação -->
+        <div class="sort-options">
+            <button class="sort-button">
+                Proximidade
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <button class="sort-button">
+                Urgência
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <button class="sort-button">Mais Recentes</button>
+        </div>
+
+        <!-- Lista de Resultados -->
+        <div class="results-list">
+            <!-- Cruz Vermelha -->
+            <a href="#" class="institution-card">
+                <img src="img/cruz-vermelha-logo.jpg" alt="Cruz Vermelha" class="institution-logo">
+                <div class="institution-info">
+                    <h2 class="institution-name">Cruz Vermelha</h2>
+                    <p class="institution-location">São Paulo, SP</p>
+                </div>
+                <i class="fas fa-plus institution-action"></i>
+            </a>
+
+            <!-- Médicos Sem Fronteiras -->
+            <a href="#" class="institution-card">
+                <img src="img/msf-logo.jpg" alt="Médicos Sem Fronteiras" class="institution-logo">
+                <div class="institution-info">
+                    <h2 class="institution-name">Médicos Sem Fronteiras</h2>
+                    <p class="institution-location">Rio de Janeiro, RJ</p>
+                </div>
+                <i class="fas fa-plus institution-action"></i>
+            </a>
+
+            <!-- Banco de Alimentos -->
+            <a href="#" class="institution-card">
+                <img src="img/banco-alimentos-logo.jpg" alt="Banco de Alimentos" class="institution-logo">
+                <div class="institution-info">
+                    <h2 class="institution-name">Banco de Alimentos</h2>
+                    <p class="institution-location">Belo Horizonte, MG</p>
+                </div>
+                <i class="fas fa-utensils institution-action"></i>
+            </a>
+
+            <!-- Casa de Apoio -->
+            <a href="#" class="institution-card">
+                <img src="img/casa-apoio-logo.jpg" alt="Casa de Apoio" class="institution-logo">
+                <div class="institution-info">
+                    <h2 class="institution-name">Casa de Apoio</h2>
+                    <p class="institution-location">Porto Alegre, RS</p>
+                </div>
+                <i class="fas fa-home institution-action"></i>
+            </a>
+
+            <!-- Centro Comunitário -->
+            <a href="#" class="institution-card">
+                <img src="img/centro-comunitario-logo.jpg" alt="Centro Comunitário São José" class="institution-logo">
+                <div class="institution-info">
+                    <h2 class="institution-name">Centro Comunitário São...</h2>
+                    <p class="institution-location">Curitiba, PR</p>
+                </div>
+                <i class="fas fa-users institution-action"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Navegação inferior -->
+    <nav class="nav-bottom">
+        <a href="#" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-comment-alt"></i>
+            <span>Mensagens</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Perfil</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-bell"></i>
+            <span>Notificações</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-search"></i>
+            <span>Pesquisar</span>
+        </a>
+    </nav>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

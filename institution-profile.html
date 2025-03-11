@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Perfil Instituição</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Estilos específicos do perfil da instituição */
+        .profile-header {
+            text-align: center;
+            padding: 20px;
+            background-color: var(--background-color);
+            margin-bottom: 20px;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: block;
+            object-fit: cover;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .profile-username {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .profile-description {
+            color: var(--text-color);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            padding: 0 20px;
+        }
+
+        .btn-follow {
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        /* Necessidades atuais */
+        .needs-section {
+            padding: 20px;
+            background-color: var(--background-color);
+        }
+
+        .needs-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .need-card {
+            background-color: var(--white);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .need-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .need-info {
+            flex: 1;
+        }
+
+        .need-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .need-quantity {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .need-action {
+            color: var(--text-secondary);
+            font-size: 20px;
+        }
+
+        /* Histórico de doações */
+        .donations-history {
+            padding: 20px;
+        }
+
+        .donation-card {
+            background-color: var(--white);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .donation-info {
+            flex: 1;
+        }
+
+        .donation-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .donation-date {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .donation-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        .priority-tag {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        .status-tag.urgent {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <!-- Perfil Header -->
+        <header class="profile-header">
+            <img src="img/cruz-vermelha-logo.jpg" alt="Cruz Vermelha Brasileira" class="profile-avatar">
+            <h1 class="profile-name">Cruz Vermelha Brasileira</h1>
+            <p class="profile-username">@cruzvermelha</p>
+            <p class="profile-description">A Cruz Vermelha Brasileira é uma instituição humanitária que atua em situações de emergência e desastres, oferecendo apoio e assistência às comunidades afetadas. Fundada em 1908, a...</p>
+            <button class="btn btn-primary btn-follow">Seguir</button>
+        </header>
+
+        <!-- Necessidades Atuais -->
+        <section class="needs-section">
+            <h2 class="needs-title">Necessidades Atuais</h2>
+            
+            <!-- Água Potável -->
+            <div class="need-card">
+                <img src="img/agua.jpg" alt="Água Potável" class="need-image">
+                <div class="need-info">
+                    <h3 class="need-name">Água Potável</h3>
+                    <p class="need-quantity">10.000 litros</p>
+                </div>
+                <div class="need-action">
+                    <i class="fas fa-ellipsis-v"></i>
+                </div>
+            </div>
+
+            <!-- Alimentos -->
+            <div class="need-card">
+                <img src="img/alimentos.jpg" alt="Alimentos Não Perecíveis" class="need-image">
+                <div class="need-info">
+                    <h3 class="need-name">Alimentos Não Perecíveis</h3>
+                    <p class="need-quantity">5.000 kg</p>
+                </div>
+                <div class="need-action">
+                    <i class="fas fa-lock"></i>
+                </div>
+            </div>
+
+            <!-- Roupas -->
+            <div class="need-card">
+                <img src="img/roupas.jpg" alt="Roupas de Inverno" class="need-image">
+                <div class="need-info">
+                    <h3 class="need-name">Roupas de Inverno</h3>
+                    <p class="need-quantity">2.000 peças</p>
+                </div>
+                <div class="need-action">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Histórico de Doações -->
+        <section class="donations-history">
+            <h2 class="needs-title">Histórico de Doações</h2>
+            
+            <!-- Doação 1 -->
+            <div class="donation-card">
+                <div class="donation-info">
+                    <h3 class="donation-title">Doação de Alimentos</h3>
+                    <p class="donation-date">Recebido em 01/09/2023</p>
+                </div>
+                <img src="img/alimentos-doacao.jpg" alt="Doação de Alimentos" class="donation-image">
+            </div>
+
+            <!-- Doação 2 -->
+            <div class="donation-card">
+                <div class="donation-info">
+                    <h3 class="donation-title">Doação de Roupas</h3>
+                    <p class="donation-date">Recebido em 15/08/2023</p>
+                </div>
+                <img src="img/roupas-doacao.jpg" alt="Doação de Roupas" class="donation-image">
+            </div>
+
+            <!-- Doação 3 -->
+            <div class="donation-card">
+                <div class="donation-info">
+                    <h3 class="donation-title">Doação de Medicamentos</h3>
+                    <p class="donation-date">Recebido em 30/07/2023</p>
+                </div>
+                <img src="img/medicamentos-doacao.jpg" alt="Doação de Medicamentos" class="donation-image">
+            </div>
+        </section>
+    </div>
+
+    <!-- Navegação inferior -->
+    <nav class="nav-bottom">
+        <a href="#" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-comment-alt"></i>
+            <span>Mensagens</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-user"></i>
+            <span>Perfil</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-bell"></i>
+            <span>Notificações</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-search"></i>
+            <span>Pesquisar</span>
+        </a>
+    </nav>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

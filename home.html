@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Home</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Estilos específicos da home */
+        .filters {
+            display: flex;
+            gap: 10px;
+            padding: 10px 20px;
+            overflow-x: auto;
+            background-color: var(--background-color);
+            margin-bottom: 15px;
+        }
+
+        .filter-tag {
+            padding: 8px 15px;
+            border-radius: 20px;
+            background-color: var(--gray-light);
+            color: var(--text-color);
+            font-size: 14px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .filter-tag.active {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .post-card {
+            background-color: var(--white);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .post-info h3 {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .post-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .post-content {
+            margin-bottom: 15px;
+        }
+
+        .post-image {
+            width: 100%;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .post-action {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .institutions-section {
+            margin-top: 30px;
+        }
+
+        .institution-card {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background-color: var(--white);
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .institution-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            margin-right: 12px;
+        }
+
+        .institution-info {
+            flex: 1;
+        }
+
+        .institution-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .institution-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .urgency-tag {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+
+        .urgency-high {
+            background-color: var(--danger);
+            color: var(--white);
+        }
+
+        .urgency-medium {
+            background-color: var(--warning);
+            color: var(--text-color);
+        }
+
+        .btn-doar {
+            padding: 6px 15px;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* Navegação inferior customizada */
+        .nav-bottom .nav-item {
+            color: #999;
+        }
+
+        .nav-bottom .nav-item.active {
+            color: var(--primary-color);
+        }
+
+        .category-tag {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .urgent-tag {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .search-bar {
+            background-color: var(--white);
+            border: 1px solid var(--gray-light);
+        }
+
+        .filter-button {
+            background-color: var(--white);
+            border: 1px solid var(--gray-light);
+        }
+
+        .filter-button.active {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters">
+        <span class="filter-tag active">
+            <i class="fas fa-exclamation-circle"></i>
+            Urgente
+        </span>
+        <span class="filter-tag">
+            <i class="fas fa-utensils"></i>
+            Alimentos
+        </span>
+        <span class="filter-tag">
+            <i class="fas fa-tshirt"></i>
+            Roupas
+        </span>
+    </div>
+
+    <!-- Feed Principal -->
+    <div class="container">
+        <!-- Post 1 -->
+        <div class="post-card">
+            <div class="post-header">
+                <img src="img/sao-vicente.jpg" alt="Casa de Apoio São Vicente" class="post-avatar">
+                <div class="post-info">
+                    <h3>Casa de Apoio São Vicente</h3>
+                    <span class="post-date">2023-10-01 14:30</span>
+                </div>
+            </div>
+            <div class="post-content">
+                <p>A Casa de Apoio São Vicente está precisando urgentemente de alimentos não perecíveis. Qualquer ajuda é bem-vinda!</p>
+                <img src="img/alimentos.jpg" alt="Alimentos não perecíveis" class="post-image">
+            </div>
+            <div class="post-actions">
+                <span class="post-action"><i class="far fa-heart"></i> 120</span>
+                <span class="post-action"><i class="far fa-comment"></i> 45</span>
+                <span class="post-action"><i class="fas fa-share"></i> 30</span>
+            </div>
+        </div>
+
+        <!-- Post 2 -->
+        <div class="post-card">
+            <div class="post-header">
+                <img src="img/lar-idosos.jpg" alt="Lar dos Idosos Esperança" class="post-avatar">
+                <div class="post-info">
+                    <h3>Lar dos Idosos Esperança</h3>
+                    <span class="post-date">2023-10-02 09:15</span>
+                </div>
+            </div>
+            <div class="post-content">
+                <p>O Lar dos Idosos Esperança está necessitando de roupas de inverno para os residentes. Doe e ajude a aquecer o coração de alguém!</p>
+                <img src="img/roupas-inverno.jpg" alt="Roupas de inverno" class="post-image">
+            </div>
+            <div class="post-actions">
+                <span class="post-action"><i class="far fa-heart"></i> 85</span>
+                <span class="post-action"><i class="far fa-comment"></i> 20</span>
+                <span class="post-action"><i class="fas fa-share"></i> 15</span>
+            </div>
+        </div>
+
+        <!-- Seção de Instituições Seguidas -->
+        <section class="institutions-section">
+            <h2 class="subtitle">Necessidades das Instituições Seguidas</h2>
+            
+            <!-- Instituição 1 -->
+            <div class="institution-card">
+                <img src="img/cruz-vermelha.jpg" alt="Cruz Vermelha Brasileira" class="institution-logo">
+                <div class="institution-info">
+                    <span class="urgency-tag urgency-high">Urgente</span>
+                    <h3 class="institution-name">Cruz Vermelha Brasileira</h3>
+                    <p class="institution-description">Precisamos de doações de...</p>
+                </div>
+                <button class="btn btn-primary btn-doar">Doar</button>
+            </div>
+
+            <!-- Instituição 2 -->
+            <div class="institution-card">
+                <img src="img/msf.jpg" alt="Médicos Sem Fronteiras" class="institution-logo">
+                <div class="institution-info">
+                    <span class="urgency-tag urgency-high">Alta</span>
+                    <h3 class="institution-name">Médicos Sem Fronteiras</h3>
+                    <p class="institution-description">Necessitamos de...</p>
+                </div>
+                <button class="btn btn-primary btn-doar">Doar</button>
+            </div>
+
+            <!-- Mais instituições... -->
+            <div class="institution-card">
+                <img src="img/banco-alimentos.jpg" alt="Banco de Alimentos" class="institution-logo">
+                <div class="institution-info">
+                    <span class="urgency-tag urgency-medium">Média</span>
+                    <h3 class="institution-name">Banco de Alimentos</h3>
+                    <p class="institution-description">Estamos arrecadando...</p>
+                </div>
+                <button class="btn btn-primary btn-doar">Doar</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Navegação inferior -->
+    <nav class="nav-bottom">
+        <a href="#" class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-comment-alt"></i>
+            <span>Mensagens</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Perfil</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-bell"></i>
+            <span>Notificações</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-search"></i>
+            <span>Pesquisar</span>
+        </a>
+    </nav>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

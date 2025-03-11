@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Postar Pedido</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container {
+            padding: 20px;
+            background-color: var(--background-color);
+        }
+
+        .back-button {
+            color: var(--text-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 12px;
+            font-size: 16px;
+            color: var(--text-color);
+            background-color: var(--white);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .form-textarea {
+            width: 100%;
+            height: 120px;
+            padding: 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 12px;
+            font-size: 16px;
+            color: var(--text-color);
+            background-color: var(--white);
+            resize: none;
+        }
+
+        .priority-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .priority-option {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--gray-light);
+            border-radius: 12px;
+            background-color: var(--white);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .priority-option.selected {
+            border-color: var(--primary-color);
+            background-color: var(--secondary-color);
+        }
+
+        .priority-option.urgent {
+            color: var(--danger);
+        }
+
+        .priority-option i {
+            font-size: 16px;
+        }
+
+        .priority-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .publish-button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--primary-color);
+            color: var(--white);
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 32px;
+            cursor: pointer;
+        }
+
+        .cancel-button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            background: none;
+            color: var(--text-color);
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <a href="#" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+
+        <h1 class="page-title">Postar um Pedido</h1>
+        <p class="page-subtitle">Solicite doações para atender às suas necessidades</p>
+
+        <form>
+            <div class="form-group">
+                <label class="form-label">Título</label>
+                <input type="text" class="form-input" placeholder="Descreva brevemente sua necessidade">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrição Detalhada</label>
+                <textarea class="form-textarea" placeholder="Explique sua necessidade em detalhes"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Quantidade</label>
+                <input type="text" class="form-input" placeholder="Digite a quantidade necessária">
+            </div>
+
+            <div class="form-group">
+                <div class="priority-options">
+                    <div class="priority-option urgent selected">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span class="priority-label">Urgente</span>
+                    </div>
+                    <div class="priority-option">
+                        <i class="fas fa-arrow-up"></i>
+                        <span class="priority-label">Alta</span>
+                    </div>
+                    <div class="priority-option">
+                        <i class="fas fa-minus"></i>
+                        <span class="priority-label">Média</span>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="publish-button">Publicar Pedido</button>
+            <button type="button" class="cancel-button">Cancelar</button>
+        </form>
+    </div>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 
