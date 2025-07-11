@@ -1,81 +1,138 @@
-# BeSafe - Plataforma de Doações Humanitárias
+# BeSafe - Sistema de Doações Humanitárias 🏥
 
 ## 📱 Sobre o Projeto
 
-BeSafe é uma plataforma mobile desenvolvida para conectar doadores e instituições de ajuda humanitária. O aplicativo facilita o processo de doação, permitindo que pessoas encontrem e apoiem causas importantes de forma simples e direta.
+BeSafe é um sistema completo (Frontend + Backend) desenvolvido para conectar doadores e instituições de ajuda humanitária. A plataforma facilita o processo de doação, permitindo que pessoas encontrem e apoiem causas importantes de forma simples e direta.
 
 ## 🎯 Objetivo
 
-O objetivo principal é criar uma ponte eficiente entre pessoas que desejam doar e instituições que necessitam de recursos, tornando o processo de doação mais acessível, transparente e eficaz.
+Criar uma ponte eficiente entre pessoas que desejam doar e instituições que necessitam de recursos, tornando o processo de doação mais acessível, transparente e eficaz.
 
-## 💡 Principais Funcionalidades
+## 📁 Estrutura do Projeto
 
-- **Para Doadores:**
-  - Busca de instituições e causas
-  - Visualização de pedidos de doação
-  - Cadastro de itens para doação
-  - Chat direto com instituições
-  - Acompanhamento de doações
-
-- **Para Instituições:**
-  - Perfil institucional detalhado
-  - Cadastro de necessidades
-  - Gestão de doações recebidas
-  - Comunicação com doadores
-  - Histórico de atividades
+```
+📁 BeSafe/
+├── 📁 backend/          # API REST (Node.js + Express + MySQL)
+│   ├── server.js        # Servidor principal
+│   ├── db.js           # Configuração do banco
+│   ├── package.json    # Dependências do backend
+│   └── package-lock.json
+├── 📁 frontend/         # Interface web (HTML + CSS + JS)
+│   ├── *.html          # Páginas da aplicação
+│   └── package.json    # Dependências do frontend
+├── 📁 docs/            # Documentação
+│   ├── README-API.md   # Documentação da API
+│   ├── TESTES-API.md   # Exemplos de teste
+│   └── README-MYSQL.md # Configuração do banco
+├── README.md           # Este arquivo
+├── package.json        # Gerenciamento geral
+└── .gitignore
+```
 
 ## 🛠️ Tecnologias Utilizadas
 
-- HTML5
-- CSS3
-- JavaScript
-- Font Awesome (ícones)
-- Bibliotecas de UI/UX
+### Backend:
+- **Node.js + Express.js** - Servidor da API
+- **MySQL2** - Banco de dados
+- **JWT** - Autenticação
+- **bcrypt** - Hash de senhas
+- **CORS + Express Validator** - Validação e segurança
 
-## 📱 Interfaces Implementadas
+### Frontend:
+- **HTML5 + CSS3 + JavaScript** - Interface
+- **Font Awesome** - Ícones
+- **Live Server** - Servidor de desenvolvimento
 
-1. **Tela Inicial (Home)**
-   - Feed de pedidos de doação
-   - Filtros por categoria
-   - Lista de instituições
+## 💡 Principais Funcionalidades
 
-2. **Perfis**
-   - Perfil do Doador
-   - Perfil da Instituição
-   - Edição de perfil
+### Para Doadores:
+- Busca de instituições e causas
+- Visualização de pedidos de doação
+- Cadastro de itens para doação
+- Chat direto com instituições
+- Acompanhamento de doações
 
-3. **Sistema de Mensagens**
-   - Lista de conversas
-   - Chat individual
-   - Notificações
-
-4. **Cadastro de Doações**
-   - Formulário para novos itens
-   - Seleção de categorias
-   - Upload de fotos
-
-5. **Busca e Filtros**
-   - Pesquisa por palavra-chave
-   - Filtros avançados
-   - Ordenação de resultados
+### Para Instituições:
+- Perfil institucional detalhado
+- Cadastro de necessidades
+- Gestão de doações recebidas
+- Comunicação com doadores
+- Histórico de atividades
 
 ## 🚀 Como Executar
 
-1. Clone o repositório
+### 1. **Instalação Completa**
 ```bash
+# Clonar o repositório
 git clone https://github.com/seu-usuario/besafe-app.git
-```
-
-2. Navegue até o diretório
-```bash
 cd besafe-app
+
+# Instalar todas as dependências
+npm run install:all
 ```
 
-3. Abra o arquivo index.html em seu navegador
+### 2. **Configurar o Banco de Dados**
 ```bash
-open index.html
+# Consulte o arquivo docs/README-MYSQL.md para instruções detalhadas
 ```
+
+### 3. **Executar o Sistema Completo**
+```bash
+# Frontend (porta 3000) + Backend (porta 3001)
+npm start
+```
+
+### 4. **Ou executar separadamente:**
+
+**Backend apenas:**
+```bash
+npm run backend
+# ou
+cd backend && npm start
+```
+
+**Frontend apenas:**
+```bash
+npm run frontend
+# ou
+cd frontend && npm start
+```
+
+## 📊 Endpoints da API
+
+- **Backend**: `http://localhost:3001/api`
+- **Frontend**: `http://localhost:3000`
+
+Consulte `docs/README-API.md` para documentação completa.
+
+## 📚 Documentação
+
+- **[API Documentation](docs/README-API.md)** - Documentação completa da API
+- **[Testing Guide](docs/TESTES-API.md)** - Exemplos de teste com curl
+- **[MySQL Setup](docs/README-MYSQL.md)** - Configuração do banco de dados
+
+## 🔧 Scripts Disponíveis
+
+```bash
+npm start           # Executa frontend + backend
+npm run dev         # Modo desenvolvimento
+npm run backend     # Apenas backend
+npm run frontend    # Apenas frontend
+npm run install:all # Instala todas as dependências
+```
+
+## 📱 Interfaces Implementadas
+
+1. **Tela Inicial** - Feed de pedidos e filtros
+2. **Perfis** - Doador e Instituição
+3. **Mensagens** - Chat em tempo real
+4. **Doações** - Cadastro e acompanhamento
+5. **Busca** - Filtros avançados
 
 ## 👥 Autores
 
-- Desenvolvedor Principal Fullstack - [Arthur Selegar](https://github.com/Ratattuii)
+- **Desenvolvedor Principal Fullstack** - [Arthur Selegar](https://github.com/Ratattuii)
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
