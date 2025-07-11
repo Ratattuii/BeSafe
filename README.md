@@ -98,19 +98,6 @@ npm run frontend
 cd frontend && npm start
 ```
 
-## 📊 Endpoints da API
-
-- **Backend**: `http://localhost:3001/api`
-- **Frontend**: `http://localhost:3000`
-
-Consulte `docs/README-API.md` para documentação completa.
-
-## 📚 Documentação
-
-- **[API Documentation](docs/README-API.md)** - Documentação completa da API
-- **[Testing Guide](docs/TESTES-API.md)** - Exemplos de teste com curl
-- **[MySQL Setup](docs/README-MYSQL.md)** - Configuração do banco de dados
-
 ## 🔧 Scripts Disponíveis
 
 ```bash
@@ -132,7 +119,3 @@ npm run install:all # Instala todas as dependências
 ## 👥 Autores
 
 - **Desenvolvedor Principal Fullstack** - [Arthur Selegar](https://github.com/Ratattuii)
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT.
