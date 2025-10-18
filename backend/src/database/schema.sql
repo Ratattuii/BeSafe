@@ -287,6 +287,7 @@ SELECT
     n.*,
     u.name as institution_name,
     u.avatar as institution_avatar,
+    u.address as institution_location,
     u.is_verified as institution_verified,
     COUNT(d.id) as total_donations,
     SUM(d.quantity) as total_donated
@@ -308,13 +309,6 @@ FROM users u
 LEFT JOIN donations d ON u.id = d.donor_id AND d.status IN ('confirmada', 'entregue')
 WHERE u.role = 'donor'
 GROUP BY u.id;
-
--- ==============================================
--- TRIGGERS (Simplificados)
--- ==============================================
-
--- Trigger para criar configurações padrão para novos usuários
--- (Os outros triggers e procedures serão implementados via código quando necessário)
 
 -- ==============================================
 -- COMENTÁRIOS FINAIS
