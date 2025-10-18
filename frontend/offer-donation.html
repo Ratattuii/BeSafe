@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Oferecer Doação</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container {
+            padding: 16px;
+            background-color: var(--background-color);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .back-button {
+            color: var(--text-color);
+            font-size: 20px;
+            margin-right: 16px;
+            text-decoration: none;
+        }
+
+        .main-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .donation-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .form-input {
+            padding: 12px 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .form-select {
+            padding: 12px 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-color);
+            background-color: white;
+        }
+
+        .form-textarea {
+            padding: 12px 16px;
+            border: 1px solid var(--gray-light);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-color);
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .btn-secondary {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <header class="header">
+            <a href="#" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </header>
+
+        <h1 class="main-title">Oferecer Doações</h1>
+        <p class="subtitle">Preencha os dados do item que você deseja doar</p>
+
+        <form class="donation-form">
+            <div class="form-group">
+                <label class="form-label">Nome do Item</label>
+                <input type="text" class="form-input" placeholder="Ex: Cobertores de lã">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <select class="form-select">
+                    <option value="">Selecione o tipo do item</option>
+                    <option value="roupas">Roupas</option>
+                    <option value="alimentos">Alimentos</option>
+                    <option value="medicamentos">Medicamentos</option>
+                    <option value="higiene">Higiene</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Quantidade</label>
+                <input type="number" class="form-input" placeholder="Ex: 5">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrição</label>
+                <textarea class="form-textarea" placeholder="Descreva os detalhes do item..."></textarea>
+            </div>
+
+            <div class="button-container">
+                <button type="submit" class="btn-primary">Publicar Item</button>
+                <button type="button" class="btn-secondary">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

@@ -1,0 +1,64 @@
+{
+  "name": "besafe-frontend",
+<<<<<<< HEAD
+  "license": "0BSD",
+  "version": "1.0.0",
+  "main": "index.js",
+=======
+  "version": "1.0.0",
+  "description": "Frontend do BeSafe - Plataforma de conexão para doadores e receptores em desastres",
+  "main": "node_modules/expo/AppEntry.js",
+>>>>>>> 3880e63 (Initial commit - BeSafe Platform)
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+<<<<<<< HEAD
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.4",
+    "axios": "^1.9.0",
+    "expo": "~53.0.11",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.79.3",
+    "react-native-web": "^0.20.0",
+    "@react-native-async-storage/async-storage": "2.1.2"
+=======
+  "keywords": [
+    "disaster",
+    "donation",
+    "humanitarian",
+    "aid",
+    "react-native"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@expo/metro-runtime": "~4.0.0",
+    "@react-navigation/bottom-tabs": "^7.4.6",
+    "@react-navigation/native": "^7.1.17",
+    "@react-navigation/stack": "^7.4.7",
+    "expo": "~53.0.0",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.76.3",
+    "react-native-web": "~0.19.13",
+    "react-native-screens": "~4.11.1",
+    "react-native-safe-area-context": "5.4.0",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "expo-image-picker": "~16.1.4"
+>>>>>>> 3880e63 (Initial commit - BeSafe Platform)
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  },
+  "private": true
+<<<<<<< HEAD
+} 
+=======
+}
+>>>>>>> 3880e63 (Initial commit - BeSafe Platform)

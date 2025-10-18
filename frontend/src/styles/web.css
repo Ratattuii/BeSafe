@@ -1,0 +1,123 @@
+/* Estilos específicos para React Native Web */
+
+/* Reset básico para garantir que a página use toda a tela */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Container principal do React Native Web */
+#root {
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+}
+
+/* Garantir que o container principal use toda a área */
+body > div {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100vh !important;
+}
+
+/* Melhorar scrollbars no desktop */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F6F8F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #F2F2F2;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF1434;
+}
+
+/* Remover margens padrão que podem interferir */
+* {
+  box-sizing: border-box;
+}
+
+/* Garantir que elementos flex usem toda a largura */
+.full-width {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Layout centrado e simples */
+@media (min-width: 900px) {
+  body {
+    background: #F6F8F9;
+  }
+}
+
+/* Garantir que o conteúdo não tenha scroll horizontal desnecessário */
+body {
+  overflow-x: hidden;
+}
+
+/* Scroll apenas onde necessário - sem quebrar layout */
+#home-scroll,
+#notifications-scroll,
+#profile-scroll {
+  scroll-behavior: smooth;
+}
+
+/* FORÇAR SCROLL EM TUDO - VERSÃO AGRESSIVA */
+
+/* Força scroll em TODOS os divs do React Native Web */
+* {
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Targets específicos para React Native Web ScrollView */
+div[data-focusable="true"],
+div[role="scrollbar"],
+.main-scroll {
+  overflow-y: auto !important;
+  height: calc(100vh - 160px) !important;
+  max-height: calc(100vh - 160px) !important;
+}
+
+/* Não forçar altura em todos os flex-direction column */
+div[style*="flex-direction: column"] {
+  overflow-y: auto !important;
+}
+
+/* Força scroll em containers com overflow hidden */
+div[style*="overflow: hidden"],
+div[style*="overflow-y: hidden"] {
+  overflow-y: auto !important;
+}
+
+/* Força em containers flex */
+div[style*="flex: 1"] {
+  overflow-y: auto !important;
+}
+
+/* ScrollView do React Native Web */
+div[style*="flex-shrink: 0"] {
+  overflow-y: auto !important;
+  height: calc(100vh - 160px) !important;
+}
+
+/* Corrigir overlays que possam estar sobrepostos */
+div[style*="position: absolute"],
+div[style*="position: fixed"] {
+  z-index: auto !important;
+}
+
+/* Ocultar apenas modais específicos quando necessário */
+.modal-overlay.hidden {
+  display: none !important;
+}
+
+/* Adicionar script JavaScript inline para forçar scroll */

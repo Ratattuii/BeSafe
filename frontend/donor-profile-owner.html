@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Perfil do Doador</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container {
+            padding: 0;
+            padding-bottom: 65px;
+            background-color: var(--background-color);
+        }
+
+        .profile-header {
+            background-color: var(--background-color);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .profile-photo-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 16px;
+        }
+
+        .profile-photo {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .edit-photo-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .profile-location {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .edit-profile-btn {
+            background: none;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .profile-content {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .donations-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .donation-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .donation-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .donation-info {
+            padding: 12px;
+        }
+
+        .donation-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .donation-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="container">
+        <!-- Perfil Header -->
+        <div class="profile-header">
+            <div class="profile-photo-container">
+                <img src="img/profile-photo.jpg" alt="Foto de Perfil" class="profile-photo">
+                <button class="edit-photo-btn">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            
+            <h1 class="profile-name">João Silva</h1>
+            <p class="profile-location">São Paulo, SP</p>
+            
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-number">28</div>
+                    <div class="stat-label">Doações</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15</div>
+                    <div class="stat-label">Instituições</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">42</div>
+                    <div class="stat-label">Impactados</div>
+                </div>
+            </div>
+            
+            <button class="edit-profile-btn">Editar Perfil</button>
+        </div>
+
+        <!-- Conteúdo do perfil -->
+        <div class="profile-content">
+            <h2 class="section-title">Minhas Doações</h2>
+            <div class="donations-list">
+                <div class="donation-card">
+                    <img src="img/donation1.jpg" alt="Doação" class="donation-image">
+                    <div class="donation-info">
+                        <h3 class="donation-title">Roupas de Inverno</h3>
+                        <p class="donation-status">Entregue • 2 dias atrás</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegação inferior -->
+    <nav class="nav-bottom">
+        <a href="#" class="nav-item">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-comment-alt"></i>
+            <span>Mensagens</span>
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="fas fa-user"></i>
+            <span>Perfil</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-bell"></i>
+            <span>Notificações</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-search"></i>
+            <span>Pesquisar</span>
+        </a>
+    </nav>
+
+    <!-- Home Indicator -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

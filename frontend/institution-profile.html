@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeSafe - Perfil da Instituição</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Container principal com padding ajustado */
+        .container {
+            padding: 0;
+            background-color: var(--background-color);
+        }
+
+        /* Cabeçalho com botão de voltar */
+        .header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        /* Botão de voltar */
+        .back-button {
+            color: var(--text-color);
+            font-size: 20px;
+            margin-right: 16px;
+            text-decoration: none;
+        }
+
+        /* Título do cabeçalho */
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Cabeçalho do perfil */
+        .profile-header {
+            background-color: var(--background-color);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        /* Logo da instituição */
+        .institution-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin-bottom: 16px;
+            object-fit: cover;
+        }
+
+        /* Nome da instituição */
+        .institution-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        /* Localização da instituição */
+        .institution-location {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* Descrição da instituição */
+        .institution-description {
+            color: var(--text-color);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            padding: 0 20px;
+        }
+
+        /* Container de estatísticas */
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 16px;
+        }
+
+        /* Item individual de estatística */
+        .stat-item {
+            text-align: center;
+        }
+
+        /* Número da estatística */
+        .stat-number {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        /* Label da estatística */
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* Container de botões de ação */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        /* Botão de mensagem */
+        .message-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 24px;
+            border-radius: 20px;
+            border: none;
+            font-size: 14px;
+        }
+
+        /* Botão de seguir */
+        .follow-btn {
+            background: none;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* Seção de conteúdo */
+        .profile-content {
+            padding: 20px;
+        }
+
+        /* Título da seção */
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Link para ver mais */
+        .see-all {
+            color: var(--primary-color);
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        /* Lista de pedidos */
+        .requests-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Card de pedido */
+        .request-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        /* Cabeçalho do card */
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        /* Título do pedido */
+        .request-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Status do pedido */
+        .request-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        /* Descrição do pedido */
+        .request-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        /* Container de tags */
+        .request-tags {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Tag individual */
+        .tag {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background-color: var(--gray-light);
+            color: var(--text-secondary);
+        }
+
+        /* Tag de urgência */
+        .tag.urgent {
+            background-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra de status do dispositivo -->
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- Container principal -->
+    <div class="container">
+        <!-- Cabeçalho com botão de voltar -->
+        <header class="header">
+            <a href="#" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="header-title">Perfil da Instituição</h1>
+        </header>
+
+        <!-- Cabeçalho do perfil -->
+        <div class="profile-header">
+            <img src="img/cruz-vermelha-logo.jpg" alt="Logo Cruz Vermelha" class="institution-logo">
+            <h2 class="institution-name">Cruz Vermelha</h2>
+            <p class="institution-location">São Paulo, SP</p>
+            <p class="institution-description">
+                Organização humanitária que atua no auxílio a pessoas em situação de vulnerabilidade.
+            </p>
+            
+            <!-- Estatísticas do perfil -->
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-number">156</div>
+                    <div class="stat-label">Pedidos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1.2k</div>
+                    <div class="stat-label">Doações</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">3.5k</div>
+                    <div class="stat-label">Impactados</div>
+                </div>
+            </div>
+            
+            <!-- Botões de ação -->
+            <div class="action-buttons">
+                <button class="message-btn">Enviar Mensagem</button>
+                <button class="follow-btn">Seguir</button>
+            </div>
+        </div>
+
+        <!-- Conteúdo do perfil -->
+        <div class="profile-content">
+            <!-- Seção de pedidos ativos -->
+            <div class="section-title">
+                <h3>Pedidos Ativos</h3>
+                <a href="#" class="see-all">Ver Todos</a>
+            </div>
+            
+            <!-- Lista de pedidos -->
+            <div class="requests-list">
+                <!-- Card de pedido individual -->
+                <div class="request-card">
+                    <div class="request-header">
+                        <h4 class="request-title">Campanha de Inverno</h4>
+                        <span class="request-status">Em Andamento</span>
+                    </div>
+                    <p class="request-description">
+                        Precisamos de cobertores e agasalhos para...
+                    </p>
+                    <div class="request-tags">
+                        <span class="tag urgent">Urgente</span>
+                        <span class="tag">Roupas</span>
+                        <span class="tag">Inverno</span>
+                    </div>
+                </div>
+                <!-- Mais cards de pedido seguem o mesmo padrão -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicador home do iPhone -->
+    <div class="home-indicator"></div>
+</body>
+</html> 

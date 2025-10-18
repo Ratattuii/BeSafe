@@ -1,0 +1,29 @@
+const express = require('express');
+const router = express.Router();
+const { register, login, me } = require('../controllers/authController');
+const { authenticateToken } = require('../middleware/auth');
+const { handleUploadError } = require('../middleware/upload');
+
+/**
+ * POST /auth/register
+ * Registra um novo usuário
+ * Body: { name, email, password, role }
+ * File: avatar (opcional)
+ */
+router.post('/register', handleUploadError, register);
+
+/**
+ * POST /auth/login
+ * Faz login do usuário
+ * Body: { email, password }
+ */
+router.post('/login', login);
+
+/**
+ * GET /auth/me
+ * Retorna dados do usuário logado
+ * Headers: Authorization: Bearer <token>
+ */
+router.get('/me', authenticateToken, me);
+
+module.exports = router;

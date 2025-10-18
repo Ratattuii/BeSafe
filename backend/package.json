@@ -1,0 +1,53 @@
+{
+  "name": "besafe-backend",
+  "version": "1.0.0",
+<<<<<<< HEAD
+  "description": "Backend do aplicativo BeSafe - Sistema de doações",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mysql2": "^3.14.1",
+    "axios": "^1.9.0"
+  }
+} 
+=======
+  "description": "Backend do aplicativo BeSafe",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:init": "node src/database/db.js",
+    "db:reset": "node src/database/db.js reset",
+    "db:check": "node src/database/db.js check",
+    "db:seed": "node src/database/db.js seed",
+    "feed:setup": "node src/database/simple-feed-setup.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.5",
+    "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "besafe",
+    "doacao",
+    "api"
+  ],
+  "author": "BeSafe Team",
+  "license": "MIT"
+}
+>>>>>>> 3880e63 (Initial commit - BeSafe Platform)
