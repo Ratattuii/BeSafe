@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # BeSafe - Sistema de Doações Humanitárias 🏥
 
 ## 📱 Sobre o Projeto
