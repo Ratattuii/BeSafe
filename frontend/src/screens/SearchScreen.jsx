@@ -9,10 +9,12 @@ import {
   useWindowDimensions,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../styles/globalStyles';
 import NeedCard from '../components/NeedCard';
+import api from '../services/api';
 
 const SearchScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +25,7 @@ const SearchScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState(null);
   
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
@@ -60,41 +63,6 @@ const SearchScreen = ({ navigation }) => {
     { id: 'relevancia', label: 'Relevância' },
   ];
 
-  // Dados mockados de resultados
-  const mockResults = [
-    {
-      id: 1,
-      institution: {
-        name: 'Hospital Municipal',
-        logo: 'https://via.placeholder.com/40x40/4A90E2/white?text=HM',
-        isActive: true,
-      },
-      title: 'Medicamentos urgentes para UTI',
-      description: 'Precisamos de medicamentos para pacientes em estado crítico na UTI.',
-      image: 'https://via.placeholder.com/350x200/9C27B0/white?text=Medicamentos',
-      timestamp: '2023-10-01 10:30',
-      urgency: 'critica',
-      category: 'medicamentos',
-      location: 'São Paulo, SP',
-      stats: { likes: 89, comments: 23, shares: 12 },
-    },
-    {
-      id: 2,
-      institution: {
-        name: 'Abrigo Esperança',
-        logo: 'https://via.placeholder.com/40x40/4CAF50/white?text=AE',
-        isActive: true,
-      },
-      title: 'Alimentos para 200 famílias',
-      description: 'Alimentos não perecíveis para famílias em situação de vulnerabilidade.',
-      image: 'https://via.placeholder.com/350x200/4CAF50/white?text=Alimentos',
-      timestamp: '2023-10-01 14:20',
-      urgency: 'alta',
-      category: 'alimentos',
-      location: 'Rio de Janeiro, RJ',
-      stats: { likes: 156, comments: 45, shares: 28 },
-    },
-  ];
 
   useEffect(() => {
     if (hasSearched) {
@@ -103,40 +71,72 @@ const SearchScreen = ({ navigation }) => {
   }, [selectedCategory, selectedUrgency, selectedLocation, sortBy]);
 
   const performSearch = async () => {
-    setLoading(true);
-    
-    // TODO: Implementar busca real
-    // GET /search?q=${searchQuery}&category=${selectedCategory}&urgency=${selectedUrgency}&location=${selectedLocation}&sort=${sortBy}
-    
-    // Simula busca
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Filtra resultados mockados baseado nos filtros
-    let filteredResults = mockResults;
-    
-    if (selectedCategory !== 'todos') {
-      filteredResults = filteredResults.filter(item => item.category === selectedCategory);
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Prepara filtros para a API
+      const filters = {};
+      
+      if (selectedCategory !== 'todos') {
+        const categoryMap = {
+          'alimentos': 'alimentos',
+          'roupas': 'roupas',
+          'medicamentos': 'medicamentos',
+          'agua': 'outros',
+          'abrigo': 'outros'
+        };
+        filters.category = categoryMap[selectedCategory] || selectedCategory;
+      }
+      
+      if (selectedUrgency !== 'todos') {
+        const urgencyMap = {
+          'critica': 'critica',
+          'alta': 'alta',
+          'media': 'media',
+          'baixa': 'baixa'
+        };
+        filters.urgency = urgencyMap[selectedUrgency] || selectedUrgency;
+      }
+      
+      if (selectedLocation !== 'todos') {
+        // TODO: Implementar filtro de localização
+        // filters.location = selectedLocation;
+      }
+      
+      // Mapeia ordenação
+      const sortMap = {
+        'recentes': 'recentes',
+        'proximidade': 'proximidade',
+        'urgencia': 'urgencia',
+        'relevancia': 'relevancia'
+      };
+      filters.sort = sortMap[sortBy] || 'recentes';
+      
+      // Faz a busca na API
+      const response = await api.searchNeeds(searchQuery.trim(), filters);
+      
+      if (response.success) {
+        setResults(response.data.needs || []);
+      } else {
+        setError('Erro ao buscar necessidades');
+        setResults([]);
+      }
+      
+    } catch (error) {
+      console.error('Erro na busca:', error);
+      setError('Erro ao buscar necessidades. Tente novamente.');
+      setResults([]);
+    } finally {
+      setLoading(false);
     }
-    
-    if (selectedUrgency !== 'todos') {
-      filteredResults = filteredResults.filter(item => item.urgency === selectedUrgency);
-    }
-    
-    if (searchQuery.trim()) {
-      filteredResults = filteredResults.filter(item => 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.institution.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    setResults(filteredResults);
-    setLoading(false);
   };
 
   const handleSearch = () => {
-    setHasSearched(true);
-    performSearch();
+    if (searchQuery.trim() || selectedCategory !== 'todos' || selectedUrgency !== 'todos' || selectedLocation !== 'todos') {
+      setHasSearched(true);
+      performSearch();
+    }
   };
 
   const handleClearFilters = () => {
@@ -147,6 +147,7 @@ const SearchScreen = ({ navigation }) => {
     setSortBy('recentes');
     setResults([]);
     setHasSearched(false);
+    setError(null);
   };
 
   const handleBackPress = () => {
@@ -288,6 +289,19 @@ const SearchScreen = ({ navigation }) => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Buscando...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>⚠️</Text>
+          <Text style={styles.emptyTitle}>Erro na busca</Text>
+          <Text style={styles.emptyDescription}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleSearch}>
+            <Text style={styles.retryButtonText}>Tentar novamente</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -582,6 +596,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 
   // Resultados

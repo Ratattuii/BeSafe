@@ -10,6 +10,11 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const needsRoutes = require('./routes/needs');
 const followsRoutes = require('./routes/follows');
+const donationsRoutes = require('./routes/donations');
+const messagesRoutes = require('./routes/messages');
+const notificationsRoutes = require('./routes/notifications');
+const searchRoutes = require('./routes/search');
+const institutionsRoutes = require('./routes/institutions');
 
 // Configura nossa aplicação Express
 const app = express();
@@ -37,7 +42,12 @@ app.use((req, res, next) => {
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/needs', needsRoutes);
-app.use('/', followsRoutes); // Para /me/follows e /institutions
+app.use('/donations', donationsRoutes);
+app.use('/messages', messagesRoutes);
+app.use('/notifications', notificationsRoutes);
+app.use('/search', searchRoutes);
+app.use('/institutions', institutionsRoutes);
+app.use('/', followsRoutes); // Para /me/follows
 
 // Rota inicial - mostra se tá tudo funcionando
 app.get('/', (req, res) => {
@@ -52,8 +62,19 @@ app.get('/', (req, res) => {
       'GET /needs - Listar necessidades (filtros: urgency, type, location)',
       'GET /needs/types - Tipos de necessidades disponíveis',
       'POST /needs - Criar necessidade',
-      'GET /me/follows - Instituições seguidas',
+      'GET /donations - Listar doações',
+      'GET /donations/me - Minhas doações',
+      'POST /donations - Criar doação',
+      'GET /messages/conversations - Listar conversas',
+      'GET /messages/:userId - Mensagens com usuário',
+      'POST /messages - Enviar mensagem',
+      'GET /notifications - Listar notificações',
+      'GET /search - Busca geral',
+      'GET /search/needs - Buscar necessidades',
+      'GET /search/institutions - Buscar instituições',
       'GET /institutions - Listar instituições',
+      'GET /institutions/:id - Perfil da instituição',
+      'GET /me/follows - Instituições seguidas',
       'POST /institutions/:id/follow - Seguir instituição'
     ]
   });

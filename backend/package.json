@@ -1,23 +1,6 @@
 {
   "name": "besafe-backend",
   "version": "1.0.0",
-<<<<<<< HEAD
-  "description": "Backend do aplicativo BeSafe - Sistema de doações",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "express": "^5.1.0",
-    "mysql2": "^3.14.1",
-    "axios": "^1.9.0"
-  }
-} 
-=======
   "description": "Backend do aplicativo BeSafe",
   "main": "src/server.js",
   "scripts": {
@@ -50,4 +33,3 @@
   "author": "BeSafe Team",
   "license": "MIT"
 }
->>>>>>> 3880e63 (Initial commit - BeSafe Platform)

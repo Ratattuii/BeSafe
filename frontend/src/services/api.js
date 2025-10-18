@@ -148,19 +148,8 @@ class ApiService {
    * @returns {Promise} Resposta da API
    */
   async register(userData, avatarFile = null) {
-    const formData = new FormData();
-    
-    // Adiciona dados do usuário
-    Object.keys(userData).forEach(key => {
-      formData.append(key, userData[key]);
-    });
-
-    // Adiciona avatar se fornecido
-    if (avatarFile) {
-      formData.append('avatar', avatarFile);
-    }
-
-    return this.upload('/auth/register', formData);
+    // Enviar como JSON simples (sem avatar por enquanto)
+    return this.post('/auth/register', userData);
   }
 
   /**
@@ -215,6 +204,442 @@ class ApiService {
     }
 
     return this.upload(`/users/${userId}`, formData, 'PUT');
+  }
+
+  // ===== MÉTODOS DE DOAÇÕES =====
+
+  /**
+   * Lista todas as doações
+   * @param {object} filters - Filtros de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getDonations(filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/donations${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Lista doações do usuário logado
+   * @param {object} filters - Filtros de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getUserDonations(filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/donations/me${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Cria uma nova doação
+   * @param {object} donationData - Dados da doação
+   * @returns {Promise} Resposta da API
+   */
+  async createDonation(donationData) {
+    return this.post('/donations', donationData);
+  }
+
+  /**
+   * Atualiza status de uma doação
+   * @param {number} donationId - ID da doação
+   * @param {string} status - Novo status
+   * @returns {Promise} Resposta da API
+   */
+  async updateDonationStatus(donationId, status) {
+    return this.put(`/donations/${donationId}/status`, { status });
+  }
+
+  /**
+   * Retorna estatísticas de doações do usuário
+   * @returns {Promise} Resposta da API
+   */
+  async getDonationStats() {
+    return this.get('/donations/stats');
+  }
+
+  // ===== MÉTODOS DE MENSAGENS =====
+
+  /**
+   * Lista conversas do usuário
+   * @returns {Promise} Resposta da API
+   */
+  async getConversations() {
+    return this.get('/messages/conversations');
+  }
+
+  /**
+   * Busca mensagens com um usuário específico
+   * @param {number} userId - ID do usuário
+   * @param {object} options - Opções de paginação
+   * @returns {Promise} Resposta da API
+   */
+  async getMessagesWithUser(userId, options = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(options).forEach(key => {
+      if (options[key] !== null && options[key] !== undefined) {
+        queryParams.append(key, options[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/messages/${userId}${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Envia uma mensagem
+   * @param {number} receiverId - ID do destinatário
+   * @param {string} message - Conteúdo da mensagem
+   * @param {string} messageType - Tipo da mensagem (text, image, file)
+   * @returns {Promise} Resposta da API
+   */
+  async sendMessage(receiverId, message, messageType = 'text') {
+    return this.post('/messages', {
+      receiver_id: receiverId,
+      message,
+      message_type: messageType
+    });
+  }
+
+  /**
+   * Marca uma mensagem como lida
+   * @param {number} messageId - ID da mensagem
+   * @returns {Promise} Resposta da API
+   */
+  async markMessageAsRead(messageId) {
+    return this.put(`/messages/${messageId}/read`);
+  }
+
+  /**
+   * Marca todas as mensagens de uma conversa como lidas
+   * @param {number} userId - ID do usuário da conversa
+   * @returns {Promise} Resposta da API
+   */
+  async markConversationAsRead(userId) {
+    return this.put(`/messages/conversation/${userId}/read`);
+  }
+
+  /**
+   * Retorna estatísticas de mensagens
+   * @returns {Promise} Resposta da API
+   */
+  async getMessageStats() {
+    return this.get('/messages/stats');
+  }
+
+  // ===== MÉTODOS DE NOTIFICAÇÕES =====
+
+  /**
+   * Lista notificações do usuário
+   * @param {object} filters - Filtros de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getNotifications(filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/notifications${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Marca uma notificação como lida
+   * @param {number} notificationId - ID da notificação
+   * @returns {Promise} Resposta da API
+   */
+  async markNotificationAsRead(notificationId) {
+    return this.put(`/notifications/${notificationId}/read`);
+  }
+
+  /**
+   * Marca todas as notificações como lidas
+   * @returns {Promise} Resposta da API
+   */
+  async markAllNotificationsAsRead() {
+    return this.put('/notifications/read-all');
+  }
+
+  /**
+   * Remove uma notificação
+   * @param {number} notificationId - ID da notificação
+   * @returns {Promise} Resposta da API
+   */
+  async deleteNotification(notificationId) {
+    return this.request(`/notifications/${notificationId}`, { method: 'DELETE' });
+  }
+
+  /**
+   * Retorna estatísticas de notificações
+   * @returns {Promise} Resposta da API
+   */
+  async getNotificationStats() {
+    return this.get('/notifications/stats');
+  }
+
+  // ===== MÉTODOS DE BUSCA =====
+
+  /**
+   * Busca geral (necessidades e instituições)
+   * @param {string} query - Termo de busca
+   * @param {object} filters - Filtros adicionais
+   * @returns {Promise} Resposta da API
+   */
+  async searchAll(query, filters = {}) {
+    const queryParams = new URLSearchParams();
+    if (query) queryParams.append('q', query);
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/search${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Busca apenas necessidades
+   * @param {string} query - Termo de busca
+   * @param {object} filters - Filtros adicionais
+   * @returns {Promise} Resposta da API
+   */
+  async searchNeeds(query, filters = {}) {
+    const queryParams = new URLSearchParams();
+    if (query) queryParams.append('q', query);
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/search/needs${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Busca apenas instituições
+   * @param {string} query - Termo de busca
+   * @param {object} filters - Filtros adicionais
+   * @returns {Promise} Resposta da API
+   */
+  async searchInstitutions(query, filters = {}) {
+    const queryParams = new URLSearchParams();
+    if (query) queryParams.append('q', query);
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/search/institutions${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Busca sugestões de autocomplete
+   * @param {string} query - Termo de busca
+   * @param {string} type - Tipo de sugestão (all, needs, institutions, categories)
+   * @returns {Promise} Resposta da API
+   */
+  async getSearchSuggestions(query, type = 'all') {
+    const queryParams = new URLSearchParams();
+    if (query) queryParams.append('q', query);
+    if (type) queryParams.append('type', type);
+    const queryString = queryParams.toString();
+    return this.get(`/search/suggestions${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Retorna estatísticas de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getSearchStats() {
+    return this.get('/search/stats');
+  }
+
+  // ===== MÉTODOS DE INSTITUIÇÕES =====
+
+  /**
+   * Busca perfil de uma instituição
+   * @param {number} institutionId - ID da instituição
+   * @returns {Promise} Resposta da API
+   */
+  async getInstitution(institutionId) {
+    return this.get(`/institutions/${institutionId}`);
+  }
+
+  /**
+   * Lista necessidades de uma instituição
+   * @param {number} institutionId - ID da instituição
+   * @param {object} filters - Filtros de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getInstitutionNeeds(institutionId, filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/institutions/${institutionId}/needs${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Lista seguidores de uma instituição
+   * @param {number} institutionId - ID da instituição
+   * @param {object} options - Opções de paginação
+   * @returns {Promise} Resposta da API
+   */
+  async getInstitutionFollowers(institutionId, options = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(options).forEach(key => {
+      if (options[key] !== null && options[key] !== undefined) {
+        queryParams.append(key, options[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/institutions/${institutionId}/followers${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Lista todas as instituições
+   * @param {object} filters - Filtros de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getAllInstitutions(filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/institutions${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Atualiza perfil da instituição
+   * @param {number} institutionId - ID da instituição
+   * @param {object} institutionData - Dados para atualizar
+   * @param {File} avatarFile - Novo avatar (opcional)
+   * @returns {Promise} Resposta da API
+   */
+  async updateInstitutionProfile(institutionId, institutionData, avatarFile = null) {
+    const formData = new FormData();
+    
+    // Adiciona dados da instituição
+    Object.keys(institutionData).forEach(key => {
+      if (institutionData[key] !== null && institutionData[key] !== undefined) {
+        formData.append(key, institutionData[key]);
+      }
+    });
+
+    // Adiciona avatar se fornecido
+    if (avatarFile) {
+      formData.append('avatar', avatarFile);
+    }
+
+    return this.upload(`/institutions/${institutionId}`, formData, 'PUT');
+  }
+
+  /**
+   * Retorna estatísticas de uma instituição
+   * @param {number} institutionId - ID da instituição
+   * @returns {Promise} Resposta da API
+   */
+  async getInstitutionStats(institutionId) {
+    return this.get(`/institutions/${institutionId}/stats`);
+  }
+
+  /**
+   * Lista instituições seguidas pelo usuário
+   * @returns {Promise} Resposta da API
+   */
+  async getFollowedInstitutions() {
+    return this.get('/me/follows');
+  }
+
+  /**
+   * Segue uma instituição
+   * @param {number} institutionId - ID da instituição
+   * @returns {Promise} Resposta da API
+   */
+  async followInstitution(institutionId) {
+    return this.post(`/institutions/${institutionId}/follow`);
+  }
+
+  /**
+   * Deixa de seguir uma instituição
+   * @param {number} institutionId - ID da instituição
+   * @returns {Promise} Resposta da API
+   */
+  async unfollowInstitution(institutionId) {
+    return this.request(`/institutions/${institutionId}/follow`, { method: 'DELETE' });
+  }
+
+  // ===== MÉTODOS DE NECESSIDADES (ENHANCED) =====
+
+  /**
+   * Lista necessidades com filtros
+   * @param {object} filters - Filtros de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getNeeds(filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/needs${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Busca uma necessidade específica
+   * @param {number} needId - ID da necessidade
+   * @returns {Promise} Resposta da API
+   */
+  async getNeed(needId) {
+    return this.get(`/needs/${needId}`);
+  }
+
+  /**
+   * Cria uma nova necessidade
+   * @param {object} needData - Dados da necessidade
+   * @param {File} imageFile - Imagem da necessidade (opcional)
+   * @returns {Promise} Resposta da API
+   */
+  async createNeed(needData, imageFile = null) {
+    if (imageFile) {
+      const formData = new FormData();
+      Object.keys(needData).forEach(key => {
+        if (needData[key] !== null && needData[key] !== undefined) {
+          formData.append(key, needData[key]);
+        }
+      });
+      formData.append('image', imageFile);
+      return this.upload('/needs', formData, 'POST');
+    } else {
+      return this.post('/needs', needData);
+    }
+  }
+
+  /**
+   * Lista tipos de necessidades disponíveis
+   * @returns {Promise} Resposta da API
+   */
+  async getNeedTypes() {
+    return this.get('/needs/types');
   }
 }
 

@@ -12,10 +12,12 @@ import {
   Modal,
   FlatList,
   Platform,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import useWebScroll from '../utils/useWebScroll';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const { width } = Dimensions.get('window');
 const isDesktop = width > 768;
@@ -23,6 +25,7 @@ const isDesktop = width > 768;
 const Home = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   
   // Obter dados do usuário logado e função de logout
   const { user, logout } = useAuth();
@@ -37,127 +40,56 @@ const Home = ({ navigation }) => {
   const urgencyOptions = ['Todos', 'Urgente', 'Alta', 'Média', 'Baixa'];
   const typeOptions = ['Todos', 'Alimentos', 'Roupas', 'Medicamentos', 'Móveis', 'Outros'];
 
-  // Dados mockados para o feed principal
-  const [feedData] = useState([
-    {
-      id: 1,
-      institution: 'Casa de Apoio São Vicente',
-      timestamp: '2023-10-01 14:30',
-      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&h=300&fit=crop',
-      urgency: 'Urgente',
-      description: 'A Casa de Apoio São Vicente está precisando urgentemente de alimentos não perecíveis. Qualquer ajuda é bem-vinda!',
-      likes: 120,
-      comments: 45,
-      shares: 30
-    },
-    {
-      id: 2,
-      institution: 'Lar dos Idosos Esperança',
-      timestamp: '2023-10-01 13:15',
-      image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&h=300&fit=crop',
-      urgency: 'Alta',
-      description: 'O Lar dos Idosos Esperança está necessitando de roupas de inverno para os residentes. Doe e ajude a aquecer o coração de alguém!',
-      likes: 85,
-      comments: 20,
-      shares: 15
-    },
-    {
-      id: 3,
-      institution: 'Hospital das Clínicas',
-      timestamp: '2023-10-01 12:00',
-      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=500&h=300&fit=crop',
-      urgency: 'Urgente',
-      description: 'Precisamos urgentemente de medicamentos básicos e materiais de primeiros socorros. Ajude-nos a salvar vidas!',
-      likes: 200,
-      comments: 67,
-      shares: 45
-    },
-    {
-      id: 4,
-      institution: 'Centro de Reabilitação Nova Vida',
-      timestamp: '2023-10-01 11:30',
-      image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=500&h=300&fit=crop',
-      urgency: 'Média',
-      description: 'Estamos buscando equipamentos de fisioterapia e cadeiras de rodas para nossos pacientes. Cada doação faz a diferença!',
-      likes: 95,
-      comments: 28,
-      shares: 18
-    },
-    {
-      id: 5,
-      institution: 'Abrigo Coração Solidário',
-      timestamp: '2023-10-01 10:45',
-      image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=500&h=300&fit=crop',
-      urgency: 'Alta',
-      description: 'Precisamos de cobertores, roupas de cama e produtos de higiene pessoal para as famílias que acolhemos.',
-      likes: 156,
-      comments: 42,
-      shares: 32
-    }
-  ]);
-
-  // Dados mockados para instituições seguidas
-  const [followedInstitutions] = useState([
-    {
-      id: 1,
-      name: 'Cruz Vermelha Brasileira',
-      urgency: 'Urgente',
-      color: '#FF1744'
-    },
-    {
-      id: 2,
-      name: 'Médicos Sem Fronteiras',
-      urgency: 'Alta',
-      color: '#FF9800'
-    },
-    {
-      id: 3,
-      name: 'Banco de Alimentos',
-      urgency: 'Média',
-      color: '#FFC107'
-    },
-    {
-      id: 4,
-      name: 'Lar dos Idosos São José',
-      urgency: 'Alta',
-      color: '#FF9800'
-    },
-    {
-      id: 5,
-      name: 'Associação de Apoio à Criança',
-      urgency: 'Média',
-      color: '#FFC107'
-    },
-    {
-      id: 6,
-      name: 'Casa de Apoio à Mulher',
-      urgency: 'Alta',
-      color: '#FF9800'
-    }
-  ]);
+  // Estados para dados reais
+  const [feedData, setFeedData] = useState([]);
+  const [followedInstitutions, setFollowedInstitutions] = useState([]);
+  
 
   // Scroll será habilitado via CSS puro
 
   useEffect(() => {
-    // Simula carregamento inicial
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Carrega necessidades e instituições seguidas em paralelo
+      const [needsResponse, followedResponse] = await Promise.all([
+        api.getNeeds({ limit: 20 }),
+        api.getFollowedInstitutions()
+      ]);
+      
+      if (needsResponse.success) {
+        setFeedData(needsResponse.data.needs || []);
+      }
+      
+      if (followedResponse.success) {
+        setFollowedInstitutions(followedResponse.data.institutions || []);
+      }
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      setError('Erro ao carregar dados. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await loadData();
+    setRefreshing(false);
   };
 
   const getUrgencyColor = (urgency) => {
     switch (urgency) {
-      case 'Urgente': return '#FF1744';
-      case 'Alta': return '#FF9800';
-      case 'Média': return '#FFC107';
-      case 'Baixa': return '#4CAF50';
+      case 'critica': return '#FF1744';
+      case 'alta': return '#FF9800';
+      case 'media': return '#FFC107';
+      case 'baixa': return '#4CAF50';
       default: return '#9E9E9E';
     }
   };
@@ -213,18 +145,58 @@ const Home = ({ navigation }) => {
   };
 
   // Funções dos filtros
-  const handleUrgencySelect = (urgency) => {
+  const handleUrgencySelect = async (urgency) => {
     setSelectedUrgency(urgency);
     setShowUrgencyFilter(false);
-    // TODO: Implementar filtragem real
-    console.log('Filtro de urgência:', urgency);
+    await applyFilters(urgency, selectedType);
   };
 
-  const handleTypeSelect = (type) => {
+  const handleTypeSelect = async (type) => {
     setSelectedType(type);
     setShowTypeFilter(false);
-    // TODO: Implementar filtragem real
-    console.log('Filtro de tipo:', type);
+    await applyFilters(selectedUrgency, type);
+  };
+
+  const applyFilters = async (urgency, type) => {
+    try {
+      setLoading(true);
+      
+      const filters = {};
+      
+      // Mapeia opções para valores da API
+      if (urgency !== 'Todos') {
+        const urgencyMap = {
+          'Urgente': 'critica',
+          'Alta': 'alta',
+          'Média': 'media',
+          'Baixa': 'baixa'
+        };
+        filters.urgency = urgencyMap[urgency];
+      }
+      
+      if (type !== 'Todos') {
+        const typeMap = {
+          'Alimentos': 'alimentos',
+          'Roupas': 'roupas',
+          'Medicamentos': 'medicamentos',
+          'Móveis': 'materiais',
+          'Outros': 'outros'
+        };
+        filters.category = typeMap[type];
+      }
+      
+      const response = await api.getNeeds({ ...filters, limit: 20 });
+      
+      if (response.success) {
+        setFeedData(response.data.needs || []);
+      }
+      
+    } catch (error) {
+      console.error('Erro ao aplicar filtros:', error);
+      Alert.alert('Erro', 'Erro ao aplicar filtros. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLocationPress = () => {
@@ -248,26 +220,28 @@ const Home = ({ navigation }) => {
     // TODO: Implementar compartilhamento
   };
 
-  const handleDonatePress = (postId, institution) => {
-    console.log('Doar para:', institution, 'Post:', postId);
-    // TODO: Navegar para tela de doação específica
+  const handleDonatePress = (need) => {
+    console.log('Doar para:', need.institution_name, 'Need:', need.id);
     navigation.navigate('PostDonation', { 
-      institutionId: postId, 
-      institutionName: institution 
+      needId: need.id,
+      institutionId: need.institution_id, 
+      institutionName: need.institution_name,
+      needTitle: need.title
     });
   };
 
-  const handleInstitutionPress = (institutionName) => {
-    console.log('Ver perfil da instituição:', institutionName);
-    // TODO: Navegar para perfil da instituição
+  const handleInstitutionPress = (need) => {
+    console.log('Ver perfil da instituição:', need.institution_name);
     navigation.navigate('InstitutionProfile', { 
-      institutionName: institutionName 
+      institutionId: need.institution_id,
+      institutionName: need.institution_name 
     });
   };
 
   const handleSidebarInstitutionPress = (institution) => {
     console.log('Ver instituição seguida:', institution.name);
     navigation.navigate('InstitutionProfile', { 
+      institutionId: institution.id,
       institutionName: institution.name 
     });
   };
@@ -351,27 +325,36 @@ const Home = ({ navigation }) => {
     <View key={item.id} style={styles.feedCard}>
       <TouchableOpacity 
         style={styles.feedHeader}
-        onPress={() => handleInstitutionPress(item.institution)}
+        onPress={() => handleInstitutionPress(item)}
       >
         <View style={styles.institutionInfo}>
           <View style={styles.institutionAvatar}>
-            <Text style={styles.avatarText}>{item.institution.charAt(0)}</Text>
+            <Text style={styles.avatarText}>{item.institution_name.charAt(0)}</Text>
           </View>
           <View>
-            <Text style={styles.institutionName}>{item.institution}</Text>
-            <Text style={styles.timestamp}>{formatDate(item.timestamp)}</Text>
+            <Text style={styles.institutionName}>{item.institution_name}</Text>
+            <Text style={styles.timestamp}>{formatDate(item.created_at)}</Text>
           </View>
         </View>
       </TouchableOpacity>
 
-      <Image source={{ uri: item.image }} style={styles.feedImage} />
+      {item.image && (
+        <Image source={{ uri: item.image }} style={styles.feedImage} />
+      )}
 
       <View style={styles.feedContent}>
         <View style={[styles.urgencyBadge, { backgroundColor: getUrgencyColor(item.urgency) }]}>
           <Text style={styles.urgencyText}>{item.urgency}</Text>
         </View>
         
+        <Text style={styles.feedTitle}>{item.title}</Text>
         <Text style={styles.feedDescription}>{item.description}</Text>
+        
+        {item.quantity_needed && (
+          <Text style={styles.quantityText}>
+            Quantidade necessária: {item.quantity_needed} {item.unit || 'unidades'}
+          </Text>
+        )}
         
         <View style={styles.feedActions}>
           <View style={styles.socialStats}>
@@ -380,26 +363,26 @@ const Home = ({ navigation }) => {
               onPress={() => handleLikePress(item.id)}
             >
               <Text style={styles.socialIcon}>❤️</Text>
-              <Text style={styles.socialCount}>{item.likes}</Text>
+              <Text style={styles.socialCount}>0</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.socialButton}
               onPress={() => handleCommentPress(item.id)}
             >
               <Text style={styles.socialIcon}>💬</Text>
-              <Text style={styles.socialCount}>{item.comments}</Text>
+              <Text style={styles.socialCount}>0</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.socialButton}
               onPress={() => handleSharePress(item.id)}
             >
               <Text style={styles.socialIcon}>📤</Text>
-              <Text style={styles.socialCount}>{item.shares}</Text>
+              <Text style={styles.socialCount}>0</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity 
             style={styles.donateButton}
-            onPress={() => handleDonatePress(item.id, item.institution)}
+            onPress={() => handleDonatePress(item)}
           >
             <Text style={styles.donateButtonText}>Doar</Text>
           </TouchableOpacity>
@@ -424,12 +407,12 @@ const Home = ({ navigation }) => {
           onPress={() => handleSidebarInstitutionPress(institution)}
         >
           <View style={styles.institutionIcon}>
-            <View style={[styles.urgencyDot, { backgroundColor: institution.color }]} />
+            <View style={[styles.urgencyDot, { backgroundColor: '#4CAF50' }]} />
           </View>
           <View style={styles.institutionDetails}>
             <Text style={styles.institutionItemName}>{institution.name}</Text>
-            <Text style={[styles.institutionUrgency, { color: institution.color }]}>
-              {institution.urgency}
+            <Text style={[styles.institutionUrgency, { color: '#4CAF50' }]}>
+              {institution.active_needs_count || 0} necessidades ativas
             </Text>
           </View>
         </TouchableOpacity>
@@ -437,11 +420,22 @@ const Home = ({ navigation }) => {
     </View>
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF1434" />
         <Text style={styles.loadingText}>Carregando...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+          <Text style={styles.retryButtonText}>Tentar novamente</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -738,11 +732,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  feedTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
   feedDescription: {
     fontSize: 16,
     color: '#374151',
     lineHeight: 24,
+    marginBottom: 8,
+  },
+  quantityText: {
+    fontSize: 14,
+    color: '#6B7280',
     marginBottom: 16,
+    fontStyle: 'italic',
   },
   feedActions: {
     flexDirection: 'row',
@@ -897,6 +903,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FF1434',
     fontWeight: 'bold',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#FF1434',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
