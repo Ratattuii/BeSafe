@@ -147,9 +147,8 @@ CREATE TABLE IF NOT EXISTS donations (
     INDEX idx_reviews_composite (donation_id, reviewed_id, reviewer_id),
     INDEX idx_reviews_rating_composite (reviewed_id, rating, is_public),
     
-    -- Índices FULLTEXT para busca
-    FULLTEXT INDEX idx_needs_search (title, description),
-    FULLTEXT INDEX idx_users_search (name, description)
+-- Adicionar coluna fcm_token na tabela users
+ALTER TABLE users ADD COLUMN fcm_token VARCHAR(500) NULL COMMENT 'Token FCM para push notifications';
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Doações realizadas';
 
 -- ==============================================
@@ -244,7 +243,77 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Notificações do sistema';
 
 -- ==============================================
--- 8. TABELA REVIEWS (Avaliações)
+-- 8. TABELA NEED_IMAGES (Imagens das Necessidades)
+-- ==============================================
+-- Armazena múltiplas imagens para cada necessidade
+CREATE TABLE IF NOT EXISTS need_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL COMMENT 'ID da necessidade',
+    image_path VARCHAR(500) NOT NULL COMMENT 'Caminho da imagem',
+    display_order INT DEFAULT 1 COMMENT 'Ordem de exibição',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Chave estrangeira
+    FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE,
+    
+    -- Índices
+    INDEX idx_need_images_need (need_id),
+    INDEX idx_need_images_order (display_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Imagens das necessidades';
+
+-- ==============================================
+-- 11. TABELA AFFECTED_ZONES (Mapa de Áreas de Risco)
+-- ==============================================
+-- Armazena zonas de risco e abrigos para o mapa
+CREATE TABLE IF NOT EXISTS affected_zones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    latitude DECIMAL(10, 8) NOT NULL COMMENT 'Latitude da zona',
+    longitude DECIMAL(11, 8) NOT NULL COMMENT 'Longitude da zona',
+    radius INT NOT NULL DEFAULT 100 COMMENT 'Raio em metros',
+    type ENUM('risco', 'abrigo') NOT NULL COMMENT 'Tipo da zona',
+    description TEXT COMMENT 'Descrição da zona',
+    severity ENUM('baixa', 'media', 'alta', 'critica') DEFAULT 'media' COMMENT 'Severidade do risco',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Zona ativa',
+    created_by INT COMMENT 'Usuário que criou a zona',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Chave estrangeira
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Índices
+    INDEX idx_zones_location (latitude, longitude),
+    INDEX idx_zones_type (type),
+    INDEX idx_zones_severity (severity),
+    INDEX idx_zones_active (is_active),
+    INDEX idx_zones_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Zonas de risco e abrigos';
+
+-- ==============================================
+-- 12. TABELA DISASTER_ALERTS (Alertas de Desastre)
+-- ==============================================
+-- Armazena alertas globais de desastre enviados
+CREATE TABLE IF NOT EXISTS disaster_alerts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL COMMENT 'Título do alerta',
+    message TEXT NOT NULL COMMENT 'Mensagem do alerta',
+    severity ENUM('info', 'warning', 'critical') NOT NULL DEFAULT 'info' COMMENT 'Severidade',
+    sent_by INT NOT NULL COMMENT 'Admin que enviou',
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Data de envio',
+    recipients_count INT DEFAULT 0 COMMENT 'Número de destinatários',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Alerta ativo',
+    
+    -- Chave estrangeira
+    FOREIGN KEY (sent_by) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Índices
+    INDEX idx_alerts_severity (severity),
+    INDEX idx_alerts_sent (sent_at),
+    INDEX idx_alerts_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alertas de desastre';
+
+-- ==============================================
+-- 13. TABELA REVIEWS (Avaliações)
 -- ==============================================
 -- Armazena avaliações de doações entre usuários
 CREATE TABLE IF NOT EXISTS reviews (

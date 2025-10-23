@@ -29,5 +29,8 @@
   "workspaces": [
     "backend",
     "frontend"
-  ]
-} 
+  ],
+  "dependencies": {
+    "multer": "^2.0.2"
+  }
+}

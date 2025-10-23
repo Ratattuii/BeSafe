@@ -1,608 +1,566 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  useWindowDimensions,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, Alert, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '../styles/globalStyles';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
+import socketChatService from '../services/chat/socketChatService';
+import { showError } from '../utils/alerts';
+import { colors, spacing, fontSizes, fontWeights, borderRadius, shadows } from '../styles/globalStyles';
 
-const ChatScreen = ({ route, navigation }) => {
+const ChatScreen = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { user } = useAuth();
+  const { chatId, contact, needContext } = route.params;
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const scrollViewRef = useRef(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 1024;
+  const scrollViewRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
-  // Props da navegação (mockadas)
-  const chatData = route?.params || {
-    chatId: 1,
-    contact: {
-      name: 'Cruz Vermelha Brasileira',
-      avatar: 'https://via.placeholder.com/40x40/FF1434/white?text=CV',
-      type: 'institution',
-      isOnline: true,
-    },
-    needContext: {
-      title: 'Medicamentos para UTI',
-      urgency: 'critica',
-      description: 'Precisamos urgentemente de medicamentos para pacientes em estado crítico.',
+  useEffect(() => {
+    initializeChat();
+    setupSocketListeners();
+    
+    return () => {
+      cleanupSocketListeners();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const initializeChat = async () => {
+    setLoading(true);
+    try {
+      // Conectar ao Socket.IO
+      const connected = await socketChatService.connect();
+      if (connected) {
+        setSocketConnected(true);
+        
+        // Entrar na conversa
+        socketChatService.joinConversation(chatId);
+      }
+
+      // Carregar mensagens existentes
+      await loadMessages();
+    } catch (error) {
+      console.error('Erro ao inicializar chat:', error);
+      showError('Erro ao carregar conversa.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Dados mockados de mensagens
-  const mockMessages = [
-    {
-      id: 1,
-      text: 'Olá! Vi que vocês precisam de medicamentos para UTI. Posso ajudar com alguns itens.',
-      senderId: 0, // usuário atual
-      timestamp: '2023-10-01T10:00:00Z',
-      type: 'text',
-    },
-    {
-      id: 2,
-      text: 'Que ótimo! Muito obrigado pelo interesse em ajudar. Quais medicamentos você tem disponível?',
-      senderId: 1, // contato
-      timestamp: '2023-10-01T10:05:00Z',
-      type: 'text',
-    },
-    {
-      id: 3,
-      text: 'Tenho alguns antibióticos e analgésicos. Posso enviar a lista completa se quiser.',
-      senderId: 0,
-      timestamp: '2023-10-01T10:07:00Z',
-      type: 'text',
-    },
-    {
-      id: 4,
-      text: 'Por favor, isso seria muito útil! Nossa equipe médica pode verificar o que é mais necessário no momento.',
-      senderId: 1,
-      timestamp: '2023-10-01T10:10:00Z',
-      type: 'text',
-    },
-    {
-      id: 5,
-      text: 'Aqui está a lista dos medicamentos disponíveis:',
-      senderId: 0,
-      timestamp: '2023-10-01T10:15:00Z',
-      type: 'text',
-    },
-    {
-      id: 6,
-      text: 'https://via.placeholder.com/200x150/4CAF50/white?text=Lista+Medicamentos',
-      senderId: 0,
-      timestamp: '2023-10-01T10:16:00Z',
-      type: 'image',
-    },
-  ];
+  const setupSocketListeners = () => {
+    // Nova mensagem recebida
+    socketChatService.on('new_message', (message) => {
+      setMessages(prev => [...prev, message]);
+      scrollToBottom();
+    });
 
-  useEffect(() => {
-    loadMessages();
-  }, []);
+    // Usuário digitando
+    socketChatService.on('user_typing', (data) => {
+      if (data.userId !== user.id) {
+        setOtherUserTyping(data.isTyping);
+      }
+    });
 
-  useEffect(() => {
-    // Auto scroll para baixo quando novas mensagens chegam
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, [messages]);
+    // Status de conexão
+    socketChatService.on('connection_status', (status) => {
+      setSocketConnected(status.connected);
+    });
+
+    // Erro de conexão
+    socketChatService.on('connection_error', (error) => {
+      console.error('Erro de conexão Socket.IO:', error);
+      setSocketConnected(false);
+    });
+
+    // Autenticado
+    socketChatService.on('authenticated', () => {
+      setSocketConnected(true);
+      socketChatService.joinConversation(chatId);
+    });
+  };
+
+  const cleanupSocketListeners = () => {
+    socketChatService.leaveConversation(chatId);
+  };
 
   const loadMessages = async () => {
-    setLoading(true);
-    
-    // TODO: Implementar carregamento real
-    // GET /chats/${chatId}/messages
-    
-    // Simula carregamento
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    setMessages(mockMessages);
-    setLoading(false);
+    try {
+      const response = await api.get(`/messages/${contact.id}`);
+      if (response.success) {
+        setMessages(response.data.messages || []);
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+    }
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || sending) return;
 
     const messageText = newMessage.trim();
     setNewMessage('');
-
-    // Adiciona mensagem otimisticamente
-    const newMsg = {
-      id: Date.now(),
-      text: messageText,
-      senderId: 0,
-      timestamp: new Date().toISOString(),
-      type: 'text',
-    };
-
-    setMessages(prev => [...prev, newMsg]);
+    setSending(true);
 
     try {
-      // TODO: Implementar envio real
-      // POST /chats/${chatId}/messages
-      // Body: { text: messageText, type: 'text' }
+      // Enviar via Socket.IO (tempo real)
+      const sent = socketChatService.sendMessage(chatId, messageText, contact.id);
       
-      console.log('Enviando mensagem:', messageText);
-      
+      if (!sent) {
+        // Fallback para HTTP se Socket.IO falhar
+        const response = await api.post('/messages', {
+          receiver_id: contact.id,
+          message: messageText,
+        });
+
+        if (response.success) {
+          const newMsg = {
+            id: response.data.message.id,
+            sender_id: user.id,
+            receiver_id: contact.id,
+            message: messageText,
+            created_at: new Date().toISOString(),
+            sender_name: user.name,
+          };
+          setMessages(prev => [...prev, newMsg]);
+          scrollToBottom();
+        } else {
+          showError('Erro ao enviar mensagem.');
+          setNewMessage(messageText); // Restaurar mensagem
+        }
+      } else {
+        // Mensagem enviada via Socket.IO - será adicionada quando receber confirmação
+        const tempMessage = {
+          id: Date.now(), // ID temporário
+          sender_id: user.id,
+          receiver_id: contact.id,
+          message: messageText,
+          created_at: new Date().toISOString(),
+          sender_name: user.name,
+          isSending: true,
+        };
+        setMessages(prev => [...prev, tempMessage]);
+        scrollToBottom();
+      }
     } catch (error) {
-      // Remove mensagem em caso de erro
-      setMessages(prev => prev.filter(msg => msg.id !== newMsg.id));
       console.error('Erro ao enviar mensagem:', error);
+      showError('Erro ao enviar mensagem.');
+      setNewMessage(messageText); // Restaurar mensagem
+    } finally {
+      setSending(false);
     }
   };
 
-  const handleImagePicker = () => {
-    // TODO: Implementar seletor de imagens
-    console.log('Abrir seletor de imagens');
+  const handleTyping = (text) => {
+    setNewMessage(text);
+    
+    // Enviar indicador de digitação
+    if (text.length > 0 && !isTyping) {
+      setIsTyping(true);
+      socketChatService.setTyping(chatId, true);
+    } else if (text.length === 0 && isTyping) {
+      setIsTyping(false);
+      socketChatService.setTyping(chatId, false);
+    }
+
+    // Limpar timeout anterior
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Parar de digitar após 2 segundos de inatividade
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTyping) {
+        setIsTyping(false);
+        socketChatService.setTyping(chatId, false);
+      }
+    }, 2000);
+  };
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
     });
   };
 
-  const getUrgencyColor = (urgency) => {
-    switch (urgency) {
-      case 'critica': return colors.urgent;
-      case 'alta': return colors.warning;
-      case 'media': return colors.success;
-      case 'baixa': return colors.gray500;
-      default: return colors.gray500;
-    }
+  const handleBackPress = () => {
+    navigation.goBack();
   };
 
-  const renderHeader = () => (
-    <View style={[styles.header, isDesktop && styles.headerDesktop]}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation?.goBack?.()}
-        accessible={true}
-        accessibilityLabel="Voltar para lista de conversas"
-        accessibilityRole="button"
-      >
-        <Text style={styles.backButtonText}>←</Text>
-      </TouchableOpacity>
-
-      <View style={styles.contactInfo}>
-        <Image source={{ uri: chatData.contact.avatar }} style={styles.contactAvatar} />
-        <View style={styles.contactDetails}>
-          <Text style={styles.contactName}>{chatData.contact.name}</Text>
-          <Text style={styles.contactStatus}>
-            {chatData.contact.isOnline ? '🟢 Online' : '⚫ Offline'}
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={() => {
-          // TODO: Abrir menu de opções
-          console.log('Menu do chat');
-        }}
-        accessible={true}
-        accessibilityLabel="Menu do chat"
-        accessibilityRole="button"
-      >
-        <Text style={styles.menuButtonText}>⋮</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderNeedContext = () => (
-    <View style={[styles.needContext, isDesktop && styles.needContextDesktop]}>
-      <View style={styles.needHeader}>
-        <View style={[
-          styles.urgencyDot,
-          { backgroundColor: getUrgencyColor(chatData.needContext.urgency) }
-        ]} />
-        <Text style={styles.needTitle}>{chatData.needContext.title}</Text>
-      </View>
-      <Text style={styles.needDescription}>
-        {chatData.needContext.description}
-      </Text>
-    </View>
-  );
-
   const renderMessage = (message) => {
-    const isMyMessage = message.senderId === 0;
-
-    if (message.type === 'image') {
-      return (
-        <View
-          key={message.id}
-          style={[
-            styles.messageContainer,
-            isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
-          ]}
-        >
-          <TouchableOpacity style={styles.imageMessage}>
-            <Image source={{ uri: message.text }} style={styles.messageImage} />
-          </TouchableOpacity>
-          <Text style={[
-            styles.messageTime,
-            isMyMessage ? styles.myMessageTime : styles.otherMessageTime
-          ]}>
-            {formatTime(message.timestamp)}
-          </Text>
-        </View>
-      );
-    }
+    const isOwn = message.sender_id === user.id;
+    const isSending = message.isSending;
 
     return (
       <View
         key={message.id}
         style={[
           styles.messageContainer,
-          isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
+          isOwn ? styles.ownMessage : styles.otherMessage,
         ]}
         accessible={true}
-        accessibilityLabel={`${isMyMessage ? 'Você' : chatData.contact.name}: ${message.text}`}
+        accessibilityLabel={`Mensagem ${isOwn ? 'enviada' : 'recebida'}: ${message.message}`}
       >
-        <View style={[
-          styles.messageBubble,
-          isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble
-        ]}>
+        <View
+          style={[
+            styles.messageBubble,
+            isOwn ? styles.ownBubble : styles.otherBubble,
+            isSending && styles.sendingBubble,
+          ]}
+        >
           <Text style={[
             styles.messageText,
-            isMyMessage ? styles.myMessageText : styles.otherMessageText
+            isOwn ? styles.ownText : styles.otherText,
           ]}>
-            {message.text}
+            {message.message}
+          </Text>
+          <Text style={[
+            styles.messageTime,
+            isOwn ? styles.ownTime : styles.otherTime,
+          ]}>
+            {formatTime(message.created_at)}
+            {isSending && ' • Enviando...'}
           </Text>
         </View>
-        <Text style={[
-          styles.messageTime,
-          isMyMessage ? styles.myMessageTime : styles.otherMessageTime
-        ]}>
-          {formatTime(message.timestamp)}
-        </Text>
       </View>
     );
   };
 
-  const renderMessages = () => (
-    <ScrollView
-      ref={scrollViewRef}
-      style={styles.messagesContainer}
-      contentContainerStyle={styles.messagesContent}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      {messages.map(renderMessage)}
-    </ScrollView>
-  );
-
-  const renderMessageInput = () => (
-    <View style={[styles.inputContainer, isDesktop && styles.inputContainerDesktop]}>
-      <TouchableOpacity
-        style={styles.attachButton}
-        onPress={handleImagePicker}
-        accessible={true}
-        accessibilityLabel="Anexar imagem"
-        accessibilityRole="button"
-      >
-        <Text style={styles.attachButtonText}>📷</Text>
-      </TouchableOpacity>
-
-      <TextInput
-        style={[styles.messageInput, isDesktop && styles.messageInputDesktop]}
-        value={newMessage}
-        onChangeText={setNewMessage}
-        placeholder="Digite sua mensagem..."
-        placeholderTextColor={colors.textSecondary}
-        multiline
-        maxLength={1000}
-        accessible={true}
-        accessibilityLabel="Campo de mensagem"
-        accessibilityHint="Digite sua mensagem aqui"
-      />
-
-      <TouchableOpacity
-        style={[
-          styles.sendButton,
-          (!newMessage.trim() || loading) && styles.sendButtonDisabled
-        ]}
-        onPress={sendMessage}
-        disabled={!newMessage.trim() || loading}
-        accessible={true}
-        accessibilityLabel="Enviar mensagem"
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !newMessage.trim() || loading }}
-      >
-        <Text style={styles.sendButtonText}>➤</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderMobileLayout = () => (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      {renderHeader()}
-      {renderNeedContext()}
-      {renderMessages()}
-      {renderMessageInput()}
-    </KeyboardAvoidingView>
-  );
-
-  const renderDesktopLayout = () => (
-    <View style={styles.desktopContainer}>
-      {renderHeader()}
-      {renderNeedContext()}
-      <View style={styles.desktopChatContent}>
-        {renderMessages()}
-        {renderMessageInput()}
-      </View>
-    </View>
-  );
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Carregando conversa...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      {isDesktop ? renderDesktopLayout() : renderMobileLayout()}
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.contactInfo}>
+          <Text style={styles.contactName}>{contact.name}</Text>
+          <View style={styles.statusContainer}>
+            <View style={[
+              styles.statusDot,
+              { backgroundColor: contact.isOnline ? colors.success : colors.gray400 }
+            ]} />
+            <Text style={styles.statusText}>
+              {contact.isOnline ? 'Online' : 'Offline'}
+            </Text>
+            {socketConnected && (
+              <Text style={styles.socketStatus}>• Tempo Real</Text>
+            )}
+          </View>
+        </View>
+        
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Text style={styles.actionButtonText}>📞</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Contexto da Necessidade */}
+      {needContext && (
+        <View style={styles.contextCard}>
+          <Text style={styles.contextTitle}>{needContext.title}</Text>
+          <Text style={styles.contextDescription}>{needContext.description}</Text>
+          <View style={[
+            styles.urgencyBadge,
+            { backgroundColor: needContext.urgency === 'critica' ? colors.error : colors.warning }
+          ]}>
+            <Text style={styles.urgencyText}>
+              {needContext.urgency === 'critica' ? 'Crítica' : 'Alta'}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Indicador de Digitação */}
+      {otherUserTyping && (
+        <View style={styles.typingIndicator}>
+          <Text style={styles.typingText}>{contact.name} está digitando...</Text>
+        </View>
+      )}
+
+      {/* Mensagens */}
+      <KeyboardAvoidingView 
+        style={styles.messagesContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesList}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+          accessible={true}
+          accessibilityLabel="Lista de mensagens da conversa"
+        >
+          {messages.map(renderMessage)}
+        </ScrollView>
+
+        {/* Input de Mensagem */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.messageInput}
+            value={newMessage}
+            onChangeText={handleTyping}
+            placeholder="Digite sua mensagem..."
+            placeholderTextColor={colors.gray500}
+            multiline
+            maxLength={1000}
+            editable={!sending}
+            accessible={true}
+            accessibilityLabel="Campo de texto para digitar mensagem"
+            accessibilityHint="Digite sua mensagem e pressione enviar"
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (!newMessage.trim() || sending) && styles.sendButtonDisabled
+            ]}
+            onPress={sendMessage}
+            disabled={!newMessage.trim() || sending}
+            accessible={true}
+            accessibilityLabel={sending ? "Enviando mensagem" : "Enviar mensagem"}
+            accessibilityRole="button"
+            accessibilityState={{ busy: sending }}
+          >
+            {sending ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <Text style={styles.sendButtonText}>→</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: colors.backgroundLight,
   },
-  container: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundLight,
   },
-
-  // Desktop Layout
-  desktopContainer: {
-    flex: 1,
-    backgroundColor: colors.white,
-    margin: 20,
-    borderRadius: 16,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: 'hidden',
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
   },
-  desktopChatContent: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.secondary,
-  },
-  headerDesktop: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    borderBottomColor: colors.gray200,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    padding: spacing.xs,
+    marginRight: spacing.sm,
   },
   backButtonText: {
-    fontSize: 18,
-    color: colors.textPrimary,
+    fontSize: fontSizes.xl,
+    color: colors.primary,
+    fontWeight: fontWeights.bold,
   },
   contactInfo: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  contactAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    backgroundColor: colors.secondary,
-  },
-  contactDetails: {
-    flex: 1,
   },
   contactName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
     color: colors.textPrimary,
-    marginBottom: 2,
   },
-  contactStatus: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuButtonText: {
-    fontSize: 18,
-    color: colors.textSecondary,
-  },
-
-  // Contexto da necessidade
-  needContext: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.secondary,
-  },
-  needContextDesktop: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  needHeader: {
+  statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginTop: spacing.xs / 2,
   },
-  urgencyDot: {
+  statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
+    marginRight: spacing.xs,
   },
-  needTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  needDescription: {
-    fontSize: 12,
+  statusText: {
+    fontSize: fontSizes.sm,
     color: colors.textSecondary,
-    lineHeight: 16,
   },
-
-  // Mensagens
+  socketStatus: {
+    fontSize: fontSizes.sm,
+    color: colors.success,
+    marginLeft: spacing.xs,
+  },
+  headerActions: {
+    flexDirection: 'row',
+  },
+  actionButton: {
+    padding: spacing.xs,
+    marginLeft: spacing.sm,
+  },
+  actionButtonText: {
+    fontSize: fontSizes.lg,
+  },
+  contextCard: {
+    backgroundColor: colors.white,
+    margin: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.medium,
+    ...shadows.small,
+  },
+  contextTitle: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  contextDescription: {
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  urgencyBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.small,
+  },
+  urgencyText: {
+    fontSize: fontSizes.xs,
+    color: colors.white,
+    fontWeight: fontWeights.bold,
+  },
+  typingIndicator: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  typingText: {
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
   messagesContainer: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
+  },
+  messagesList: {
+    flex: 1,
   },
   messagesContent: {
-    padding: 16,
-    gap: 12,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
   },
   messageContainer: {
-    maxWidth: '80%',
+    marginBottom: spacing.sm,
   },
-  myMessageContainer: {
-    alignSelf: 'flex-end',
+  ownMessage: {
     alignItems: 'flex-end',
   },
-  otherMessageContainer: {
-    alignSelf: 'flex-start',
+  otherMessage: {
     alignItems: 'flex-start',
   },
   messageBubble: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 18,
-    marginBottom: 4,
+    maxWidth: '80%',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.medium,
   },
-  myMessageBubble: {
+  ownBubble: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: borderRadius.small,
   },
-  otherMessageBubble: {
+  otherBubble: {
     backgroundColor: colors.white,
-    borderBottomLeftRadius: 4,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    borderBottomLeftRadius: borderRadius.small,
+    ...shadows.small,
+  },
+  sendingBubble: {
+    opacity: 0.7,
   },
   messageText: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: fontSizes.sm,
+    lineHeight: fontSizes.sm * 1.4,
   },
-  myMessageText: {
+  ownText: {
     color: colors.white,
   },
-  otherMessageText: {
+  otherText: {
     color: colors.textPrimary,
   },
   messageTime: {
-    fontSize: 11,
-    opacity: 0.7,
+    fontSize: fontSizes.xs,
+    marginTop: spacing.xs / 2,
   },
-  myMessageTime: {
+  ownTime: {
+    color: colors.white,
+    opacity: 0.8,
+  },
+  otherTime: {
     color: colors.textSecondary,
   },
-  otherMessageTime: {
-    color: colors.textSecondary,
-  },
-
-  // Mensagem de imagem
-  imageMessage: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  messageImage: {
-    width: 200,
-    height: 150,
-    borderRadius: 12,
-  },
-
-  // Input de mensagem
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: colors.secondary,
-    gap: 8,
-  },
-  inputContainerDesktop: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  attachButtonText: {
-    fontSize: 18,
+    borderTopColor: colors.gray200,
   },
   messageInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.secondary,
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
+    borderColor: colors.gray300,
+    borderRadius: borderRadius.medium,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSizes.sm,
     color: colors.textPrimary,
-    backgroundColor: colors.backgroundLight,
     maxHeight: 100,
-  },
-  messageInputDesktop: {
-    paddingVertical: 12,
+    marginRight: spacing.sm,
   },
   sendButton: {
+    backgroundColor: colors.primary,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -610,8 +568,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray400,
   },
   sendButtonText: {
-    fontSize: 18,
     color: colors.white,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
   },
 });
 

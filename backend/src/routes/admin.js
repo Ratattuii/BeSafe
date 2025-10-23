@@ -55,4 +55,23 @@ router.put('/users/:id/suspend', suspendUser);
  */
 router.get('/reports/donations', generateDonationsReport);
 
+/**
+ * POST /admin/alerts/disaster
+ * Envia alerta de desastre global
+ * Body: { title, message, severity }
+ */
+router.post('/alerts/disaster', adminController.sendDisasterAlert);
+
+/**
+ * GET /admin/alerts/history
+ * Obtém histórico de alertas enviados
+ */
+router.get('/alerts/history', adminController.getAlertHistory);
+
+/**
+ * GET /admin/alerts/stats
+ * Obtém estatísticas de alertas
+ */
+router.get('/alerts/stats', adminController.getAlertStats);
+
 module.exports = router;

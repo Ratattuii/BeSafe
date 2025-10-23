@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getNeedsWithFilters, createNeed, getNeedById, getNeedTypes } = require('../controllers/needsController');
 const { authenticateToken } = require('../middleware/auth');
-const { handleUploadError } = require('../middleware/upload');
+const { handleMultipleUploadError } = require('../middleware/upload');
 
 /**
  * GET /needs
@@ -29,7 +29,7 @@ router.get('/:id', getNeedById);
  * Body: { title, description, urgency, type, quantity, unit?, location?, goal_quantity? }
  * File: image (opcional)
  */
-router.post('/', authenticateToken, handleUploadError, createNeed);
+router.post('/', authenticateToken, handleMultipleUploadError, createNeed);
 
 module.exports = router;
 

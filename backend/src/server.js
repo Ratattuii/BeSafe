@@ -1,6 +1,4 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
+const http = require('http');
 
 const { testConnection } = require('./database/db');
 const { success, errors } = require('./utils/responses');
@@ -17,9 +15,11 @@ const searchRoutes = require('./routes/search');
 const institutionsRoutes = require('./routes/institutions');
 const reviewsRoutes = require('./routes/reviews');
 const adminRoutes = require('./routes/admin');
+const mapRoutes = require('./routes/map');
 
 // Configura nossa aplicação Express
 const app = express();
+const server = http.createServer(app);
 const PORT = 3000;
 
 // Defino o JWT secret aqui mesmo por enquanto (depois migro pro .env)
@@ -51,6 +51,7 @@ app.use('/search', searchRoutes);
 app.use('/institutions', institutionsRoutes);
 app.use('/reviews', reviewsRoutes);
 app.use('/admin', adminRoutes);
+app.use('/map', mapRoutes);
 app.use('/', followsRoutes); // Para /me/follows
 
 // Rota inicial - mostra se tá tudo funcionando

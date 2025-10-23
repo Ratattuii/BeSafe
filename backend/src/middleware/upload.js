@@ -74,6 +74,55 @@ function handleUploadError(req, res, next) {
 }
 
 /**
+ * Middleware para upload de múltiplas imagens de necessidades
+ */
+const uploadNeedImages = upload.array('images', 5); // Até 5 imagens
+
+/**
+ * Middleware para upload de logo de instituição
+ */
+const uploadInstitutionLogo = upload.single('logo');
+
+/**
+ * Middleware para upload de comprovante de doação
+ */
+const uploadDonationProof = upload.array('proofs', 3); // Até 3 comprovantes
+
+/**
+ * Middleware personalizado para tratar erros de upload múltiplo
+ */
+function handleMultipleUploadError(req, res, next) {
+  uploadNeedImages(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          success: false,
+          message: 'Arquivo muito grande. Máximo 5MB por imagem.'
+        });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({
+          success: false,
+          message: 'Máximo de 5 imagens permitidas.'
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Erro no upload: ' + err.message
+      });
+    } else if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+    
+    // Se chegou até aqui, upload ok ou sem arquivo
+    next();
+  });
+}
+
+/**
  * Remove um arquivo do sistema
  * @param {string} filePath - Caminho do arquivo
  */
@@ -90,5 +139,9 @@ function deleteFile(filePath) {
 
 module.exports = {
   handleUploadError,
+  handleMultipleUploadError,
+  uploadNeedImages,
+  uploadInstitutionLogo,
+  uploadDonationProof,
   deleteFile
 };

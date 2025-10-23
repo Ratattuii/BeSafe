@@ -1,5 +1,6 @@
 const { query, queryOne } = require('../database/db');
 const { success, errors } = require('../utils/responses');
+const pushNotificationService = require('../services/pushNotifications');
 const { validateRequired } = require('../utils/validation');
 
 /**
@@ -466,9 +467,12 @@ async function generateDonationsReport(req, res) {
 
 module.exports = {
   getSystemStats,
-  getAllDonations,
   getAllUsers,
+  getAllDonations,
   verifyInstitution,
   suspendUser,
-  generateDonationsReport
+  generateDonationsReport,
+  sendDisasterAlert,
+  getAlertHistory,
+  getAlertStats,
 };

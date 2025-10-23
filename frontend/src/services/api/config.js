@@ -1,11 +1,11 @@
 // Configurações da API
 export const API_CONFIG = {
-  // TODO: Substituir pela URL real do backend
-  BASE_URL: __DEV__ 
+  // URL da API configurável via variáveis de ambiente
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || (__DEV__ 
     ? 'http://localhost:3000/api' // Desenvolvimento local
-    : 'https://besafe-api.com/api', // Produção
+    : 'https://besafe-api.com/api'), // Produção
   
-  TIMEOUT: 10000, // 10 segundos
+  TIMEOUT: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT) || 10000, // 10 segundos
   
   ENDPOINTS: {
     // Autenticação
