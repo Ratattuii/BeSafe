@@ -50,6 +50,10 @@ const NeedCard = ({ need, onPress }) => {
       style={[styles.card, isDesktop && styles.cardDesktop]}
       onPress={onPress}
       activeOpacity={0.9}
+      accessible={true}
+      accessibilityLabel={`Necessidade: ${need.description}. Instituição: ${need.institution.name}. Urgência: ${need.urgency}`}
+      accessibilityHint="Toque para ver detalhes da necessidade e como ajudar"
+      accessibilityRole="button"
     >
       {/* Cabeçalho com info da instituição */}
       <View style={styles.header}>
@@ -59,6 +63,8 @@ const NeedCard = ({ need, onPress }) => {
               source={{ uri: need.institution.logo }}
               style={styles.institutionLogo}
               defaultSource={{ uri: 'https://via.placeholder.com/40x40/cccccc/white?text=?' }}
+              accessible={true}
+              accessibilityLabel={`Logo da instituição ${need.institution.name}`}
             />
             {need.institution.isActive && <View style={styles.activeIndicator} />}
           </View>
@@ -88,28 +94,52 @@ const NeedCard = ({ need, onPress }) => {
         source={{ uri: need.image }}
         style={[styles.needImage, isDesktop && styles.needImageDesktop]}
         defaultSource={{ uri: 'https://via.placeholder.com/350x200/cccccc/white?text=Carregando...' }}
+        accessible={true}
+        accessibilityLabel="Imagem da necessidade"
+        accessibilityHint="Imagem relacionada à necessidade descrita"
       />
 
       {/* Footer com estatísticas */}
       <View style={styles.footer}>
         <View style={styles.stats}>
-          <TouchableOpacity style={styles.statButton}>
+          <TouchableOpacity 
+            style={styles.statButton}
+            accessible={true}
+            accessibilityLabel={`${formatStats(need.stats.likes)} curtidas`}
+            accessibilityRole="button"
+          >
             <Text style={styles.statIcon}>♥</Text>
             <Text style={styles.statText}>{formatStats(need.stats.likes)}</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.statButton}>
+          <TouchableOpacity 
+            style={styles.statButton}
+            accessible={true}
+            accessibilityLabel={`${formatStats(need.stats.comments)} comentários`}
+            accessibilityRole="button"
+          >
             <Text style={styles.statIcon}>💬</Text>
             <Text style={styles.statText}>{formatStats(need.stats.comments)}</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.statButton}>
+          <TouchableOpacity 
+            style={styles.statButton}
+            accessible={true}
+            accessibilityLabel={`${formatStats(need.stats.shares)} compartilhamentos`}
+            accessibilityRole="button"
+          >
             <Text style={styles.statIcon}>↗</Text>
             <Text style={styles.statText}>{formatStats(need.stats.shares)}</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          accessible={true}
+          accessibilityLabel="Botão para ajudar com esta necessidade"
+          accessibilityHint="Toque para oferecer ajuda ou fazer uma doação"
+          accessibilityRole="button"
+        >
           <Text style={styles.actionButtonText}>Ajudar</Text>
         </TouchableOpacity>
       </View>

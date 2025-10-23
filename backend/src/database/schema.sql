@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL COMMENT 'Nome do usuário ou instituição',
     email VARCHAR(255) UNIQUE NOT NULL COMMENT 'Email único para login',
     password VARCHAR(255) NOT NULL COMMENT 'Senha criptografada (bcrypt)',
-    role ENUM('donor', 'institution') NOT NULL DEFAULT 'donor' COMMENT 'Tipo de usuário',
+    role ENUM('donor', 'institution', 'admin') NOT NULL DEFAULT 'donor' COMMENT 'Tipo de usuário',
     avatar VARCHAR(500) NULL COMMENT 'Caminho para foto de perfil',
     
     -- Campos específicos para instituições
@@ -136,12 +136,20 @@ CREATE TABLE IF NOT EXISTS donations (
     FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE,
     FOREIGN KEY (institution_id) REFERENCES users(id) ON DELETE CASCADE,
     
-    -- Índices
-    INDEX idx_donations_donor (donor_id),
-    INDEX idx_donations_need (need_id),
-    INDEX idx_donations_institution (institution_id),
-    INDEX idx_donations_status (status),
-    INDEX idx_donations_created (created_at)
+    -- Índices adicionais para performance
+    INDEX idx_donations_composite (donor_id, institution_id, status, created_at),
+    INDEX idx_donations_delivery (delivered_at, status),
+    INDEX idx_needs_composite (institution_id, status, urgency, created_at),
+    INDEX idx_needs_location (location),
+    INDEX idx_messages_composite (sender_id, receiver_id, created_at),
+    INDEX idx_messages_unread (receiver_id, is_read, created_at),
+    INDEX idx_notifications_composite (user_id, type, is_read, created_at),
+    INDEX idx_reviews_composite (donation_id, reviewed_id, reviewer_id),
+    INDEX idx_reviews_rating_composite (reviewed_id, rating, is_public),
+    
+    -- Índices FULLTEXT para busca
+    FULLTEXT INDEX idx_needs_search (title, description),
+    FULLTEXT INDEX idx_users_search (name, description)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Doações realizadas';
 
 -- ==============================================
@@ -236,7 +244,46 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Notificações do sistema';
 
 -- ==============================================
--- 8. TABELA SETTINGS
+-- 8. TABELA REVIEWS (Avaliações)
+-- ==============================================
+-- Armazena avaliações de doações entre usuários
+CREATE TABLE IF NOT EXISTS reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    donation_id INT NOT NULL COMMENT 'ID da doação avaliada',
+    reviewer_id INT NOT NULL COMMENT 'ID do usuário que está avaliando',
+    reviewed_id INT NOT NULL COMMENT 'ID do usuário sendo avaliado',
+    
+    -- Avaliação
+    rating TINYINT NOT NULL CHECK (rating >= 1 AND rating <= 5) COMMENT 'Nota de 1 a 5 estrelas',
+    comment TEXT NULL COMMENT 'Comentário da avaliação',
+    review_type ENUM('donor_to_institution', 'institution_to_donor', 'delivery_quality') NOT NULL COMMENT 'Tipo de avaliação',
+    
+    -- Status
+    is_public BOOLEAN DEFAULT TRUE COMMENT 'Avaliação pública',
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Chaves estrangeiras
+    FOREIGN KEY (donation_id) REFERENCES donations(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Evita avaliações duplicadas
+    UNIQUE KEY unique_review (donation_id, reviewer_id, review_type),
+    
+    -- Índices
+    INDEX idx_reviews_donation (donation_id),
+    INDEX idx_reviews_reviewer (reviewer_id),
+    INDEX idx_reviews_reviewed (reviewed_id),
+    INDEX idx_reviews_type (review_type),
+    INDEX idx_reviews_rating (rating),
+    INDEX idx_reviews_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Avaliações de doações';
+
+-- ==============================================
+-- 9. TABELA SETTINGS
 -- ==============================================
 -- Armazena configurações dos usuários
 CREATE TABLE IF NOT EXISTS user_settings (

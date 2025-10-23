@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, me } = require('../controllers/authController');
+const { register, login, loginWithFirebase, me } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const { handleUploadError } = require('../middleware/upload');
 
@@ -18,6 +18,13 @@ router.post('/register', handleUploadError, register);
  * Body: { email, password }
  */
 router.post('/login', login);
+
+/**
+ * POST /auth/firebase
+ * Login/Registro com Firebase
+ * Body: { firebaseToken, role }
+ */
+router.post('/firebase', loginWithFirebase);
 
 /**
  * GET /auth/me

@@ -15,6 +15,8 @@ const messagesRoutes = require('./routes/messages');
 const notificationsRoutes = require('./routes/notifications');
 const searchRoutes = require('./routes/search');
 const institutionsRoutes = require('./routes/institutions');
+const reviewsRoutes = require('./routes/reviews');
+const adminRoutes = require('./routes/admin');
 
 // Configura nossa aplicação Express
 const app = express();
@@ -47,6 +49,8 @@ app.use('/messages', messagesRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/search', searchRoutes);
 app.use('/institutions', institutionsRoutes);
+app.use('/reviews', reviewsRoutes);
+app.use('/admin', adminRoutes);
 app.use('/', followsRoutes); // Para /me/follows
 
 // Rota inicial - mostra se tá tudo funcionando
@@ -75,7 +79,19 @@ app.get('/', (req, res) => {
       'GET /institutions - Listar instituições',
       'GET /institutions/:id - Perfil da instituição',
       'GET /me/follows - Instituições seguidas',
-      'POST /institutions/:id/follow - Seguir instituição'
+      'POST /institutions/:id/follow - Seguir instituição',
+      'POST /reviews - Criar avaliação',
+      'GET /reviews/donation/:donationId - Avaliações de uma doação',
+      'GET /reviews/user/:userId/received - Avaliações recebidas',
+      'GET /reviews/user/:userId/given - Avaliações feitas',
+      'PUT /reviews/:id - Atualizar avaliação',
+      'DELETE /reviews/:id - Remover avaliação',
+      'GET /admin/stats - Estatísticas do sistema (admin)',
+      'GET /admin/donations - Listar todas as doações (admin)',
+      'GET /admin/users - Listar todos os usuários (admin)',
+      'PUT /admin/users/:id/verify - Verificar instituição (admin)',
+      'PUT /admin/users/:id/suspend - Suspender usuário (admin)',
+      'GET /admin/reports/donations - Relatório CSV de doações (admin)'
     ]
   });
 });

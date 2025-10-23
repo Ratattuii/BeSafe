@@ -3,6 +3,7 @@ const { query, queryOne } = require('../database/db');
 const { generateToken } = require('../middleware/auth');
 const { success, errors } = require('../utils/responses');
 const { validateRequired, validateEmail, validatePassword, validateUserRole, runValidations } = require('../utils/validation');
+const { getAuth } = require('../config/firebase');
 
 /**
  * Registra um novo usuário
@@ -110,8 +111,70 @@ async function me(req, res) {
   }
 }
 
+/**
+ * Login/Registro com Firebase
+ * POST /auth/firebase
+ */
+async function loginWithFirebase(req, res) {
+  try {
+    const { firebaseToken, role = 'donor' } = req.body;
+
+    if (!firebaseToken) {
+      return errors.badRequest(res, 'Token Firebase requerido');
+    }
+
+    const auth = getAuth();
+    if (!auth) {
+      return errors.serverError(res, 'Firebase não configurado');
+    }
+
+    // Verifica o token Firebase
+    const decodedToken = await auth.verifyIdToken(firebaseToken);
+    const { uid, email, name, email_verified, picture } = decodedToken;
+
+    // Busca usuário existente no banco
+    let user = await queryOne(
+      'SELECT id, name, email, role, avatar FROM users WHERE email = ?',
+      [email]
+    );
+
+    if (!user) {
+      // Cria novo usuário se não existir
+      const avatarPath = picture ? picture : null;
+      const result = await query(
+        'INSERT INTO users (name, email, password, role, avatar, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
+        [name || email.split('@')[0], email, 'firebase_auth', role, avatarPath, email_verified]
+      );
+
+      user = await queryOne(
+        'SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?',
+        [result.insertId]
+      );
+    }
+
+    // Gera token JWT para compatibilidade
+    const token = generateToken(user);
+
+    return success(res, 'Login Firebase realizado com sucesso', { 
+      user, 
+      token,
+      firebaseUid: uid 
+    });
+
+  } catch (error) {
+    console.error('Erro no login Firebase:', error.message);
+    
+    if (error.code === 'auth/invalid-token') {
+      return errors.unauthorized(res, 'Token Firebase inválido');
+    }
+    
+    return errors.serverError(res);
+  }
+}
+
 module.exports = {
   register,
   login,
+  loginWithFirebase,
   me
 };

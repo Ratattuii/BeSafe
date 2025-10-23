@@ -57,15 +57,15 @@ export const spacing = {
   xxl: 48,
 };
 
-// Tamanhos de fonte
+// Tamanhos de fonte (melhorados para acessibilidade)
 export const fontSizes = {
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
+  xs: 14,    // Aumentado de 12 para 14 (mínimo recomendado para acessibilidade)
+  sm: 16,    // Aumentado de 14 para 16 (tamanho base recomendado)
+  md: 18,    // Aumentado de 16 para 18
+  lg: 20,    // Aumentado de 18 para 20
+  xl: 22,    // Aumentado de 20 para 22
+  xxl: 26,   // Aumentado de 24 para 26
+  xxxl: 34,  // Aumentado de 32 para 34
 };
 
 // Pesos de fonte

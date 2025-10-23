@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
+import firebaseAuth from '../services/auth/firebaseAuth';
 
 const AuthContext = createContext({});
 
@@ -110,8 +111,49 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      console.log('🔐 Tentando login com Google...');
+      
+      const result = await firebaseAuth.signInWithGoogle();
+      
+      if (result.success && result.token) {
+        // Enviar token Firebase para o backend
+        const backendResponse = await api.post('/auth/firebase', {
+          firebaseToken: result.token,
+          role: 'donor' // Default role
+        });
+        
+        if (backendResponse.success && backendResponse.data) {
+          const { user, token } = backendResponse.data;
+          
+          // Salvar dados no AsyncStorage
+          await AsyncStorage.setItem('@BeSafe:token', token);
+          await AsyncStorage.setItem('@BeSafe:user', JSON.stringify(user));
+          
+          // Configurar API e estado
+          api.setToken(token);
+          setToken(token);
+          setUser(user);
+          
+          console.log('✅ Login Google realizado com sucesso:', user);
+          return { success: true };
+        }
+      }
+      
+      throw new Error(result.error || 'Erro no login com Google');
+      
+    } catch (error) {
+      console.error('Erro ao fazer login com Google:', error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
+      // Logout do Firebase também
+      await firebaseAuth.signOut();
+      
       await AsyncStorage.multiRemove(['@BeSafe:token', '@BeSafe:user']);
       api.clearToken();
       setToken(null);
@@ -141,6 +183,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    loginWithGoogle,
     logout,
     updateUser,
     isAuthenticated,

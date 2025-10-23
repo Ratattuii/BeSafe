@@ -63,7 +63,28 @@ function generateToken(user) {
   });
 }
 
+/**
+ * Middleware para verificar se o usuário é administrador
+ */
+function requireAdmin(req, res, next) {
+  try {
+    if (!req.user) {
+      return errors.unauthorized(res, 'Usuário não autenticado');
+    }
+
+    if (req.user.role !== 'admin') {
+      return errors.forbidden(res, 'Acesso restrito a administradores');
+    }
+
+    next();
+  } catch (error) {
+    console.error('Erro na verificação de admin:', error.message);
+    return errors.serverError(res);
+  }
+}
+
 module.exports = {
   authenticateToken,
-  generateToken
+  generateToken,
+  requireAdmin
 };

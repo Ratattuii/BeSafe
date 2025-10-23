@@ -14,11 +14,12 @@ import { validateEmail, validatePassword, runValidations } from '../utils/valida
 import { showError, showDevAlert } from '../utils/alerts';
 
 const LoginScreen = ({ navigation }) => {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('joao@teste.com'); // Email de teste
   const [password, setPassword] = useState('123456'); // Senha de teste
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const validateForm = () => {
     const validationError = runValidations(
@@ -45,6 +46,19 @@ const LoginScreen = ({ navigation }) => {
       console.error('Erro no login:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+      alert('Login com Google realizado com sucesso! Bem-vindo ao BeSafe!');
+    } catch (error) {
+      showError('Erro no login com Google. Tente novamente.');
+      console.error('Erro no login Google:', error);
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -138,11 +152,38 @@ const LoginScreen = ({ navigation }) => {
               <Text style={styles.checkboxLabel}>Lembrar-me</Text>
             </TouchableOpacity>
 
+            {/* Botão Entrar com Google */}
+            <TouchableOpacity
+              style={[styles.googleButton, googleLoading && styles.googleButtonDisabled]}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              accessible={true}
+              accessibilityLabel={googleLoading ? "Fazendo login com Google" : "Entrar com Google"}
+              accessibilityRole="button"
+              accessibilityState={{ busy: googleLoading }}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color="#757575" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.googleIcon}>🔍</Text>
+                  <Text style={styles.googleButtonText}>Entrar com Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Divisor */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
             {/* Botão Entrar */}
             <TouchableOpacity
               style={[styles.loginButton, loading && styles.loginButtonDisabled]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || googleLoading}
               accessible={true}
               accessibilityLabel={loading ? "Fazendo login" : "Fazer login"}
               accessibilityRole="button"
@@ -323,6 +364,50 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   checkboxLabel: {
+    fontSize: 14,
+    color: '#757575',
+  },
+
+  // Botão Google
+  googleButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    minHeight: 52,
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  googleButtonDisabled: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#BDBDBD',
+  },
+  googleIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#757575',
+  },
+
+  // Divisor
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerText: {
+    marginHorizontal: 16,
     fontSize: 14,
     color: '#757575',
   },
