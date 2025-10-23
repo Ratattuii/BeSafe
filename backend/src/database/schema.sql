@@ -287,7 +287,12 @@ SELECT
     n.*,
     u.name as institution_name,
     u.avatar as institution_avatar,
+    u.phone as institution_phone,
     u.address as institution_location,
+    u.institution_type as institution_type,
+    u.activity_area as institution_activity_area,
+    u.description as institution_description,
+    u.website as institution_website,
     u.is_verified as institution_verified,
     COUNT(d.id) as total_donations,
     SUM(d.quantity) as total_donated

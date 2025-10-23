@@ -44,6 +44,14 @@ async function getNeedsWithFilters(req, res) {
     sql += ' LIMIT ? OFFSET ?';
     params.push(parseInt(limit), parseInt(offset));
     
+    // =================================================================
+    // LOGS DE DEPURAÇÃO ADICIONADOS
+    // =================================================================
+    console.log('--- DEBUG: EXECUTANDO QUERY 1 (NEEDS) ---');
+    console.log('SQL:', sql);
+    console.log('PARAMS:', params);
+    // =================================================================
+    
     const needs = await query(sql, params);
     
     // Query para contar total (para paginação)
@@ -69,6 +77,14 @@ async function getNeedsWithFilters(req, res) {
       countSql += ' AND (location LIKE ? OR institution_location LIKE ?)';
       countParams.push(`%${location}%`, `%${location}%`);
     }
+    
+    // =================================================================
+    // LOGS DE DEPURAÇÃO ADICIONADOS
+    // =================================================================
+    console.log('--- DEBUG: EXECUTANDO QUERY 2 (COUNT) ---');
+    console.log('SQL (Count):', countSql);
+    console.log('PARAMS (Count):', countParams);
+    // =================================================================
     
     const [countResult] = await query(countSql, countParams);
     const total = countResult.total;
