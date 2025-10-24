@@ -1,8 +1,4 @@
-const express = require('express');
-const router = express.Router();
-const { getNeedsWithFilters, createNeed, getNeedById, getNeedTypes } = require('../controllers/needsController');
-const { authenticateToken } = require('../middleware/auth');
-const { handleMultipleUploadError } = require('../middleware/upload');
+const { validateRequest } = require('../utils/validation');
 
 /**
  * GET /needs
@@ -29,7 +25,7 @@ router.get('/:id', getNeedById);
  * Body: { title, description, urgency, type, quantity, unit?, location?, goal_quantity? }
  * File: image (opcional)
  */
-router.post('/', authenticateToken, handleMultipleUploadError, createNeed);
+router.post('/', authenticateToken, handleMultipleUploadError, validateRequest('need'), createNeed);
 
 module.exports = router;
 

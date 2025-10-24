@@ -149,6 +149,47 @@ CREATE TABLE IF NOT EXISTS donations (
     
 -- Adicionar coluna fcm_token na tabela users
 ALTER TABLE users ADD COLUMN fcm_token VARCHAR(500) NULL COMMENT 'Token FCM para push notifications';
+
+-- ==============================================
+-- ÍNDICES ADICIONAIS PARA PERFORMANCE (RNF02.2)
+-- ==============================================
+
+-- Índices em chaves estrangeiras para acelerar JOINs
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_verified ON users(is_verified);
+CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
+
+CREATE INDEX IF NOT EXISTS idx_needs_institution_status ON needs(institution_id, status);
+CREATE INDEX IF NOT EXISTS idx_needs_urgency_status ON needs(urgency, status);
+CREATE INDEX IF NOT EXISTS idx_needs_created_status ON needs(created_at, status);
+
+CREATE INDEX IF NOT EXISTS idx_donations_donor_status ON donations(donor_id, status);
+CREATE INDEX IF NOT EXISTS idx_donations_institution_status ON donations(institution_id, status);
+CREATE INDEX IF NOT EXISTS idx_donations_need_status ON donations(need_id, status);
+CREATE INDEX IF NOT EXISTS idx_donations_created_status ON donations(created_at, status);
+
+CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON messages(receiver_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_type_read ON notifications(type, is_read);
+
+CREATE INDEX IF NOT EXISTS idx_follows_follower_following ON follows(follower_id, following_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following_follower ON follows(following_id, follower_id);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_donor_institution ON reviews(reviewer_id, reviewed_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_rating_public ON reviews(rating, is_public);
+
+CREATE INDEX IF NOT EXISTS idx_affected_zones_type_active ON affected_zones(type, is_active);
+CREATE INDEX IF NOT EXISTS idx_affected_zones_severity_active ON affected_zones(severity, is_active);
+
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_severity_active ON disaster_alerts(severity, is_active);
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_sent_active ON disaster_alerts(sent_at, is_active);
+
+-- Índices FULLTEXT para busca
+FULLTEXT INDEX idx_needs_search (title, description),
+FULLTEXT INDEX idx_users_search (name, description)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Doações realizadas';
 
 -- ==============================================

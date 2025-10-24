@@ -3,24 +3,40 @@ const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
 
-// Cria o diretório de uploads se não existir
-const uploadDir = path.join(__dirname, '../../uploads/avatars');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Cria os diretórios de uploads se não existirem
+const uploadDirs = {
+  avatars: path.join(__dirname, '../../uploads/avatars'),
+  needs: path.join(__dirname, '../../uploads/needs'),
+  institutions: path.join(__dirname, '../../uploads/institutions'),
+  donations: path.join(__dirname, '../../uploads/donations'),
+};
 
-// Configuração do multer para upload de avatars
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Gera nome único: timestamp + random + extensão original
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const extension = path.extname(file.originalname);
-    cb(null, 'avatar-' + uniqueSuffix + extension);
+Object.values(uploadDirs).forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 });
+
+// Configuração do multer para diferentes tipos de upload
+const createStorage = (uploadPath, prefix) => {
+  return multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadPath);
+    },
+    filename: function (req, file, cb) {
+      // Gera nome único: timestamp + random + extensão original
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const extension = path.extname(file.originalname);
+      cb(null, prefix + '-' + uniqueSuffix + extension);
+    }
+  });
+};
+
+// Storages para diferentes tipos de arquivo
+const avatarStorage = createStorage(uploadDirs.avatars, 'avatar');
+const needStorage = createStorage(uploadDirs.needs, 'need');
+const institutionStorage = createStorage(uploadDirs.institutions, 'institution');
+const donationStorage = createStorage(uploadDirs.donations, 'donation');
 
 // Filtro para aceitar apenas imagens
 const fileFilter = (req, file, cb) => {
@@ -31,9 +47,33 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configuração final do multer
-const upload = multer({
-  storage: storage,
+// Configurações do multer para diferentes tipos
+const avatarUpload = multer({
+  storage: avatarStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB máximo
+  }
+});
+
+const needUpload = multer({
+  storage: needStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB máximo
+  }
+});
+
+const institutionUpload = multer({
+  storage: institutionStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB máximo
+  }
+});
+
+const donationUpload = multer({
+  storage: donationStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB máximo
@@ -43,7 +83,7 @@ const upload = multer({
 /**
  * Middleware para upload de avatar
  */
-const uploadAvatar = upload.single('avatar');
+const uploadAvatar = avatarUpload.single('avatar');
 
 /**
  * Middleware personalizado para tratar erros de upload
@@ -76,17 +116,17 @@ function handleUploadError(req, res, next) {
 /**
  * Middleware para upload de múltiplas imagens de necessidades
  */
-const uploadNeedImages = upload.array('images', 5); // Até 5 imagens
+const uploadNeedImages = needUpload.array('images', 5); // Até 5 imagens
 
 /**
  * Middleware para upload de logo de instituição
  */
-const uploadInstitutionLogo = upload.single('logo');
+const uploadInstitutionLogo = institutionUpload.single('logo');
 
 /**
  * Middleware para upload de comprovante de doação
  */
-const uploadDonationProof = upload.array('proofs', 3); // Até 3 comprovantes
+const uploadDonationProof = donationUpload.array('proofs', 3); // Até 3 comprovantes
 
 /**
  * Middleware personalizado para tratar erros de upload múltiplo
