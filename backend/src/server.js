@@ -1,4 +1,9 @@
+require('dotenv').config();
 const http = require('http');
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const SocketService = require('./services/socketService');
 
 const { testConnection } = require('./database/db');
 const { success, errors } = require('./utils/responses');
@@ -20,10 +25,13 @@ const mapRoutes = require('./routes/map');
 // Configura nossa aplicação Express
 const app = express();
 const server = http.createServer(app);
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Defino o JWT secret aqui mesmo por enquanto (depois migro pro .env)
-process.env.JWT_SECRET = 'besafe_jwt_secret_2024_desenvolvimento';
+// JWT secret do .env (com fallback para desenvolvimento)
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'besafe_jwt_secret_2024_desenvolvimento';
+  console.warn('⚠️  JWT_SECRET não definido no .env, usando valor padrão (apenas para desenvolvimento)');
+}
 
 // Configurações básicas do servidor
 app.use(cors()); // Libera CORS pra não dar problema no frontend
@@ -108,6 +116,15 @@ app.use((error, req, res, next) => {
   return errors.serverError(res);
 });
 
+// Inicializa Socket.io para chat em tempo real
+let socketService;
+try {
+  socketService = new SocketService(server);
+  console.log('✅ Socket.io inicializado');
+} catch (error) {
+  console.error('⚠️  Erro ao inicializar Socket.io:', error.message);
+}
+
 // Testa conexão e inicia servidor
 testConnection().then(connected => {
   if (!connected) {
@@ -115,9 +132,10 @@ testConnection().then(connected => {
     process.exit(1);
   }
   
-  app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-    console.log(`URL: http://localhost:${PORT}`);
+  server.listen(PORT, () => {
+    console.log(`✅ Servidor rodando na porta ${PORT}`);
+    console.log(`📡 URL: http://localhost:${PORT}`);
+    console.log(`🔌 Socket.io disponível`);
   });
 }).catch(error => {
   console.error('Erro ao iniciar servidor:', error.message);

@@ -1,11 +1,12 @@
+// Importa variáveis de ambiente usando react-native-dotenv
+import { API_BASE_URL } from '@env';
+
 // Configurações da API
 export const API_CONFIG = {
   // URL da API configurável via variáveis de ambiente
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || (__DEV__ 
-    ? 'http://localhost:3000/api' // Desenvolvimento local
-    : 'https://besafe-api.com/api'), // Produção
+  BASE_URL: API_BASE_URL || 'http://localhost:3000/api', // Fallback para desenvolvimento local
   
-  TIMEOUT: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT) || 10000, // 10 segundos
+  TIMEOUT: 10000, // 10 segundos
   
   ENDPOINTS: {
     // Autenticação
@@ -119,9 +120,9 @@ export const API_CONFIG = {
 
 // Configurações de desenvolvimento
 export const DEV_CONFIG = {
-  ENABLE_LOGS: __DEV__,
+  ENABLE_LOGS: process.env.NODE_ENV === 'development',
   MOCK_DELAY: 1000, // Delay para simular requisições (em ms)
-  USE_MOCK_DATA: true, // Se deve usar dados mockados
+  USE_MOCK_DATA: false, // Se deve usar dados mockados
 };
 
 export default API_CONFIG;

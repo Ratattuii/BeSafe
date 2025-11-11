@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../styles/globalStyles';
+import { showSuccess, showError } from '../utils/alerts';
+import api from '../services/api';
 
 const PostNeedScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -101,36 +103,45 @@ const PostNeedScreen = ({ navigation }) => {
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      Alert.alert('Erro', 'Por favor, corrija os erros no formulário');
+      showError('Por favor, corrija os erros no formulário');
       return;
     }
 
     setLoading(true);
 
     try {
-      // TODO: Implementar envio real
-      // POST /needs
-      // Body: { title, description, quantity, category, urgency, location, images }
-      
-      // Simula envio
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      Alert.alert(
-        'Sucesso!', 
-        'Seu pedido foi publicado e já está disponível para doadores.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // TODO: Navegar de volta ou para lista de pedidos
-              navigation?.goBack?.();
-            }
-          }
-        ]
-      );
-      
+      // Enviar necessidade para a API
+      const response = await api.post('/needs', {
+        title: formData.title,
+        description: formData.description,
+        urgency: formData.urgency,
+        category: formData.category,
+        quantity_needed: parseInt(formData.quantity),
+        location: formData.location || null,
+      });
+
+      if (response.success) {
+        showSuccess('Pedido publicado com sucesso!');
+        // Limpar formulário
+        setFormData({
+          title: '',
+          description: '',
+          quantity: '',
+          category: '',
+          urgency: '',
+          location: '',
+        });
+        setImages([]);
+        // Voltar para a tela anterior após um breve delay
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
+      } else {
+        showError(response.message || 'Não foi possível publicar o pedido. Tente novamente.');
+      }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível publicar o pedido. Tente novamente.');
+      console.error('Erro ao publicar pedido:', error);
+      showError('Erro ao publicar pedido. Verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
     }

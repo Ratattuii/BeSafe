@@ -1,3 +1,8 @@
+const express = require('express');
+const router = express.Router();
+const { getNeedsWithFilters, getNeedTypes, getNeedById, createNeed } = require('../controllers/needsController');
+const { authenticateToken } = require('../middleware/auth');
+const { handleMultipleUploadError } = require('../middleware/upload');
 const { validateRequest } = require('../utils/validation');
 
 /**

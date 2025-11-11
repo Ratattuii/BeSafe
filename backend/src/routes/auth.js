@@ -1,3 +1,8 @@
+const express = require('express');
+const router = express.Router();
+const { register, login, loginWithFirebase, me } = require('../controllers/authController');
+const { authenticateToken } = require('../middleware/auth');
+const { handleUploadError } = require('../middleware/upload');
 const { validateRequest } = require('../utils/validation');
 
 /**

@@ -6,7 +6,10 @@ const {
   getAllUsers,
   verifyInstitution,
   suspendUser,
-  generateDonationsReport
+  generateDonationsReport,
+  sendDisasterAlert,
+  getAlertHistory,
+  getAlertStats
 } = require('../controllers/adminController');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
@@ -60,18 +63,18 @@ router.get('/reports/donations', generateDonationsReport);
  * Envia alerta de desastre global
  * Body: { title, message, severity }
  */
-router.post('/alerts/disaster', adminController.sendDisasterAlert);
+router.post('/alerts/disaster', sendDisasterAlert);
 
 /**
  * GET /admin/alerts/history
  * Obtém histórico de alertas enviados
  */
-router.get('/alerts/history', adminController.getAlertHistory);
+router.get('/alerts/history', getAlertHistory);
 
 /**
  * GET /admin/alerts/stats
  * Obtém estatísticas de alertas
  */
-router.get('/alerts/stats', adminController.getAlertStats);
+router.get('/alerts/stats', getAlertStats);
 
 module.exports = router;

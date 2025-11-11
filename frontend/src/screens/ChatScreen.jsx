@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import socketChatService from '../services/chat/socketChatService';
-import { showError } from '../utils/alerts';
+import { showError, showSuccess } from '../utils/alerts';
 import { colors, spacing, fontSizes, fontWeights, borderRadius, shadows } from '../styles/globalStyles';
 
 const ChatScreen = () => {
@@ -126,6 +126,7 @@ const ChatScreen = () => {
         });
 
         if (response.success) {
+          showSuccess('Mensagem enviada');
           const newMsg = {
             id: response.data.message.id,
             sender_id: user.id,

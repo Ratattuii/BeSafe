@@ -138,58 +138,7 @@ CREATE TABLE IF NOT EXISTS donations (
     
     -- Índices adicionais para performance
     INDEX idx_donations_composite (donor_id, institution_id, status, created_at),
-    INDEX idx_donations_delivery (delivered_at, status),
-    INDEX idx_needs_composite (institution_id, status, urgency, created_at),
-    INDEX idx_needs_location (location),
-    INDEX idx_messages_composite (sender_id, receiver_id, created_at),
-    INDEX idx_messages_unread (receiver_id, is_read, created_at),
-    INDEX idx_notifications_composite (user_id, type, is_read, created_at),
-    INDEX idx_reviews_composite (donation_id, reviewed_id, reviewer_id),
-    INDEX idx_reviews_rating_composite (reviewed_id, rating, is_public),
-    
--- Adicionar coluna fcm_token na tabela users
-ALTER TABLE users ADD COLUMN fcm_token VARCHAR(500) NULL COMMENT 'Token FCM para push notifications';
-
--- ==============================================
--- ÍNDICES ADICIONAIS PARA PERFORMANCE (RNF02.2)
--- ==============================================
-
--- Índices em chaves estrangeiras para acelerar JOINs
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_users_verified ON users(is_verified);
-CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
-
-CREATE INDEX IF NOT EXISTS idx_needs_institution_status ON needs(institution_id, status);
-CREATE INDEX IF NOT EXISTS idx_needs_urgency_status ON needs(urgency, status);
-CREATE INDEX IF NOT EXISTS idx_needs_created_status ON needs(created_at, status);
-
-CREATE INDEX IF NOT EXISTS idx_donations_donor_status ON donations(donor_id, status);
-CREATE INDEX IF NOT EXISTS idx_donations_institution_status ON donations(institution_id, status);
-CREATE INDEX IF NOT EXISTS idx_donations_need_status ON donations(need_id, status);
-CREATE INDEX IF NOT EXISTS idx_donations_created_status ON donations(created_at, status);
-
-CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id);
-CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON messages(receiver_id, is_read);
-CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
-
-CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
-CREATE INDEX IF NOT EXISTS idx_notifications_type_read ON notifications(type, is_read);
-
-CREATE INDEX IF NOT EXISTS idx_follows_follower_following ON follows(follower_id, following_id);
-CREATE INDEX IF NOT EXISTS idx_follows_following_follower ON follows(following_id, follower_id);
-
-CREATE INDEX IF NOT EXISTS idx_reviews_donor_institution ON reviews(reviewer_id, reviewed_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_rating_public ON reviews(rating, is_public);
-
-CREATE INDEX IF NOT EXISTS idx_affected_zones_type_active ON affected_zones(type, is_active);
-CREATE INDEX IF NOT EXISTS idx_affected_zones_severity_active ON affected_zones(severity, is_active);
-
-CREATE INDEX IF NOT EXISTS idx_disaster_alerts_severity_active ON disaster_alerts(severity, is_active);
-CREATE INDEX IF NOT EXISTS idx_disaster_alerts_sent_active ON disaster_alerts(sent_at, is_active);
-
--- Índices FULLTEXT para busca
-FULLTEXT INDEX idx_needs_search (title, description),
-FULLTEXT INDEX idx_users_search (name, description)
+    INDEX idx_donations_delivery (delivered_at, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Doações realizadas';
 
 -- ==============================================
@@ -471,6 +420,61 @@ FROM users u
 LEFT JOIN donations d ON u.id = d.donor_id AND d.status IN ('confirmada', 'entregue')
 WHERE u.role = 'donor'
 GROUP BY u.id;
+
+-- ==============================================
+-- ALTERAÇÕES E ÍNDICES ADICIONAIS (RNF02.2)
+-- ==============================================
+
+-- Adicionar coluna fcm_token na tabela users (se não existir)
+-- Nota: Execute manualmente se a coluna já existir: ALTER TABLE users ADD COLUMN fcm_token VARCHAR(500) NULL COMMENT 'Token FCM para push notifications';
+ALTER TABLE users ADD COLUMN fcm_token VARCHAR(500) NULL COMMENT 'Token FCM para push notifications';
+
+-- Índices adicionais para performance em needs
+CREATE INDEX IF NOT EXISTS idx_needs_institution_status ON needs(institution_id, status);
+CREATE INDEX IF NOT EXISTS idx_needs_urgency_status ON needs(urgency, status);
+CREATE INDEX IF NOT EXISTS idx_needs_created_status ON needs(created_at, status);
+CREATE INDEX IF NOT EXISTS idx_needs_location ON needs(location);
+
+-- Índices adicionais para performance em donations
+CREATE INDEX IF NOT EXISTS idx_donations_donor_status ON donations(donor_id, status);
+CREATE INDEX IF NOT EXISTS idx_donations_institution_status ON donations(institution_id, status);
+CREATE INDEX IF NOT EXISTS idx_donations_need_status ON donations(need_id, status);
+CREATE INDEX IF NOT EXISTS idx_donations_created_status ON donations(created_at, status);
+
+-- Índices adicionais para performance em messages
+CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON messages(receiver_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_composite ON messages(sender_id, receiver_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(receiver_id, is_read, created_at);
+
+-- Índices adicionais para performance em notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_type_read ON notifications(type, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_composite ON notifications(user_id, type, is_read, created_at);
+
+-- Índices adicionais para performance em follows
+CREATE INDEX IF NOT EXISTS idx_follows_follower_following ON follows(follower_id, following_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following_follower ON follows(following_id, follower_id);
+
+-- Índices adicionais para performance em reviews
+CREATE INDEX IF NOT EXISTS idx_reviews_donor_institution ON reviews(reviewer_id, reviewed_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_rating_public ON reviews(rating, is_public);
+CREATE INDEX IF NOT EXISTS idx_reviews_composite ON reviews(donation_id, reviewed_id, reviewer_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_rating_composite ON reviews(reviewed_id, rating, is_public);
+
+-- Índices adicionais para performance em affected_zones
+CREATE INDEX IF NOT EXISTS idx_affected_zones_type_active ON affected_zones(type, is_active);
+CREATE INDEX IF NOT EXISTS idx_affected_zones_severity_active ON affected_zones(severity, is_active);
+
+-- Índices adicionais para performance em disaster_alerts
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_severity_active ON disaster_alerts(severity, is_active);
+CREATE INDEX IF NOT EXISTS idx_disaster_alerts_sent_active ON disaster_alerts(sent_at, is_active);
+
+-- Índices FULLTEXT para busca (apenas para tabelas já criadas)
+-- Nota: FULLTEXT requer MyISAM ou InnoDB com versão 5.6+ e colunas TEXT/VARCHAR
+ALTER TABLE needs ADD FULLTEXT INDEX IF NOT EXISTS idx_needs_search (title, description);
+ALTER TABLE users ADD FULLTEXT INDEX IF NOT EXISTS idx_users_search (name, description);
 
 -- ==============================================
 -- COMENTÁRIOS FINAIS
