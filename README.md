@@ -126,4 +126,6 @@ npm run dev
 
 ## 👥 Desenvolvedores
 
+Ratatui - https://github.com/Ratattuii
+
 Projeto desenvolvido para **Projeto de Pesquisa 2024**.
