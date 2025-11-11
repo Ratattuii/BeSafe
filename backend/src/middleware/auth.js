@@ -1,90 +1,97 @@
 const jwt = require('jsonwebtoken');
-const { queryOne } = require('../database/db');
-const { errors } = require('../utils/responses');
+const db = require('../database/db').pool;
 
 /**
- * Middleware para verificar autenticação JWT
+ * Middleware para verificar o token JWT
+ * Adiciona req.user com os dados do usuário
  */
-async function authenticateToken(req, res, next) {
-  try {
-    // Busca o token no header Authorization
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Formato "Bearer TOKEN"
 
-    if (!token) {
-      return errors.unauthorized(res, 'Token de acesso requerido');
-    }
-
-    // Verifica e decodifica o token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Busca o usuário no banco para garantir que ainda existe
-    const user = await queryOne(
-      'SELECT id, name, email, role, avatar FROM users WHERE id = ?',
-      [decoded.userId]
-    );
-
-    if (!user) {
-      return errors.unauthorized(res, 'Usuário não encontrado');
-    }
-
-    // Adiciona o usuário na requisição
-    req.user = user;
-    next();
-
-  } catch (error) {
-    console.error('Erro na autenticação:', error.message);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return errors.unauthorized(res, 'Token inválido');
-    }
-    if (error.name === 'TokenExpiredError') {
-      return errors.unauthorized(res, 'Token expirado');
-    }
-    
-    return errors.serverError(res);
+  if (token == null) {
+    return res.status(401).json({ message: 'Token de autenticação não fornecido.' });
   }
-}
 
-/**
- * Gera um token JWT para o usuário
- * @param {object} user - Dados do usuário
- * @returns {string} Token JWT
- */
-function generateToken(user) {
-  const payload = {
-    userId: user.id,
-    email: user.email,
-    role: user.role
-  };
-
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '7d' // Token válido por 7 dias
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      console.error('Erro na verificação do JWT:', err.message);
+      return res.status(403).json({ message: 'Token inválido ou expirado.' });
+    }
+    req.user = user; // Adiciona os dados do usuário (id, role) ao request
+    next();
   });
-}
+};
 
 /**
- * Middleware para verificar se o usuário é administrador
+ * Middleware para verificar o papel (role) do usuário
+ * Ex: checkUserRole(['admin', 'receiver'])
  */
-function requireAdmin(req, res, next) {
-  try {
-    if (!req.user) {
-      return errors.unauthorized(res, 'Usuário não autenticado');
+const checkUserRole = (roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Acesso negado. Você não tem permissão para este recurso.' });
     }
-
-    if (req.user.role !== 'admin') {
-      return errors.forbidden(res, 'Acesso restrito a administradores');
-    }
-
     next();
-  } catch (error) {
-    console.error('Erro na verificação de admin:', error.message);
-    return errors.serverError(res);
-  }
-}
+  };
+};
 
+/**
+ * Middleware específico para verificar se é Admin
+ */
+const isAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Acesso negado. Apenas administradores.' });
+  }
+  next();
+};
+
+/**
+ * Middleware para verificar se o usuário é o dono do recurso ou um admin
+ * (Exemplo, pode não ser usado em todas as rotas)
+ */
+const isOwnerOrAdmin = (paramIdField = 'id') => {
+  return (req, res, next) => {
+    const resourceId = req.params[paramIdField];
+    if (req.user.role === 'admin' || req.user.id.toString() === resourceId) {
+      next();
+    } else {
+      res.status(403).json({ message: 'Acesso negado. Você não é o dono deste recurso nem um admin.' });
+    }
+  };
+};
+
+/**
+ * Middleware para verificar se o usuário é o dono de um item (ex: doação, necessidade)
+ */
+const isOwner = (tableName, paramIdField = 'id') => {
+  return async (req, res, next) => {
+    const resourceId = req.params[paramIdField];
+    const userId = req.user.id;
+
+    try {
+      const [rows] = await db.query(`SELECT user_id FROM ${tableName} WHERE id = ?`, [resourceId]);
+      if (rows.length === 0) {
+        return res.status(404).json({ message: 'Recurso não encontrado.' });
+      }
+
+      if (rows[0].user_id === userId) {
+        next();
+      } else {
+        res.status(403).json({ message: 'Acesso negado. Você não é o dono deste recurso.' });
+      }
+    } catch (error) {
+      console.error(`Erro ao verificar dono (${tableName}):`, error);
+      res.status(500).json({ message: 'Erro interno ao verificar permissões.' });
+    }
+  };
+};
+
+// --- EXPORTAÇÕES (O que estava faltando no seu arquivo) ---
 module.exports = {
   authenticateToken,
-  generateToken,
-  requireAdmin
+  checkUserRole,
+  isAdmin,
+  isOwnerOrAdmin,
+  isOwner
 };

@@ -1,79 +1,60 @@
-const express = require('express');
-const router = express.Router();
+const { Router } = require('express');
+const router = Router();
+const { authenticateToken, isAdmin } = require('../middleware/auth');
+
+// IMPORTANTE: A IMPORTAÇÃO
 const { 
-  getSystemStats,
-  getAllDonations,
   getAllUsers,
-  verifyInstitution,
-  suspendUser,
-  generateDonationsReport,
-  sendDisasterAlert,
+  updateUserRole,
+  deleteUser,
+  getAdminStats,
+  sendGlobalDisasterAlert, // <-- Nome correto (com "Global")
   getAlertHistory,
   getAlertStats
 } = require('../controllers/adminController');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
-// Todas as rotas requerem autenticação e privilégios de admin
-router.use(authenticateToken);
-router.use(requireAdmin);
-
-/**
- * GET /admin/stats
- * Estatísticas gerais do sistema
- */
-router.get('/stats', getSystemStats);
-
-/**
- * GET /admin/donations
- * Lista todas as doações com filtros
- * Query params: status, urgency, category, limit, offset, sortBy, sortOrder
- */
-router.get('/donations', getAllDonations);
+// Todas as rotas de admin precisam de autenticação E verificação de admin
+router.use(authenticateToken, isAdmin);
 
 /**
  * GET /admin/users
- * Lista todos os usuários com filtros
- * Query params: role, verified, active, limit, offset, sortBy, sortOrder
+ * Lista todos os usuários
  */
 router.get('/users', getAllUsers);
 
 /**
- * PUT /admin/users/:id/verify
- * Verifica/aprova uma instituição
- * Body: { verified: boolean }
+ * PUT /admin/users/:id/role
+ * Atualiza o papel (role) de um usuário
  */
-router.put('/users/:id/verify', verifyInstitution);
+router.put('/users/:id/role', updateUserRole);
 
 /**
- * PUT /admin/users/:id/suspend
- * Suspende/ativa um usuário
- * Body: { suspended: boolean, reason: string }
+ * DELETE /admin/users/:id
+ * Deleta um usuário
  */
-router.put('/users/:id/suspend', suspendUser);
+router.delete('/users/:id', deleteUser);
 
 /**
- * GET /admin/reports/donations
- * Gera relatório CSV de doações
- * Query params: startDate, endDate, status
+ * GET /admin/stats
+ * Busca estatísticas para o dashboard do admin
  */
-router.get('/reports/donations', generateDonationsReport);
+router.get('/stats', getAdminStats);
 
 /**
- * POST /admin/alerts/disaster
- * Envia alerta de desastre global
- * Body: { title, message, severity }
+ * POST /admin/alerts
+ * Envia um alerta de desastre global
  */
-router.post('/alerts/disaster', sendDisasterAlert);
+router.post('/alerts', sendGlobalDisasterAlert); // <-- Nome correto (com "Global")
 
 /**
  * GET /admin/alerts/history
- * Obtém histórico de alertas enviados
+ * Busca histórico de alertas enviados
  */
 router.get('/alerts/history', getAlertHistory);
 
 /**
  * GET /admin/alerts/stats
- * Obtém estatísticas de alertas
+ * Busca estatísticas de alertas
  */
 router.get('/alerts/stats', getAlertStats);
 

@@ -1,39 +1,47 @@
-const express = require('express');
-const router = express.Router();
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const mapController = require('../controllers/mapController');
+const { Router } = require('express');
+const router = Router();
+const { authenticateToken, isAdmin } = require('../middleware/auth');
+
+// Importação do controller com nomes corretos
+const { 
+  getZones, 
+  createZone, 
+  updateZone, 
+  deleteZone,
+  getZoneStats
+} = require('../controllers/mapController');
 
 /**
  * GET /map/zones
- * Lista zonas de risco/abrigo (público)
- * Query params: ?type=risco&severity=alta&bounds={"northeast":{"lat":-23.5,"lng":-46.6},"southwest":{"lat":-23.6,"lng":-46.7}}
+ * Lista todas as zonas de risco/abrigo (público)
+ * Query params: type, severity, bounds
  */
-router.get('/zones', mapController.getZones);
+router.get('/zones', getZones);
 
 /**
  * GET /map/stats
  * Obtém estatísticas das zonas (apenas admin)
  */
-router.get('/stats', authenticateToken, requireAdmin, mapController.getZoneStats);
+router.get('/stats', authenticateToken, isAdmin, getZoneStats);
 
 /**
  * POST /map/zones
- * Cria nova zona de risco/abrigo (apenas admin)
- * Body: { latitude, longitude, radius, type, description, severity }
+ * Adiciona uma nova zona (Protegido: Admin)
+ * Body: { latitude, longitude, radius, type, description?, severity? }
  */
-router.post('/zones', authenticateToken, requireAdmin, mapController.createZone);
+router.post('/zones', authenticateToken, isAdmin, createZone);
 
 /**
  * PUT /map/zones/:id
- * Atualiza zona existente (apenas admin)
+ * Atualiza uma zona (Protegido: Admin)
  * Body: { latitude?, longitude?, radius?, type?, description?, severity?, is_active? }
  */
-router.put('/zones/:id', authenticateToken, requireAdmin, mapController.updateZone);
+router.put('/zones/:id', authenticateToken, isAdmin, updateZone);
 
 /**
  * DELETE /map/zones/:id
- * Remove zona (apenas admin)
+ * Deleta uma zona (Protegido: Admin)
  */
-router.delete('/zones/:id', authenticateToken, requireAdmin, mapController.deleteZone);
+router.delete('/zones/:id', authenticateToken, isAdmin, deleteZone);
 
 module.exports = router;

@@ -473,8 +473,9 @@ CREATE INDEX IF NOT EXISTS idx_disaster_alerts_sent_active ON disaster_alerts(se
 
 -- Índices FULLTEXT para busca (apenas para tabelas já criadas)
 -- Nota: FULLTEXT requer MyISAM ou InnoDB com versão 5.6+ e colunas TEXT/VARCHAR
-ALTER TABLE needs ADD FULLTEXT INDEX IF NOT EXISTS idx_needs_search (title, description);
-ALTER TABLE users ADD FULLTEXT INDEX IF NOT EXISTS idx_users_search (name, description);
+-- MySQL não suporta IF NOT EXISTS em ALTER TABLE, então execute manualmente se necessário
+-- ALTER TABLE needs ADD FULLTEXT INDEX idx_needs_search (title, description);
+-- ALTER TABLE users ADD FULLTEXT INDEX idx_users_search (name, description);
 
 -- ==============================================
 -- COMENTÁRIOS FINAIS

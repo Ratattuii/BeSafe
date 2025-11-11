@@ -3,14 +3,14 @@ const mysql = require('mysql2/promise');
 
 // Configurações do banco de dados (lê do .env)
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'besafe_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  host: 'localhost',
+    port: 3306,
+    user: 'besafe_user',
+    password: 'besafe_db',
+    database: 'besafe_db',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 };
 
 // Cria o pool de conexões uma única vez
