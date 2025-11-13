@@ -16,6 +16,7 @@
     "feed:setup": "node src/database/simple-feed-setup.js"
   },
   "dependencies": {
+    "@dataconnect/admin-generated": "file:src/dataconnect-admin-generated",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

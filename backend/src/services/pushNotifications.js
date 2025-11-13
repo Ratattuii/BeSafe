@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const { admin, initializeFirebase } = require('../config/firebase');
 const { query, queryOne } = require('../database/db');
 const { success, errors } = require('../utils/responses');
 
@@ -13,14 +13,17 @@ class PushNotificationService {
 
   initializeMessaging() {
     try {
-      if (admin.apps.length > 0) {
+      // Garante que o Firebase Admin está inicializado
+      const firebaseApp = initializeFirebase();
+      
+      if (firebaseApp && admin.apps.length > 0) {
         this.messaging = admin.messaging();
-        console.log('FCM inicializado com sucesso');
+        console.log('✅ FCM inicializado com sucesso');
       } else {
-        console.error('Firebase Admin não foi inicializado');
+        console.error('❌ Firebase Admin não foi inicializado. Verifique as configurações.');
       }
     } catch (error) {
-      console.error('Erro ao inicializar FCM:', error.message);
+      console.error('❌ Erro ao inicializar FCM:', error.message);
     }
   }
 
@@ -247,6 +250,44 @@ class PushNotificationService {
     } catch (error) {
       console.error('Erro ao remover token FCM:', error.message);
       return { success: false, message: 'Erro ao remover token FCM' };
+    }
+  }
+
+  /**
+   * Método wrapper para compatibilidade com adminController
+   * @param {object} message - Mensagem FCM (formato do Firebase)
+   */
+  async sendPushNotification(message) {
+    try {
+      if (!this.messaging) {
+        throw new Error('FCM não inicializado');
+      }
+
+      // Se a mensagem tem 'topic', usa sendToTopic
+      if (message.topic) {
+        const response = await this.messaging.send({
+          ...message,
+          topic: message.topic
+        });
+        return { success: true, messageId: response };
+      }
+
+      // Se tem 'tokens', usa sendMulticast
+      if (message.tokens && Array.isArray(message.tokens)) {
+        const response = await this.messaging.sendMulticast(message);
+        return {
+          success: true,
+          successCount: response.successCount,
+          failureCount: response.failureCount
+        };
+      }
+
+      // Caso padrão: send direto
+      const response = await this.messaging.send(message);
+      return { success: true, messageId: response };
+    } catch (error) {
+      console.error('Erro ao enviar notificação push:', error.message);
+      return { success: false, error: error.message };
     }
   }
 }
