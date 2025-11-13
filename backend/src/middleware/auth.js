@@ -1,10 +1,15 @@
 const jwt = require('jsonwebtoken');
 const { queryOne } = require('../database/db');
 
-/**
- * Middleware para verificar o token JWT
- * Adiciona req.user com os dados do usuário
- */
+const JWT_SECRET_HARDCODED = process.env.JWT_SECRET || 'sua_chave_secreta_aqui';
+
+function generateToken(user) {
+  return jwt.sign(
+    { id: user.id, role: user.role },
+    JWT_SECRET_HARDCODED,
+  );
+}
+
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Formato "Bearer TOKEN"
@@ -87,11 +92,12 @@ const isOwner = (tableName, paramIdField = 'id') => {
   };
 };
 
-// --- EXPORTAÇÕES (O que estava faltando no seu arquivo) ---
+
 module.exports = {
   authenticateToken,
   checkUserRole,
   isAdmin,
   isOwnerOrAdmin,
-  isOwner
+  isOwner,
+  generateToken
 };
