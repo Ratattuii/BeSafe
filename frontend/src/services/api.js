@@ -1,12 +1,12 @@
-// Configuração da API do BeSafe
-const API_BASE_URL = 'http://localhost:3000';
+// Importa configurações da API
+import { API_CONFIG } from './api/config';
 
 /**
  * Classe para gerenciar as chamadas à API
  */
 class ApiService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = API_CONFIG.BASE_URL.replace('/api', '') || 'http://localhost:3000';
     this.token = null;
   }
 
@@ -57,9 +57,14 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        // Se a resposta tem success: false, retorna o objeto completo
+        if (data.success === false) {
+          return data;
+        }
         throw new Error(data.message || `Erro HTTP: ${response.status}`);
       }
 
+      // Retorna o objeto completo da resposta (que contém success, message, data)
       return data;
     } catch (error) {
       console.error('Erro na API:', error.message);

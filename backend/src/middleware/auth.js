@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const db = require('../database/db').pool;
+const { queryOne } = require('../database/db');
 
 /**
  * Middleware para verificar o token JWT
@@ -70,12 +70,12 @@ const isOwner = (tableName, paramIdField = 'id') => {
     const userId = req.user.id;
 
     try {
-      const [rows] = await db.query(`SELECT user_id FROM ${tableName} WHERE id = ?`, [resourceId]);
-      if (rows.length === 0) {
+      const row = await queryOne(`SELECT user_id FROM ${tableName} WHERE id = ?`, [resourceId]);
+      if (!row) {
         return res.status(404).json({ message: 'Recurso não encontrado.' });
       }
 
-      if (rows[0].user_id === userId) {
+      if (row.user_id === userId) {
         next();
       } else {
         res.status(403).json({ message: 'Acesso negado. Você não é o dono deste recurso.' });

@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   const loadStoredAuth = async () => {
     try {
       // Para desenvolvimento: limpar cache para sempre começar na splash
-      if (__DEV__) {
+      if (process.env.NODE_ENV === 'development') {
         console.log('Modo desenvolvimento: limpando dados salvos');
         await AsyncStorage.multiRemove(['@BeSafe:token', '@BeSafe:user']);
         return;

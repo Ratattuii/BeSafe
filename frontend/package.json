@@ -2,7 +2,7 @@
   "name": "besafe-frontend",
   "version": "1.0.0",
   "description": "Frontend do BeSafe - Plataforma de conexão para doadores e receptores em desastres",
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -19,25 +19,27 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@expo/metro-runtime": "~4.0.0",
+    "@expo/metro-runtime": "~5.0.5",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.4.6",
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.7",
     "expo": "~53.0.0",
-    "expo-status-bar": "~2.0.0",
-    "firebase": "^10.7.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-native": "0.76.3",
-    "react-native-web": "~0.19.13",
-    "react-native-screens": "~4.11.1",
-    "react-native-safe-area-context": "5.4.0",
-    "@react-native-async-storage/async-storage": "2.1.2",
     "expo-image-picker": "~16.1.4",
-    "react-native-dotenv": "^3.4.11"
+    "expo-status-bar": "~2.2.3",
+    "firebase": "^10.7.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-native": "^0.79.6",
+    "react-native-dotenv": "^3.4.11",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-web": "^0.20.0",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "babel-preset-expo": "~11.0.0"
   },
   "private": true
 }

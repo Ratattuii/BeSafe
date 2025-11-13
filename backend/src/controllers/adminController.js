@@ -1,11 +1,11 @@
-const db = require('../database/db').pool;
+const { query, queryOne } = require('../database/db');
 const pushNotifications = require('../services/pushNotifications');
 
 // --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIO ---
 
 const getAllUsers = async (req, res) => {
   try {
-    const [users] = await db.query('SELECT id, name, email, role, created_at, avatar_url FROM users ORDER BY created_at DESC');
+    const users = await query('SELECT id, name, email, role, created_at, avatar FROM users ORDER BY created_at DESC');
     res.json(users);
   } catch (error) {
     console.error('Erro ao buscar usuários:', error);
@@ -22,8 +22,8 @@ const updateUserRole = async (req, res) => {
   }
 
   try {
-    const [result] = await db.query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
-    if (result.affectedRows === 0) {
+    const result = await query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    if (!result || result.affectedRows === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
     res.json({ message: 'Papel do usuário atualizado com sucesso.' });
@@ -38,8 +38,8 @@ const deleteUser = async (req, res) => {
 
   try {
     // Adicionar lógica para deletar dependências (doações, necessidades, etc.) se necessário (ON DELETE CASCADE)
-    const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
+    const result = await query('DELETE FROM users WHERE id = ?', [id]);
+    if (!result || result.affectedRows === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
     res.json({ message: 'Usuário deletado com sucesso.' });
@@ -53,16 +53,16 @@ const deleteUser = async (req, res) => {
 
 const getAdminStats = async (req, res) => {
   try {
-    const [[{ userCount }]] = await db.query('SELECT COUNT(*) as userCount FROM users');
-    const [[{ institutionCount }]] = await db.query('SELECT COUNT(*) as institutionCount FROM institutions');
-    const [[{ needsCount }]] = await db.query('SELECT COUNT(*) as needsCount FROM needs');
-    const [[{ donationsCount }]] = await db.query('SELECT COUNT(*) as donationsCount FROM donations');
+    const userCountResult = await query('SELECT COUNT(*) as userCount FROM users');
+    const institutionCountResult = await query('SELECT COUNT(*) as institutionCount FROM institutions');
+    const needsCountResult = await query('SELECT COUNT(*) as needsCount FROM needs');
+    const donationsCountResult = await query('SELECT COUNT(*) as donationsCount FROM donations');
     
     res.json({
-      userCount,
-      institutionCount,
-      needsCount,
-      donationsCount
+      userCount: userCountResult[0]?.userCount || 0,
+      institutionCount: institutionCountResult[0]?.institutionCount || 0,
+      needsCount: needsCountResult[0]?.needsCount || 0,
+      donationsCount: donationsCountResult[0]?.donationsCount || 0
     });
   } catch (error) {
     console.error('Erro ao buscar estatísticas do admin:', error);
@@ -90,7 +90,7 @@ const sendGlobalDisasterAlert = async (req, res) => {
     };
 
     // Salva o alerta no banco de dados
-    const [result] = await db.query(
+    const result = await query(
       'INSERT INTO disaster_alerts (title, message, sent_by) VALUES (?, ?, ?)',
       [title, body, req.user.id] // req.user.id vem do middleware authenticateToken
     );
@@ -111,7 +111,7 @@ const sendGlobalDisasterAlert = async (req, res) => {
 
 const getAlertHistory = async (req, res) => {
   try {
-    const [alerts] = await db.query(
+    const alerts = await query(
       `SELECT da.*, u.name AS sent_by_name 
        FROM disaster_alerts da
        JOIN users u ON da.sent_by = u.id
@@ -127,8 +127,8 @@ const getAlertHistory = async (req, res) => {
 
 const getAlertStats = async (req, res) => {
   try {
-    const [[{ count }]] = await db.query('SELECT COUNT(*) as count FROM disaster_alerts');
-    res.json({ totalAlerts: count });
+    const [{ count }] = await query('SELECT COUNT(*) as count FROM disaster_alerts');
+    res.json({ totalAlerts: count || 0 });
   } catch (error) {
     console.error('Erro ao buscar estatísticas de alertas:', error);
     res.status(500).json({ message: 'Erro ao buscar estatísticas de alertas.' });

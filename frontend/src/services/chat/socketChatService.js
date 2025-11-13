@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_CONFIG } from '../services/api/config';
+import { API_CONFIG } from '../api/config';
 
 /**
  * Serviço de Socket.IO para chat em tempo real
