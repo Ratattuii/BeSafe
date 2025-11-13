@@ -18,7 +18,7 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: 'Token de autenticação não fornecido.' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET_HARDCODED, (err, user) => {
     if (err) {
       console.error('Erro na verificação do JWT:', err.message);
       return res.status(403).json({ message: 'Token inválido ou expirado.' });
