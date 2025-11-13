@@ -1,13 +1,6 @@
-/**
- * Script para criar imagens PNG placeholder válidas
- * Isso resolve o erro do jimp-compact ao processar imagens corrompidas
- */
-
 const fs = require('fs');
 const path = require('path');
 
-// PNG válido mínimo (1x1 pixel transparente) em base64
-// Este é um PNG válido de 1x1 pixel transparente
 const validPNGBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
 const assetsDir = path.join(__dirname, '../assets');

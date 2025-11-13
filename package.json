@@ -23,5 +23,9 @@
   ],
   "dependencies": {
     "multer": "^2.0.2"
+  },
+  "overrides": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
   }
 }
