@@ -149,17 +149,32 @@ async function getUserDonations(req, res) {
  */
 async function createDonation(req, res) {
   try {
+    console.log('=== CREATE DONATION DEBUG ===');
+    console.log('User:', req.user);
+    console.log('Body:', req.body);
+    
     const { need_id, quantity, unit, notes, promised_delivery } = req.body;
+    
+    // Verifica se usuário está autenticado
+    if (!req.user || !req.user.id) {
+      console.error('Usuário não autenticado');
+      return errors.unauthorized(res, 'Usuário não autenticado');
+    }
+    
     const donor_id = req.user.id;
     
     // Validações
-    const validationError = validateRequired(
-      ['need_id', 'quantity'], 
-      { need_id, quantity }
-    );
+    if (!need_id) {
+      return errors.badRequest(res, 'need_id é obrigatório');
+    }
     
-    if (validationError) {
-      return errors.badRequest(res, validationError);
+    if (!quantity || isNaN(parseInt(quantity))) {
+      return errors.badRequest(res, 'quantity deve ser um número válido');
+    }
+    
+    const quantityNum = parseInt(quantity);
+    if (quantityNum <= 0) {
+      return errors.badRequest(res, 'quantity deve ser maior que zero');
     }
     
     // Verifica se a necessidade existe e está ativa
@@ -180,13 +195,16 @@ async function createDonation(req, res) {
     }
     
     // Cria a doação
+    const quantityNum = parseInt(quantity);
+    console.log('Criando doação com:', { donor_id, need_id, institution_id: need.institution_id, quantity: quantityNum, unit: unit || 'unidades' });
+    
     const result = await query(`
       INSERT INTO donations 
       (donor_id, need_id, institution_id, quantity, unit, notes, promised_delivery, status) 
       VALUES (?, ?, ?, ?, ?, ?, ?, 'pendente')
     `, [
       donor_id, need_id, need.institution_id, 
-      parseInt(quantity), unit || 'unidades', notes, promised_delivery
+      quantityNum, unit || 'unidades', notes || null, promised_delivery || null
     ]);
     
     // Busca a doação criada com dados relacionados

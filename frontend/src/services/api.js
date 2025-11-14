@@ -646,6 +646,61 @@ class ApiService {
   async getNeedTypes() {
     return this.get('/needs/types');
   }
+
+  /**
+   * Curtir/descurtir uma necessidade
+   * @param {number} needId - ID da necessidade
+   * @returns {Promise} Resposta da API
+   */
+  async toggleNeedLike(needId) {
+    return this.post(`/needs/${needId}/like`);
+  }
+
+  /**
+   * Lista comentários de uma necessidade
+   * @param {number} needId - ID da necessidade
+   * @param {object} options - Opções de paginação
+   * @returns {Promise} Resposta da API
+   */
+  async getNeedComments(needId, options = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(options).forEach(key => {
+      if (options[key] !== null && options[key] !== undefined) {
+        queryParams.append(key, options[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.get(`/needs/${needId}/comments${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Adiciona um comentário a uma necessidade
+   * @param {number} needId - ID da necessidade
+   * @param {string} comment - Conteúdo do comentário
+   * @returns {Promise} Resposta da API
+   */
+  async addNeedComment(needId, comment) {
+    return this.post(`/needs/${needId}/comments`, { comment });
+  }
+
+  /**
+   * Registra um compartilhamento
+   * @param {number} needId - ID da necessidade
+   * @param {string} shareType - Tipo de compartilhamento (opcional)
+   * @returns {Promise} Resposta da API
+   */
+  async shareNeed(needId, shareType = 'general') {
+    return this.post(`/needs/${needId}/share`, { share_type: shareType });
+  }
+
+  /**
+   * Busca estatísticas de interação de uma necessidade
+   * @param {number} needId - ID da necessidade
+   * @returns {Promise} Resposta da API
+   */
+  async getNeedStats(needId) {
+    return this.get(`/needs/${needId}/stats`);
+  }
 }
 
 // Instância única da API

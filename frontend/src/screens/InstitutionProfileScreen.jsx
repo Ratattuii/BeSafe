@@ -8,6 +8,7 @@ import {
   Image,
   useWindowDimensions,
   SafeAreaView,
+  Alert,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -15,6 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { colors } from '../styles/globalStyles';
 import NeedCard from '../components/NeedCard';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const InstitutionProfileScreen = ({ route, navigation }) => {
   const [institution, setInstitution] = useState(null);
@@ -176,21 +178,115 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
   const loadInstitutionData = async () => {
     setLoading(true);
     
-    // TODO: Implementar carregamento real
-    // GET /institutions/${institutionId}
-    // GET /institutions/${institutionId}/needs
-    // GET /institutions/${institutionId}/donations
-    
-    // Simula carregamento
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Usar dados reais ou mockados dependendo do contexto
-    const institutionData = getUserInstitutionData();
-    setInstitution(institutionData);
-    setCurrentNeeds(mockCurrentNeeds);
-    setDonationHistory(mockDonationHistory);
-    setIsFollowing(false); // TODO: Verificar se já segue
-    setLoading(false);
+    try {
+      if (isOwnProfile && user && user.role === 'institution') {
+        // Se é o próprio perfil e o usuário é uma instituição, usa dados reais
+        const institutionData = getUserInstitutionData();
+        setInstitution(institutionData);
+        
+        // Buscar necessidades reais
+        const needsResponse = await api.getInstitutionNeeds(user.id || 1);
+        if (needsResponse.success && needsResponse.data.needs) {
+          setCurrentNeeds(needsResponse.data.needs);
+        } else {
+          setCurrentNeeds(mockCurrentNeeds);
+        }
+        
+        setDonationHistory(mockDonationHistory);
+        setIsFollowing(false);
+      } else if (institutionId && institutionId !== 'current') {
+        // Buscar dados reais da instituição pelo ID
+        console.log('Buscando dados da instituição ID:', institutionId);
+        const institutionResponse = await api.getInstitution(institutionId);
+        console.log('Resposta da API getInstitution:', institutionResponse);
+        
+        if (institutionResponse.success && institutionResponse.data && institutionResponse.data.institution) {
+          const instData = institutionResponse.data.institution;
+          console.log('Dados da instituição recebidos:', instData);
+          
+          // Mapear dados da API para o formato esperado
+          setInstitution({
+            id: instData.id,
+            name: instData.name,
+            description: instData.description || 'Instituição sem descrição.',
+            logo: instData.avatar || `https://via.placeholder.com/120x120/FF1434/white?text=${instData.name?.charAt(0) || 'I'}`,
+            coverImage: instData.coverImage || 'https://via.placeholder.com/400x200/FF1434/white?text=Instituição',
+            location: instData.address || instData.location || 'Brasil',
+            website: instData.website || '',
+            phone: instData.phone || '',
+            email: instData.email || '',
+            founded: instData.founded || '',
+            category: instData.activity_area || instData.institution_type || 'Assistência Social',
+            verified: instData.is_verified || false,
+            stats: {
+              followers: instData.followers_count || instData.total_followers || 0,
+              needsPosted: instData.active_needs || instData.total_needs || 0,
+              donationsReceived: instData.donations_count || 0,
+              peopleHelped: instData.people_helped || 0,
+            },
+            socialMedia: {
+              instagram: instData.social_instagram || '',
+              facebook: instData.social_facebook || '',
+              twitter: instData.social_twitter || '',
+            }
+          });
+          
+          // Buscar necessidades da instituição
+          const needsResponse = await api.getInstitutionNeeds(institutionId);
+          if (needsResponse.success && needsResponse.data && needsResponse.data.needs) {
+            setCurrentNeeds(needsResponse.data.needs);
+          } else {
+            setCurrentNeeds([]);
+          }
+          
+          // Verificar se já segue
+          try {
+            const followedResponse = await api.getFollowedInstitutions();
+            if (followedResponse.success && followedResponse.data && followedResponse.data.institutions) {
+              const isFollowingInst = followedResponse.data.institutions.some(
+                inst => inst.id === parseInt(institutionId)
+              );
+              setIsFollowing(isFollowingInst);
+            }
+          } catch (err) {
+            console.error('Erro ao verificar se segue:', err);
+            setIsFollowing(false);
+          }
+          
+          setDonationHistory(mockDonationHistory);
+        } else {
+          // Se não encontrou, mostrar erro ao invés de usar dados mockados
+          console.error('Instituição não encontrada ou resposta inválida:', institutionResponse);
+          Alert.alert(
+            'Erro', 
+            `Não foi possível carregar os dados da instituição. ${institutionResponse.message || ''}`,
+            [{ text: 'OK', onPress: () => navigation?.goBack?.() }]
+          );
+          // Não definir dados mockados - deixar null para mostrar erro
+          setInstitution(null);
+          setCurrentNeeds([]);
+          setDonationHistory([]);
+          setIsFollowing(false);
+        }
+      } else {
+        // Fallback para dados mockados
+        const institutionData = getUserInstitutionData();
+        setInstitution(institutionData);
+        setCurrentNeeds(mockCurrentNeeds);
+        setDonationHistory(mockDonationHistory);
+        setIsFollowing(false);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados da instituição:', error);
+      // Em caso de erro, usar dados mockados como fallback
+      const institutionData = getUserInstitutionData();
+      setInstitution(institutionData);
+      setCurrentNeeds(mockCurrentNeeds);
+      setDonationHistory(mockDonationHistory);
+      setIsFollowing(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {

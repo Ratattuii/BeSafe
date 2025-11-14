@@ -4,18 +4,13 @@
   "description": "Frontend do BeSafe - Plataforma de conexão para doadores e receptores em desastres",
   "main": "index.js",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --offline",
+    "start:clear": "expo start --clear --offline",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "keywords": [
-    "disaster",
-    "donation",
-    "humanitarian",
-    "aid",
-    "react-native"
-  ],
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {

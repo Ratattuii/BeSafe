@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../styles/globalStyles';
+import api from '../services/api';
 
 const PostDonationScreen = ({ route, navigation }) => {
   const [formData, setFormData] = useState({
@@ -111,29 +112,76 @@ const PostDonationScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      // TODO: Implementar envio real
-      // POST /donations
-      // Body: { title, description, quantity, category, condition, location, availability, expiryDate, images }
+      // Extrair número da quantidade (ex: "20 peças" -> 20)
+      const quantityMatch = formData.quantity.match(/\d+/);
+      const quantityValue = quantityMatch ? parseInt(quantityMatch[0]) : parseInt(formData.quantity);
       
-      // Simula envio
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      Alert.alert(
-        'Sucesso!', 
-        'Sua doação foi publicada e já está disponível para instituições.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // TODO: Navegar de volta ou para lista de doações
-              navigation?.goBack?.();
+      if (isNaN(quantityValue) || quantityValue <= 0) {
+        Alert.alert('Erro', 'Quantidade inválida. Por favor, insira um número válido.');
+        setLoading(false);
+        return;
+      }
+
+      // Mapear campos do formulário para o formato da API
+      const donationData = {
+        need_id: route?.params?.needId || null, // Se veio de uma necessidade específica
+        quantity: quantityValue,
+        unit: formData.quantity.toLowerCase().includes('kg') ? 'kg' : 
+              formData.quantity.toLowerCase().includes('litro') ? 'litros' : 
+              formData.quantity.toLowerCase().includes('unidade') ? 'unidades' : 'unidades',
+        notes: `Categoria: ${formData.category}\n` +
+               `Condição: ${formData.condition}\n` +
+               `Disponibilidade: ${formData.availability}\n` +
+               (formData.location ? `Localização: ${formData.location}\n` : '') +
+               (formData.expiryDate ? `Validade: ${formData.expiryDate}\n` : '') +
+               `Descrição: ${formData.description}`,
+        promised_delivery: formData.availability === 'imediata' ? new Date().toISOString() : null
+      };
+
+      // A API requer need_id obrigatoriamente
+      if (!donationData.need_id) {
+        Alert.alert(
+          'Atenção', 
+          'Para fazer uma doação, é necessário selecionar uma necessidade específica. Por favor, volte e selecione uma necessidade na lista.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation?.goBack?.();
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log('Enviando doação:', donationData);
+      const response = await api.createDonation(donationData);
+      console.log('Resposta da API:', response);
+      
+      if (response.success) {
+        Alert.alert(
+          'Sucesso!', 
+          'Sua doação foi registrada e a instituição será notificada.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation?.goBack?.();
+              }
+            }
+          ]
+        );
+      } else {
+        const errorMessage = response.message || response.error || 'Não foi possível publicar a doação. Tente novamente.';
+        Alert.alert('Erro', errorMessage);
+      }
       
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível publicar a doação. Tente novamente.');
+      console.error('Erro ao criar doação:', error);
+      const errorMessage = error.message || 'Não foi possível publicar a doação. Verifique sua conexão e tente novamente.';
+      Alert.alert('Erro', errorMessage);
     } finally {
       setLoading(false);
     }

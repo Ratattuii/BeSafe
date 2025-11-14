@@ -69,9 +69,10 @@ const DonorProfileScreen = ({ navigation }) => {
   ];
 
   // Funções de navegação
-  const handleInstitutionPress = (institutionName) => {
+  const handleInstitutionPress = (institutionName, institutionId = null) => {
     console.log('Navegar para perfil da instituição:', institutionName);
     navigation.navigate('InstitutionProfile', { 
+      institutionId: institutionId,
       institutionName: institutionName 
     });
   };
@@ -99,7 +100,7 @@ const DonorProfileScreen = ({ navigation }) => {
           <Text style={styles.historyCardIcon}>🎁</Text>
           <Text style={styles.historyCardTitle}>{donation.type}</Text>
         </View>
-        <TouchableOpacity onPress={() => handleInstitutionPress(donation.institution)}>
+        <TouchableOpacity onPress={() => handleInstitutionPress(donation.institution, donation.institutionId)}>
           <Text style={[styles.historyCardInstitution, styles.clickableInstitution]}>
             {donation.institution}
           </Text>
@@ -118,7 +119,7 @@ const DonorProfileScreen = ({ navigation }) => {
           <Text style={styles.activeCardTitle}>{donation.type}</Text>
         </View>
         <Text style={styles.activeCardQuantity}>{donation.quantity}</Text>
-        <TouchableOpacity onPress={() => handleInstitutionPress(donation.institution)}>
+        <TouchableOpacity onPress={() => handleInstitutionPress(donation.institution, donation.institutionId)}>
           <Text style={[styles.activeCardInstitution, styles.clickableInstitution]}>
             Para: {donation.institution}
           </Text>

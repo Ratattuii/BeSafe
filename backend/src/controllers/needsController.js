@@ -195,9 +195,258 @@ async function getNeedTypes(req, res) {
   }
 }
 
+/**
+ * Curtir/descurtir uma necessidade
+ * POST /needs/:id/like
+ */
+async function toggleLike(req, res) {
+  try {
+    const { id } = req.params;
+    const user_id = req.user.id;
+    
+    // Verifica se a necessidade existe
+    const need = await queryOne('SELECT id FROM needs WHERE id = ?', [id]);
+    if (!need) {
+      return errors.notFound(res, 'Necessidade não encontrada');
+    }
+    
+    // Verifica se já curtiu
+    const existingLike = await queryOne(
+      'SELECT id FROM need_likes WHERE need_id = ? AND user_id = ?',
+      [id, user_id]
+    );
+    
+    if (existingLike) {
+      // Remove o like
+      await query('DELETE FROM need_likes WHERE id = ?', [existingLike.id]);
+      
+      // Busca contagem atualizada
+      const [countResult] = await query(
+        'SELECT COUNT(*) as count FROM need_likes WHERE need_id = ?',
+        [id]
+      );
+      
+      return success(res, 'Like removido', {
+        liked: false,
+        likesCount: countResult.count
+      });
+    } else {
+      // Adiciona o like
+      await query(
+        'INSERT INTO need_likes (need_id, user_id) VALUES (?, ?)',
+        [id, user_id]
+      );
+      
+      // Busca contagem atualizada
+      const [countResult] = await query(
+        'SELECT COUNT(*) as count FROM need_likes WHERE need_id = ?',
+        [id]
+      );
+      
+      return success(res, 'Like adicionado', {
+        liked: true,
+        likesCount: countResult.count
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao curtir necessidade:', error.message);
+    return errors.serverError(res);
+  }
+}
+
+/**
+ * Lista comentários de uma necessidade
+ * GET /needs/:id/comments
+ */
+async function getComments(req, res) {
+  try {
+    const { id } = req.params;
+    const { limit = 20, offset = 0 } = req.query;
+    
+    // Verifica se a necessidade existe
+    const need = await queryOne('SELECT id FROM needs WHERE id = ?', [id]);
+    if (!need) {
+      return errors.notFound(res, 'Necessidade não encontrada');
+    }
+    
+    // Busca comentários com dados do usuário
+    const comments = await query(`
+      SELECT 
+        nc.*,
+        u.id as user_id,
+        u.name as user_name,
+        u.avatar as user_avatar
+      FROM need_comments nc
+      LEFT JOIN users u ON nc.user_id = u.id
+      WHERE nc.need_id = ?
+      ORDER BY nc.created_at DESC
+      LIMIT ? OFFSET ?
+    `, [id, parseInt(limit), parseInt(offset)]);
+    
+    // Conta total de comentários
+    const [countResult] = await query(
+      'SELECT COUNT(*) as total FROM need_comments WHERE need_id = ?',
+      [id]
+    );
+    
+    return success(res, 'Comentários encontrados', {
+      comments,
+      pagination: {
+        total: countResult.total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: (parseInt(offset) + parseInt(limit)) < countResult.total
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar comentários:', error.message);
+    return errors.serverError(res);
+  }
+}
+
+/**
+ * Adiciona um comentário a uma necessidade
+ * POST /needs/:id/comments
+ */
+async function addComment(req, res) {
+  try {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const user_id = req.user.id;
+    
+    // Validações
+    if (!comment || !comment.trim()) {
+      return errors.badRequest(res, 'Comentário não pode estar vazio');
+    }
+    
+    // Verifica se a necessidade existe
+    const need = await queryOne('SELECT id FROM needs WHERE id = ?', [id]);
+    if (!need) {
+      return errors.notFound(res, 'Necessidade não encontrada');
+    }
+    
+    // Insere o comentário
+    const result = await query(
+      'INSERT INTO need_comments (need_id, user_id, comment) VALUES (?, ?, ?)',
+      [id, user_id, comment.trim()]
+    );
+    
+    // Busca o comentário criado com dados do usuário
+    const newComment = await queryOne(`
+      SELECT 
+        nc.*,
+        u.id as user_id,
+        u.name as user_name,
+        u.avatar as user_avatar
+      FROM need_comments nc
+      LEFT JOIN users u ON nc.user_id = u.id
+      WHERE nc.id = ?
+    `, [result.insertId]);
+    
+    return success(res, 'Comentário adicionado', { comment: newComment }, 201);
+  } catch (error) {
+    console.error('Erro ao adicionar comentário:', error.message);
+    return errors.serverError(res);
+  }
+}
+
+/**
+ * Registra um compartilhamento
+ * POST /needs/:id/share
+ */
+async function registerShare(req, res) {
+  try {
+    const { id } = req.params;
+    const { share_type = 'general' } = req.body;
+    const user_id = req.user?.id || null;
+    
+    // Verifica se a necessidade existe
+    const need = await queryOne('SELECT id FROM needs WHERE id = ?', [id]);
+    if (!need) {
+      return errors.notFound(res, 'Necessidade não encontrada');
+    }
+    
+    // Insere o compartilhamento
+    await query(
+      'INSERT INTO need_shares (need_id, user_id, share_type) VALUES (?, ?, ?)',
+      [id, user_id, share_type]
+    );
+    
+    // Busca contagem atualizada
+    const [countResult] = await query(
+      'SELECT COUNT(*) as count FROM need_shares WHERE need_id = ?',
+      [id]
+    );
+    
+    return success(res, 'Compartilhamento registrado', {
+      sharesCount: countResult.count
+    });
+  } catch (error) {
+    console.error('Erro ao registrar compartilhamento:', error.message);
+    return errors.serverError(res);
+  }
+}
+
+/**
+ * Busca estatísticas de interação de uma necessidade
+ * GET /needs/:id/stats
+ */
+async function getNeedStats(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Verifica se a necessidade existe
+    const need = await queryOne('SELECT id FROM needs WHERE id = ?', [id]);
+    if (!need) {
+      return errors.notFound(res, 'Necessidade não encontrada');
+    }
+    
+    // Busca estatísticas
+    const [likesCount] = await query(
+      'SELECT COUNT(*) as count FROM need_likes WHERE need_id = ?',
+      [id]
+    );
+    
+    const [commentsCount] = await query(
+      'SELECT COUNT(*) as count FROM need_comments WHERE need_id = ?',
+      [id]
+    );
+    
+    const [sharesCount] = await query(
+      'SELECT COUNT(*) as count FROM need_shares WHERE need_id = ?',
+      [id]
+    );
+    
+    // Verifica se o usuário logado curtiu
+    let userLiked = false;
+    if (req.user) {
+      const like = await queryOne(
+        'SELECT id FROM need_likes WHERE need_id = ? AND user_id = ?',
+        [id, req.user.id]
+      );
+      userLiked = !!like;
+    }
+    
+    return success(res, 'Estatísticas da necessidade', {
+      likes: likesCount.count,
+      comments: commentsCount.count,
+      shares: sharesCount.count,
+      userLiked
+    });
+  } catch (error) {
+    console.error('Erro ao buscar estatísticas:', error.message);
+    return errors.serverError(res);
+  }
+}
+
 module.exports = {
   getNeedsWithFilters,
   createNeed,
   getNeedById,
-  getNeedTypes
+  getNeedTypes,
+  toggleLike,
+  getComments,
+  addComment,
+  registerShare,
+  getNeedStats
 };

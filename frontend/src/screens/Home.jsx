@@ -13,6 +13,7 @@ import {
   FlatList,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import useWebScroll from '../utils/useWebScroll';
@@ -43,6 +44,9 @@ const Home = ({ navigation }) => {
   // Estados para dados reais
   const [feedData, setFeedData] = useState([]);
   const [followedInstitutions, setFollowedInstitutions] = useState([]);
+  const [needStats, setNeedStats] = useState({}); // { needId: { likes, comments, shares, userLiked } }
+  const [commentsModal, setCommentsModal] = useState({ visible: false, needId: null, comments: [] });
+  const [commentText, setCommentText] = useState('');
   
 
   // Scroll será habilitado via CSS puro
@@ -63,7 +67,25 @@ const Home = ({ navigation }) => {
       ]);
       
       if (needsResponse.success) {
-        setFeedData(needsResponse.data.needs || []);
+        const needs = needsResponse.data.needs || [];
+        setFeedData(needs);
+        
+        // Carrega estatísticas para cada necessidade (com tratamento de erro individual)
+        const statsMap = {};
+        for (const need of needs) {
+          try {
+            const statsResponse = await api.getNeedStats(need.id);
+            if (statsResponse.success && statsResponse.data) {
+              statsMap[need.id] = statsResponse.data;
+            } else {
+              statsMap[need.id] = { likes: 0, comments: 0, shares: 0, userLiked: false };
+            }
+          } catch (err) {
+            console.error(`Erro ao carregar stats da necessidade ${need.id}:`, err);
+            statsMap[need.id] = { likes: 0, comments: 0, shares: 0, userLiked: false };
+          }
+        }
+        setNeedStats(statsMap);
       }
       
       if (followedResponse.success) {
@@ -104,7 +126,7 @@ const Home = ({ navigation }) => {
 
   // Funções de navegação
   const handleProfilePress = () => {
-    navigation.navigate('DonorProfileScreen'); // Assumindo que existe essa tela
+    navigation.navigate('DonorProfile');
   };
 
   const handleLogout = async () => {
@@ -118,11 +140,13 @@ const Home = ({ navigation }) => {
   };
 
   const handleNotificationsPress = () => {
-    navigation.navigate('NotificationsScreen'); // Assumindo que existe essa tela
+    // Navega para a tab de Notificações
+    navigation.getParent()?.navigate('Notifications');
   };
 
   const handleSearchPress = () => {
-    navigation.navigate('SearchScreen'); // Assumindo que existe essa tela
+    // Navega para a tab de Busca
+    navigation.getParent()?.navigate('Search');
   };
 
   const handleNavigation = (screen) => {
@@ -131,13 +155,14 @@ const Home = ({ navigation }) => {
         // Já estamos na Home
         break;
       case 'Doações':
-        navigation.navigate('PostDonationScreen');
+        navigation.navigate('PostDonation');
         break;
       case 'Instituições':
-        navigation.navigate('InstitutionListScreen'); // Tela de lista de instituições
+        navigation.navigate('InstitutionList');
         break;
       case 'Sobre':
-        navigation.navigate('AboutScreen'); // Tela sobre
+        // Tela Sobre não existe ainda, remover ou criar
+        console.log('Tela Sobre ainda não implementada');
         break;
       default:
         break;
@@ -205,19 +230,119 @@ const Home = ({ navigation }) => {
   };
 
   // Funções dos botões do feed
-  const handleLikePress = (postId) => {
-    console.log('Curtir post:', postId);
-    // TODO: Implementar lógica de curtir
+  const handleLikePress = async (postId) => {
+    try {
+      console.log('Curtindo post:', postId);
+      const response = await api.toggleNeedLike(postId);
+      console.log('Resposta do like:', response);
+      
+      if (response.success && response.data) {
+        // Atualiza estatísticas localmente
+        setNeedStats(prev => ({
+          ...prev,
+          [postId]: {
+            ...(prev[postId] || { likes: 0, comments: 0, shares: 0, userLiked: false }),
+            likes: response.data.likesCount || 0,
+            userLiked: response.data.liked || false
+          }
+        }));
+      } else {
+        console.error('Resposta de like não teve sucesso:', response);
+        Alert.alert('Erro', response.message || 'Não foi possível curtir. Verifique se você está logado.');
+      }
+    } catch (error) {
+      console.error('Erro ao curtir:', error);
+      Alert.alert('Erro', 'Não foi possível curtir. Verifique sua conexão e tente novamente.');
+    }
   };
 
-  const handleCommentPress = (postId) => {
-    console.log('Comentar post:', postId);
-    // TODO: Navegar para tela de comentários
+  const handleCommentPress = async (postId) => {
+    try {
+      console.log('Carregando comentários do post:', postId);
+      // Carrega comentários
+      const response = await api.getNeedComments(postId);
+      console.log('Resposta dos comentários:', response);
+      
+      if (response.success) {
+        setCommentsModal({
+          visible: true,
+          needId: postId,
+          comments: response.data.comments || []
+        });
+      } else {
+        console.error('Erro ao carregar comentários:', response);
+        // Ainda abre o modal mesmo se não conseguir carregar
+        setCommentsModal({
+          visible: true,
+          needId: postId,
+          comments: []
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar comentários:', error);
+      // Ainda abre o modal mesmo com erro
+      setCommentsModal({
+        visible: true,
+        needId: postId,
+        comments: []
+      });
+    }
   };
 
-  const handleSharePress = (postId) => {
-    console.log('Compartilhar post:', postId);
-    // TODO: Implementar compartilhamento
+  const handleSharePress = async (postId) => {
+    try {
+      console.log('Compartilhando post:', postId);
+      const response = await api.shareNeed(postId);
+      console.log('Resposta do share:', response);
+      
+      if (response.success && response.data) {
+        // Atualiza estatísticas localmente
+        setNeedStats(prev => ({
+          ...prev,
+          [postId]: {
+            ...(prev[postId] || { likes: 0, comments: 0, shares: 0, userLiked: false }),
+            shares: response.data.sharesCount || ((prev[postId]?.shares || 0) + 1)
+          }
+        }));
+        Alert.alert('Sucesso', 'Post compartilhado!');
+      } else {
+        console.error('Resposta de share não teve sucesso:', response);
+        Alert.alert('Erro', response.message || 'Não foi possível compartilhar. Verifique se você está logado.');
+      }
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      Alert.alert('Erro', 'Não foi possível compartilhar. Verifique sua conexão e tente novamente.');
+    }
+  };
+
+  const handleAddComment = async (needId, text) => {
+    if (!text.trim()) return;
+    
+    try {
+      const response = await api.addNeedComment(needId, text);
+      if (response.success) {
+        setCommentText('');
+        // Recarrega comentários
+        const commentsResponse = await api.getNeedComments(needId);
+        if (commentsResponse.success) {
+          setCommentsModal(prev => ({
+            ...prev,
+            comments: commentsResponse.data.comments || []
+          }));
+          // Atualiza contador de comentários
+          setNeedStats(prev => ({
+            ...prev,
+            [needId]: {
+              ...prev[needId],
+              comments: (prev[needId]?.comments || 0) + 1
+            }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar comentário:', error);
+      Alert.alert('Erro', 'Não foi possível adicionar comentário.');
+    }
   };
 
   const handleDonatePress = (need) => {
@@ -362,22 +487,30 @@ const Home = ({ navigation }) => {
               style={styles.socialButton}
               onPress={() => handleLikePress(item.id)}
             >
-              <Text style={styles.socialIcon}>❤️</Text>
-              <Text style={styles.socialCount}>0</Text>
+              <Text style={styles.socialIcon}>
+                {needStats[item.id]?.userLiked ? '❤️' : '🤍'}
+              </Text>
+              <Text style={styles.socialCount}>
+                {needStats[item.id]?.likes || 0}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.socialButton}
               onPress={() => handleCommentPress(item.id)}
             >
               <Text style={styles.socialIcon}>💬</Text>
-              <Text style={styles.socialCount}>0</Text>
+              <Text style={styles.socialCount}>
+                {needStats[item.id]?.comments || 0}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.socialButton}
               onPress={() => handleSharePress(item.id)}
             >
               <Text style={styles.socialIcon}>📤</Text>
-              <Text style={styles.socialCount}>0</Text>
+              <Text style={styles.socialCount}>
+                {needStats[item.id]?.shares || 0}
+              </Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity 
@@ -533,6 +666,75 @@ const Home = ({ navigation }) => {
             ))}
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Modal de comentários */}
+      <Modal
+        visible={commentsModal.visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setCommentsModal({ visible: false, needId: null, comments: [] })}
+      >
+        <View style={styles.commentsModalOverlay}>
+          <View style={styles.commentsModalContainer}>
+            <View style={styles.commentsModalHeader}>
+              <Text style={styles.commentsModalTitle}>Comentários</Text>
+              <TouchableOpacity
+                onPress={() => setCommentsModal({ visible: false, needId: null, comments: [] })}
+              >
+                <Text style={styles.commentsModalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.commentsList}>
+              {commentsModal.comments.length === 0 ? (
+                <Text style={styles.noCommentsText}>Nenhum comentário ainda. Seja o primeiro!</Text>
+              ) : (
+                commentsModal.comments.map((comment) => (
+                  <View key={comment.id} style={styles.commentItem}>
+                    <Image 
+                      source={{ uri: comment.user_avatar || 'https://via.placeholder.com/40' }} 
+                      style={styles.commentAvatar}
+                    />
+                    <View style={styles.commentContent}>
+                      <Text style={styles.commentUserName}>{comment.user_name || 'Usuário'}</Text>
+                      <Text style={styles.commentText}>{comment.comment}</Text>
+                      <Text style={styles.commentDate}>
+                        {new Date(comment.created_at).toLocaleDateString('pt-BR')}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            
+            <View style={styles.commentInputContainer}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Adicione um comentário..."
+                placeholderTextColor="#999"
+                value={commentText}
+                onChangeText={setCommentText}
+                onSubmitEditing={() => {
+                  if (commentText.trim() && commentsModal.needId) {
+                    handleAddComment(commentsModal.needId, commentText);
+                  }
+                }}
+              />
+              <TouchableOpacity
+                style={[styles.commentSendButton, !commentText.trim() && styles.commentSendButtonDisabled]}
+                onPress={() => {
+                  if (commentText.trim() && commentsModal.needId) {
+                    handleAddComment(commentsModal.needId, commentText);
+                  }
+                }}
+                disabled={!commentText.trim()}
+              >
+                <Text style={styles.commentSendButtonText}>Enviar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -919,6 +1121,110 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  
+  // Modal de comentários
+  commentsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  commentsModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  commentsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  commentsModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  commentsModalClose: {
+    fontSize: 24,
+    color: '#6B7280',
+    fontWeight: 'bold',
+  },
+  commentsList: {
+    flex: 1,
+    padding: 20,
+  },
+  noCommentsText: {
+    textAlign: 'center',
+    color: '#6B7280',
+    fontSize: 14,
+    marginTop: 40,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  commentAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    backgroundColor: '#E5E7EB',
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentUserName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  commentInputContainer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  commentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1F2937',
+  },
+  commentSendButton: {
+    backgroundColor: '#FF1434',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  commentSendButtonDisabled: {
+    backgroundColor: '#E5E7EB',
+  },
+  commentSendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

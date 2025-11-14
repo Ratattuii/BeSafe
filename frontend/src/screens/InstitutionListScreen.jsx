@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api'; // Importa seu serviço de API
 import InstitutionCard from '../components/InstitutionCard'; // Reutiliza seu componente de card
@@ -47,9 +47,21 @@ const InstitutionListScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Instituições que Você Segue</Text>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Instituições que Você Segue</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+      
       {institutions.length === 0 ? (
-        <Text style={styles.emptyText}>Você ainda não segue nenhuma instituição.</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Você ainda não segue nenhuma instituição.</Text>
+        </View>
       ) : (
         <FlatList
           data={institutions}
@@ -67,19 +79,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 24,
+    color: '#1F2937',
+    fontWeight: 'bold',
+  },
+  headerSpacer: {
+    width: 40,
+  },
   loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
-    margin: 16,
+    color: '#1F2937',
+    flex: 1,
     textAlign: 'center',
   },
   list: {
     paddingHorizontal: 16,
+    paddingTop: 16,
   },
   errorText: {
     textAlign: 'center',
@@ -87,9 +126,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'red',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
   emptyText: {
     textAlign: 'center',
-    marginTop: 20,
     fontSize: 16,
     color: '#888',
   }

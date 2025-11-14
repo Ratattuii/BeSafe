@@ -85,6 +85,74 @@ CREATE TABLE IF NOT EXISTS needs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Necessidades postadas pelas instituições';
 
 -- ==============================================
+-- 2.1. TABELA NEED_LIKES
+-- ==============================================
+-- Armazena likes de necessidades
+CREATE TABLE IF NOT EXISTS need_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL COMMENT 'ID da necessidade',
+    user_id INT NOT NULL COMMENT 'ID do usuário que curtiu',
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Chaves estrangeiras
+    FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Índices
+    UNIQUE KEY unique_like (need_id, user_id),
+    INDEX idx_need_likes_need (need_id),
+    INDEX idx_need_likes_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Likes de necessidades';
+
+-- ==============================================
+-- 2.2. TABELA NEED_COMMENTS
+-- ==============================================
+-- Armazena comentários de necessidades
+CREATE TABLE IF NOT EXISTS need_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL COMMENT 'ID da necessidade',
+    user_id INT NOT NULL COMMENT 'ID do usuário que comentou',
+    comment TEXT NOT NULL COMMENT 'Conteúdo do comentário',
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Chaves estrangeiras
+    FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Índices
+    INDEX idx_need_comments_need (need_id),
+    INDEX idx_need_comments_user (user_id),
+    INDEX idx_need_comments_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Comentários de necessidades';
+
+-- ==============================================
+-- 2.3. TABELA NEED_SHARES
+-- ==============================================
+-- Armazena compartilhamentos de necessidades (opcional, para estatísticas)
+CREATE TABLE IF NOT EXISTS need_shares (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    need_id INT NOT NULL COMMENT 'ID da necessidade',
+    user_id INT NULL COMMENT 'ID do usuário que compartilhou (NULL se anônimo)',
+    share_type VARCHAR(50) DEFAULT 'general' COMMENT 'Tipo de compartilhamento',
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Chaves estrangeiras
+    FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Índices
+    INDEX idx_need_shares_need (need_id),
+    INDEX idx_need_shares_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Compartilhamentos de necessidades';
+
+-- ==============================================
 -- 3. TABELA NEED_IMAGES
 -- ==============================================
 -- Armazena imagens das necessidades
