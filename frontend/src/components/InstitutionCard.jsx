@@ -7,78 +7,103 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
-import { colors } from '../styles/globalStyles';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, globalStyles } from '../styles/globalStyles';
 
-const InstitutionCard = ({ institution, onDonate, onFollow }) => {
+// Componente para exibir um card de instituição na lista
+
+const InstitutionCard = ({ institution, onPress }) => {
   const { width } = useWindowDimensions();
-  const isDesktop = width > 900;
+  const isMobile = width < 768;
 
+  // --- CORREÇÃO AQUI ---
+  // Esta função agora é segura e lida com 'urgency' sendo null ou undefined
   const getUrgencyColor = (urgency) => {
+    // Se 'urgency' for null, undefined, ou uma string vazia, retorna uma cor padrão
+    if (!urgency) {
+      return colors.gray300; // Cor para "sem necessidades" ou "urgência baixa"
+    }
+    
+    // Agora é seguro chamar toLowerCase()
     switch (urgency.toLowerCase()) {
-      case 'urgente':
+      case 'critica':
         return colors.urgent;
       case 'alta':
         return colors.warning;
-      case 'média':
       case 'media':
         return colors.success;
       default:
-        return colors.gray500;
+        return colors.gray400; // Cor padrão para 'baixa' ou outros
     }
   };
+  // --- FIM DA CORREÇÃO ---
 
-  const handleDonate = () => {
-    onDonate?.(institution);
+  const formatNumber = (num) => {
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}k`;
+    }
+    return num || 0;
   };
 
-  const handleCardPress = () => {
-    // TODO: Navegar para detalhes da instituição
-    console.log('Abrir detalhes da instituição:', institution.name);
-  };
+  const activeNeeds = institution.active_needs_count || 0;
 
   return (
     <TouchableOpacity
-      style={[styles.card, isDesktop && styles.cardDesktop]}
-      onPress={handleCardPress}
-      activeOpacity={0.95}
+      style={[styles.card, isMobile && styles.cardMobile]}
+      onPress={onPress}
+      activeOpacity={0.8}
     >
-      <View style={styles.cardContent}>
-        {/* Logo da instituição */}
-        <View style={styles.logoContainer}>
-          <Image
-            source={{ uri: institution.logo }}
-            style={styles.logo}
-            defaultSource={{ uri: 'https://via.placeholder.com/60x60/cccccc/white?text=?' }}
-          />
-        </View>
+      {/* Imagem de Capa */}
+      <Image
+        source={{ uri: institution.cover_image || 'https://via.placeholder.com/300x100/E0E0E0/BDBDBD?text=Capa' }}
+        style={styles.coverImage}
+      />
 
-        {/* Informações da instituição */}
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>
-            {institution.name}
+      {/* Logo */}
+      <View style={styles.logoContainer}>
+        <Image
+          source={{ uri: institution.avatar || 'https://via.placeholder.com/80x80/CCCCCC/FFFFFF?text=Logo' }}
+          style={styles.logo}
+        />
+        {institution.is_verified && (
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+          </View>
+        )}
+      </View>
+
+      {/* Conteúdo */}
+      <View style={styles.content}>
+        <Text style={styles.name} numberOfLines={2}>{institution.name}</Text>
+        <Text style={styles.category}>{institution.institution_type || 'Instituição'}</Text>
+        
+        {/* Informações de Necessidade */}
+        <View style={styles.needsInfo}>
+          <View style={[styles.urgencyDot, { 
+            // Esta chamada agora é segura
+            backgroundColor: getUrgencyColor(institution.highest_urgency) 
+          }]} />
+          <Text style={styles.needsText}>
+            {activeNeeds > 0 
+              ? `${activeNeeds} necessidade${activeNeeds > 1 ? 's' : ''} ativa${activeNeeds > 1 ? 's' : ''}`
+              : 'Nenhuma necessidade ativa'
+            }
           </Text>
-          <Text style={styles.description} numberOfLines={2}>
-            {institution.description}
-          </Text>
-          
-          {/* Tag de urgência */}
-          <View style={[
-            styles.urgencyTag,
-            { backgroundColor: getUrgencyColor(institution.urgency) }
-          ]}>
-            <Text style={styles.urgencyText}>
-              {institution.urgency}
+        </View>
+        
+        {/* Estatísticas */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Ionicons name="heart-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.statText}>{formatNumber(institution.followers_count)}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.statText} numberOfLines={1}>
+              {institution.address ? institution.address.split(',')[1] || institution.address : 'Não informado'}
             </Text>
           </View>
         </View>
-
-        {/* Botão de doar */}
-        <TouchableOpacity
-          style={styles.donateButton}
-          onPress={handleDonate}
-        >
-          <Text style={styles.donateButtonText}>Doar</Text>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -86,83 +111,93 @@ const InstitutionCard = ({ institution, onDonate, onFollow }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.white,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.secondary,
-  },
-  cardDesktop: {
     marginBottom: 16,
-    padding: 16,
-    borderRadius: 14,
-  },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-
-  // Logo
-  logoContainer: {
-    shadowColor: colors.black,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  cardMobile: {
+    // Estilos específicos para mobile, se houver
+  },
+  coverImage: {
+    width: '100%',
+    height: 100,
+    backgroundColor: colors.gray100,
+  },
+  logoContainer: {
+    marginTop: -40,
+    marginLeft: 16,
+    position: 'relative',
+    width: 80,
   },
   logo: {
-    width: 50,
-    height: 50,
-    borderRadius: 6,
-    backgroundColor: colors.secondary,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: colors.white,
+    backgroundColor: colors.gray200,
   },
-
-  // Informações
-  info: {
-    flex: 1,
-    gap: 4,
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 2,
+  },
+  content: {
+    padding: 16,
+    paddingTop: 8,
   },
   name: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  description: {
+  category: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  needsInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  urgencyDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  needsText: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: '500',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.gray100,
+    paddingTop: 12,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    flexShrink: 1, // Para o texto de localização não quebrar o layout
+  },
+  statText: {
     fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 16,
-    marginBottom: 6,
-  },
-
-  // Tag de urgência
-  urgencyTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-  },
-  urgencyText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-
-  // Botão de doar
-  donateButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  donateButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textOnPrimary,
+    marginLeft: 4,
   },
 });
 

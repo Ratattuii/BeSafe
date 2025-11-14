@@ -1,142 +1,163 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import api from '../services/api'; // Importa seu serviço de API
-import InstitutionCard from '../components/InstitutionCard'; // Reutiliza seu componente de card
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  SafeAreaView,
+  RefreshControl,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, globalStyles } from '../styles/globalStyles';
+import InstitutionCard from '../components/InstitutionCard';
+import api from '../services/api';
 
-const InstitutionListScreen = ({ navigation }) => {
+const InstitutionListScreen = () => {
+  const navigation = useNavigation();
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Ref para controlar a carga inicial
+  const isInitialLoad = useRef(true);
 
-  const fetchFollowedInstitutions = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchInstitutions = useCallback(async () => {
+    // Só mostra o loading principal na carga inicial
+    if (isInitialLoad.current) {
+      setLoading(true);
+    }
+    
     try {
-      const response = await api.getFollowedInstitutions(); 
-      setInstitutions(response.data);
-    } catch (err) {
-      console.error('Erro ao buscar instituições seguidas:', err);
-      setError('Não foi possível carregar as instituições.');
+      const response = await api.getAllInstitutions();
+      if (response.success && response.data.institutions) {
+        setInstitutions(response.data.institutions);
+      } else {
+        Alert.alert('Erro', response.message || 'Não foi possível carregar as instituições.');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar instituições:', error);
+      Alert.alert('Erro de Rede', 'Não foi possível conectar ao servidor.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      isInitialLoad.current = false; // Marca que a carga inicial já passou
     }
+  }, []);
+
+  // Efeito para a Carga Inicial
+  useEffect(() => {
+    fetchInstitutions();
+  }, [fetchInstitutions]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchInstitutions();
   };
 
-  // useFocusEffect recarrega os dados toda vez que a tela entra em foco
-  useFocusEffect(
-    useCallback(() => {
-      fetchFollowedInstitutions();
-    }, [])
+  const handlePressInstitution = (institution) => {
+    navigation.navigate('InstitutionProfile', {
+      institutionId: institution.id,
+      institutionName: institution.name
+    });
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity style={globalStyles.backButton} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+      </TouchableOpacity>
+      <Text style={globalStyles.headerTitle}>Instituições</Text>
+      <View style={{ width: 40 }} />
+    </View>
   );
 
   const renderItem = ({ item }) => (
     <InstitutionCard
       institution={item}
-      onPress={() => navigation.navigate('InstitutionProfile', { institutionId: item.id })}
+      onPress={() => handlePressInstitution(item)}
     />
   );
 
-  if (loading) {
-    return <ActivityIndicator style={styles.loader} size="large" color="#000" />;
-  }
-
-  if (error) {
-    return <Text style={styles.errorText}>{error}</Text>;
-  }
+  const renderEmptyList = () => (
+    !loading && (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="business-outline" size={60} color={colors.gray300} />
+        <Text style={styles.emptyText}>Nenhuma instituição encontrada</Text>
+        <Text style={styles.emptySubtext}>
+          Parece que ainda não há instituições cadastradas.
+        </Text>
+      </View>
+    )
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Instituições que Você Segue</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <SafeAreaView style={globalStyles.container}>
+      <StatusBar style="dark" />
+      {renderHeader()}
       
-      {institutions.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Você ainda não segue nenhuma instituição.</Text>
-        </View>
+      {loading && !refreshing ? (
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : (
         <FlatList
           data={institutions}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyList}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+            />
+          }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    padding: 16,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.gray200,
+    marginBottom: 8,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F9FAFB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#1F2937',
-    fontWeight: 'bold',
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    flex: 1,
-    textAlign: 'center',
-  },
-  list: {
+  listContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  errorText: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    color: 'red',
+    paddingBottom: 32,
+    paddingTop: 8,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
+    marginTop: 50,
   },
   emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
-    fontSize: 16,
-    color: '#888',
-  }
+    marginTop: 8,
+  },
 });
 
 export default InstitutionListScreen;
