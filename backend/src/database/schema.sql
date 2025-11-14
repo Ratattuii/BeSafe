@@ -410,7 +410,38 @@ CREATE TABLE IF NOT EXISTS reviews (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Avaliações de doações';
 
 -- ==============================================
--- 9. TABELA SETTINGS
+-- 14. TABELA DONATION_OFFERS (Ofertas de Doação)
+-- ==============================================
+-- Armazena itens que doadores estão oferecendo,
+-- sem estarem ligados a uma necessidade específica.
+CREATE TABLE IF NOT EXISTS donation_offers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    donor_id INT NOT NULL COMMENT 'ID do doador que está oferecendo',
+    title VARCHAR(255) NOT NULL COMMENT 'Título da oferta. Ex: "Roupas de inverno"',
+    description TEXT NOT NULL COMMENT 'Descrição detalhada dos itens',
+    category VARCHAR(100) NOT NULL COMMENT 'Categoria (alimentos, roupas, etc.)',
+    condition VARCHAR(100) NOT NULL COMMENT 'Condição (novo, usado, etc.)',
+    quantity VARCHAR(100) NOT NULL COMMENT 'Quantidade. Ex: "20 peças" ou "5kg"',
+    location VARCHAR(255) NULL COMMENT 'Localização do item',
+    availability VARCHAR(100) NULL COMMENT 'Disponibilidade para retirada',
+    status ENUM('available', 'donated', 'expired') NOT NULL DEFAULT 'available' COMMENT 'Status da oferta',
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Chave estrangeira
+    FOREIGN KEY (donor_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Índices
+    INDEX idx_offers_donor_status (donor_id, status),
+    INDEX idx_offers_category (category),
+    INDEX idx_offers_condition (condition),
+    INDEX idx_offers_location (location)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Itens oferecidos por doadores';
+
+-- ==============================================
+-- 15. TABELA SETTINGS
 -- ==============================================
 -- Armazena configurações dos usuários
 CREATE TABLE IF NOT EXISTS user_settings (
@@ -489,77 +520,8 @@ LEFT JOIN donations d ON u.id = d.donor_id AND d.status IN ('confirmada', 'entre
 WHERE u.role = 'donor'
 GROUP BY u.id;
 
--- ==============================================
--- ALTERAÇÕES E ÍNDICES ADICIONAIS (RNF02.2)
--- ==============================================
-
--- Adicionar coluna fcm_token na tabela users (se não existir)
--- Nota: Execute manualmente se a coluna já existir: ALTER TABLE users ADD COLUMN fcm_token VARCHAR(500) NULL COMMENT 'Token FCM para push notifications';
-ALTER TABLE users ADD COLUMN fcm_token VARCHAR(500) NULL COMMENT 'Token FCM para push notifications';
-
--- Índices adicionais para performance em needs
-CREATE INDEX IF NOT EXISTS idx_needs_institution_status ON needs(institution_id, status);
-CREATE INDEX IF NOT EXISTS idx_needs_urgency_status ON needs(urgency, status);
-CREATE INDEX IF NOT EXISTS idx_needs_created_status ON needs(created_at, status);
-CREATE INDEX IF NOT EXISTS idx_needs_location ON needs(location);
-
--- Índices adicionais para performance em donations
-CREATE INDEX IF NOT EXISTS idx_donations_donor_status ON donations(donor_id, status);
-CREATE INDEX IF NOT EXISTS idx_donations_institution_status ON donations(institution_id, status);
-CREATE INDEX IF NOT EXISTS idx_donations_need_status ON donations(need_id, status);
-CREATE INDEX IF NOT EXISTS idx_donations_created_status ON donations(created_at, status);
-
--- Índices adicionais para performance em messages
-CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id);
-CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON messages(receiver_id, is_read);
-CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
-CREATE INDEX IF NOT EXISTS idx_messages_composite ON messages(sender_id, receiver_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(receiver_id, is_read, created_at);
-
--- Índices adicionais para performance em notifications
-CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
-CREATE INDEX IF NOT EXISTS idx_notifications_type_read ON notifications(type, is_read);
-CREATE INDEX IF NOT EXISTS idx_notifications_composite ON notifications(user_id, type, is_read, created_at);
-
--- Índices adicionais para performance em follows
-CREATE INDEX IF NOT EXISTS idx_follows_follower_following ON follows(follower_id, following_id);
-CREATE INDEX IF NOT EXISTS idx_follows_following_follower ON follows(following_id, follower_id);
-
--- Índices adicionais para performance em reviews
-CREATE INDEX IF NOT EXISTS idx_reviews_donor_institution ON reviews(reviewer_id, reviewed_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_rating_public ON reviews(rating, is_public);
-CREATE INDEX IF NOT EXISTS idx_reviews_composite ON reviews(donation_id, reviewed_id, reviewer_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_rating_composite ON reviews(reviewed_id, rating, is_public);
-
--- Índices adicionais para performance em affected_zones
-CREATE INDEX IF NOT EXISTS idx_affected_zones_type_active ON affected_zones(type, is_active);
-CREATE INDEX IF NOT EXISTS idx_affected_zones_severity_active ON affected_zones(severity, is_active);
-
--- Índices adicionais para performance em disaster_alerts
-CREATE INDEX IF NOT EXISTS idx_disaster_alerts_severity_active ON disaster_alerts(severity, is_active);
-CREATE INDEX IF NOT EXISTS idx_disaster_alerts_sent_active ON disaster_alerts(sent_at, is_active);
-
--- Índices FULLTEXT para busca (apenas para tabelas já criadas)
--- Nota: FULLTEXT requer MyISAM ou InnoDB com versão 5.6+ e colunas TEXT/VARCHAR
--- MySQL não suporta IF NOT EXISTS em ALTER TABLE, então execute manualmente se necessário
--- ALTER TABLE needs ADD FULLTEXT INDEX idx_needs_search (title, description);
--- ALTER TABLE users ADD FULLTEXT INDEX idx_users_search (name, description);
-
--- ==============================================
--- COMENTÁRIOS FINAIS
--- ==============================================
--- 
--- Este schema inclui:
--- 1. Tabelas principais: users, needs, donations, messages
--- 2. Tabelas de relacionamento: follows, need_images
--- 3. Tabelas de sistema: notifications, user_settings
--- 4. Views para consultas otimizadas
--- 5. Procedures para operações automatizadas
--- 6. Triggers para manter consistência
--- 
--- Configurações de charset UTF8MB4 para suporte completo a emojis
--- Uso de InnoDB para transações ACID
--- Índices otimizados para consultas comuns
--- Referências entre tabelas com cascade apropriado
--- 
--- ==============================================
+SELECT * FROM users;
+SELECT * FROM follows;
+SELECT * FROM needs;
+SELECT * FROM user_donation_stats;
+SELECT * FROM needs_with_institution;

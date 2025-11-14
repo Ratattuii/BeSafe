@@ -211,7 +211,7 @@ class ApiService {
     return this.upload(`/users/${userId}`, formData, 'PUT');
   }
 
-  // ===== MÉTODOS DE DOAÇÕES =====
+  // ===== MÉTODOS DE DOAÇÕES (RESPOSTAS A NECESSIDADES) =====
 
   /**
    * Lista todas as doações
@@ -246,7 +246,7 @@ class ApiService {
   }
 
   /**
-   * Cria uma nova doação
+   * Cria uma nova doação (em resposta a uma necessidade)
    * @param {object} donationData - Dados da doação
    * @returns {Promise} Resposta da API
    */
@@ -271,6 +271,26 @@ class ApiService {
   async getDonationStats() {
     return this.get('/donations/stats');
   }
+
+  // ===== MÉTODOS DE OFERTAS DE DOAÇÃO (NOVOS) =====
+
+  /**
+   * Cria uma nova oferta de doação (publicada por um doador)
+   * @param {object} offerData - Dados da oferta
+   * @returns {Promise} Resposta da API
+   */
+  async createDonationOffer(offerData) {
+    return this.post('/offers', offerData);
+  }
+
+  /**
+   * Lista as ofertas de doação do usuário logado
+   * @returns {Promise} Resposta da API
+   */
+  async getMyDonationOffers() {
+    return this.get('/offers/my-offers');
+  }
+
 
   // ===== MÉTODOS DE MENSAGENS =====
 
