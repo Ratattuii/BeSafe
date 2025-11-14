@@ -1,0 +1,21 @@
+[33mcce6a91[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: rebase (finish): returning to refs/heads/main
+[33mcce6a91[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{1}: rebase (start): checkout HEAD~3
+[33m3d569ed[m HEAD@{2}: reset: moving to HEAD~2
+[33m14a0a0d[m HEAD@{3}: commit: Remove serviceAccountKey from tracking and add to gitignore
+[33meb196e3[m HEAD@{4}: commit: update
+[33m3d569ed[m HEAD@{5}: commit: update
+[33m69d713c[m HEAD@{6}: commit: update firebase
+[33mcce6a91[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{7}: commit: UPDATE FODASE
+[33mbd05e61[m HEAD@{8}: commit: update
+[33m585306b[m HEAD@{9}: commit: update
+[33m6d375ec[m HEAD@{10}: commit: update
+[33m0c03cda[m HEAD@{11}: commit: update
+[33m319c3f8[m HEAD@{12}: commit: ah
+[33m0ddd3b0[m HEAD@{13}: commit: update
+[33m47403c0[m HEAD@{14}: commit: update
+[33m5e8ad6e[m HEAD@{15}: commit: update
+[33mecd4e9c[m HEAD@{16}: commit: Update nodemon version and add debug logs in needsController; enhance SQL query in schema.sql
+[33mdac49a1[m HEAD@{17}: commit: UPDATE
+[33m8766d8f[m HEAD@{18}: commit: update
+[33m2e00081[m HEAD@{19}: commit: update
+[33m0cb9078[m HEAD@{20}: commit (initial): first commit

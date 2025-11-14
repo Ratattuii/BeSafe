@@ -73,4 +73,5 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-*~ serviceAccountKey.json
+
+serviceAccountKey.json
