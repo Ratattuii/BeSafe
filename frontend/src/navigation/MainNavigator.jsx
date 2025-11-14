@@ -10,6 +10,7 @@ import ChatListScreen from '../screens/ChatListScreen';
 import ChatScreen from '../screens/ChatScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import InstitutionProfileScreen from '../screens/InstitutionProfileScreen';
+import InstitutionListScreen from '../screens/InstitutionListScreen';
 import DonorProfileScreen from '../screens/DonorProfileScreen';
 import PostNeedScreen from '../screens/PostNeedScreen';
 import PostDonationScreen from '../screens/PostDonationScreen';
@@ -33,6 +34,7 @@ const HomeStackNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="HomeTab" component={Home} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfileScreen} />
+    <Stack.Screen name="InstitutionList" component={InstitutionListScreen} />
     <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
     <Stack.Screen name="PostNeed" component={PostNeedScreen} />
     <Stack.Screen name="PostDonation" component={PostDonationScreen} />

@@ -104,7 +104,7 @@ const Home = ({ navigation }) => {
 
   // Funções de navegação
   const handleProfilePress = () => {
-    navigation.navigate('DonorProfile'); // Assumindo que existe essa tela
+    navigation.navigate('DonorProfileScreen'); // Assumindo que existe essa tela
   };
 
   const handleLogout = async () => {
@@ -118,11 +118,11 @@ const Home = ({ navigation }) => {
   };
 
   const handleNotificationsPress = () => {
-    navigation.navigate('Notifications'); // Assumindo que existe essa tela
+    navigation.navigate('NotificationsScreen'); // Assumindo que existe essa tela
   };
 
   const handleSearchPress = () => {
-    navigation.navigate('Search'); // Assumindo que existe essa tela
+    navigation.navigate('SearchScreen'); // Assumindo que existe essa tela
   };
 
   const handleNavigation = (screen) => {
@@ -131,13 +131,13 @@ const Home = ({ navigation }) => {
         // Já estamos na Home
         break;
       case 'Doações':
-        navigation.navigate('PostDonation');
+        navigation.navigate('PostDonationScreen');
         break;
       case 'Instituições':
-        navigation.navigate('InstitutionList'); // Tela de lista de instituições
+        navigation.navigate('InstitutionListScreen'); // Tela de lista de instituições
         break;
       case 'Sobre':
-        navigation.navigate('About'); // Tela sobre
+        navigation.navigate('AboutScreen'); // Tela sobre
         break;
       default:
         break;
