@@ -8,11 +8,14 @@ import {
   SafeAreaView,
   ActivityIndicator,
   ScrollView,
+  Alert,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../contexts/AuthContext';
 import { validateEmail, validatePassword, validateRequired, validatePasswordConfirmation, runValidations } from '../utils/validation';
-import { showError } from '../utils/alerts';
+// Import do showError removido, pois estamos usando Alert
+// import { showError } from '../utils/alerts';
 
 const RegisterScreen = ({ navigation, route }) => {
   const { register } = useAuth();
@@ -20,6 +23,14 @@ const RegisterScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Estado para controlar o modal de seleção genérico
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    options: [],
+    onSelect: () => {},
+  });
 
   // Campos para Doador
   const [donorData, setDonorData] = useState({
@@ -79,7 +90,7 @@ const RegisterScreen = ({ navigation, route }) => {
     );
 
     if (validationError) {
-      showError(validationError);
+      Alert.alert('Erro de Validação', validationError);
       return false;
     }
 
@@ -102,16 +113,20 @@ const RegisterScreen = ({ navigation, route }) => {
     );
 
     if (validationError) {
-      showError(validationError);
+      Alert.alert('Campo Obrigatório', validationError); 
       return false;
     }
 
     return true;
   };
 
+
   const handleRegister = async () => {
     const isValid = userType === 'donor' ? validateDonorForm() : validateInstitutionForm();
-    if (!isValid) return;
+    
+    if (!isValid) {
+      return; 
+    }
 
     setLoading(true);
 
@@ -140,18 +155,14 @@ const RegisterScreen = ({ navigation, route }) => {
       const result = await register(userData);
 
       if (result.success) {
-        // Usa alert simples para funcionar no web
         alert('Conta criada com sucesso! Você será redirecionado para o login.');
-        
-        // Redireciona para tela de login
         navigation.navigate('Login');
       } else {
-        showError(result.error || 'Erro ao criar conta');
+        Alert.alert('Erro no Cadastro', result.error || 'Erro ao criar conta');
       }
 
     } catch (error) {
-      showError('Erro de conexão. Verifique sua internet.');
-      console.error('Erro no cadastro:', error);
+      Alert.alert('Erro de Conexão', 'Erro de conexão. Verifique sua internet.');
     } finally {
       setLoading(false);
     }
@@ -220,14 +231,23 @@ const RegisterScreen = ({ navigation, route }) => {
     </View>
   );
 
+  // FUNÇÃO renderDropdown (está correta)
   const renderDropdown = (label, value, options, onSelect, placeholder) => (
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
       <TouchableOpacity
         style={styles.dropdown}
         onPress={() => {
-          // TODO: Implementar dropdown real
-          Alert.alert('Selecionar', `Opções: ${options.join(', ')}`);
+          // Abre o modal com as opções, título e função corretos
+          setModalConfig({
+            visible: true,
+            title: label,
+            options: options,
+            onSelect: (selectedItem) => {
+              onSelect(selectedItem);
+              setModalConfig({ visible: false, title: '', options: [], onSelect: () => {} }); // Fecha e limpa o modal
+            },
+          });
         }}
       >
         <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]}>
@@ -481,6 +501,39 @@ const RegisterScreen = ({ navigation, route }) => {
       <View style={styles.content}>
         {renderRegisterCard()}
       </View>
+
+      {/* ============================================== */}
+      {/* MODAL GENÉRICO DE SELEÇÃO */}
+      {/* ============================================== */}
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={modalConfig.visible}
+        onRequestClose={() => setModalConfig({ ...modalConfig, visible: false })}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPressOut={() => setModalConfig({ ...modalConfig, visible: false })}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{modalConfig.title}</Text>
+            
+            <ScrollView>
+              {modalConfig.options.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={styles.modalOption}
+                  onPress={() => modalConfig.onSelect(option)}
+                >
+                  <Text style={styles.modalOptionText}>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -717,6 +770,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FF1434',
     fontWeight: '600',
+  },
+
+  // ESTILOS DO MODAL
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 20,
+    width: '80%',
+    maxHeight: '60%', // Adicionado ScrollView para listas longas
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#333',
   },
 });
 

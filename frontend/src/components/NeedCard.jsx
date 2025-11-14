@@ -13,6 +13,12 @@ const NeedCard = ({ need, onPress }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width > 900;
 
+  // --- CORREÇÃO AQUI ---
+  // Define um objeto 'stats' padrão para evitar o crash
+  // Se 'need.stats' não existir, ele usará este objeto com zeros.
+  const stats = need.stats || { likes: 0, comments: 0, shares: 0 };
+  // --- FIM DA CORREÇÃO ---
+
   const formatTimestamp = (timestamp) => {
     // Simples formatação de data/hora
     const date = new Date(timestamp);
@@ -42,7 +48,8 @@ const NeedCard = ({ need, onPress }) => {
     if (number >= 1000) {
       return `${(number / 1000).toFixed(1)}k`;
     }
-    return number.toString();
+    // Garante que 'number' não seja nulo ou indefinido antes de 'toString'
+    return (number || 0).toString();
   };
 
   return (
@@ -105,31 +112,34 @@ const NeedCard = ({ need, onPress }) => {
           <TouchableOpacity 
             style={styles.statButton}
             accessible={true}
-            accessibilityLabel={`${formatStats(need.stats.likes)} curtidas`}
+            accessibilityLabel={`${formatStats(stats.likes)} curtidas`}
             accessibilityRole="button"
           >
             <Text style={styles.statIcon}>♥</Text>
-            <Text style={styles.statText}>{formatStats(need.stats.likes)}</Text>
+            {/* CORREÇÃO AQUI: usa 'stats.likes' em vez de 'need.stats.likes' */}
+            <Text style={styles.statText}>{formatStats(stats.likes)}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.statButton}
             accessible={true}
-            accessibilityLabel={`${formatStats(need.stats.comments)} comentários`}
+            accessibilityLabel={`${formatStats(stats.comments)} comentários`}
             accessibilityRole="button"
           >
             <Text style={styles.statIcon}>💬</Text>
-            <Text style={styles.statText}>{formatStats(need.stats.comments)}</Text>
+            {/* CORREÇÃO AQUI: usa 'stats.comments' */}
+            <Text style={styles.statText}>{formatStats(stats.comments)}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.statButton}
             accessible={true}
-            accessibilityLabel={`${formatStats(need.stats.shares)} compartilhamentos`}
+            accessibilityLabel={`${formatStats(stats.shares)} compartilhamentos`}
             accessibilityRole="button"
           >
             <Text style={styles.statIcon}>↗</Text>
-            <Text style={styles.statText}>{formatStats(need.stats.shares)}</Text>
+            {/* CORREÇÃO AQUI: usa 'stats.shares' */}
+            <Text style={styles.statText}>{formatStats(stats.shares)}</Text>
           </TouchableOpacity>
         </View>
 

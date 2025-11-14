@@ -138,9 +138,6 @@ const styles = StyleSheet.create({
     minHeight: 56,
     justifyContent: 'center',
   },
-  tabContentActive: {
-    // Pode adicionar animações aqui
-  },
   tabIcon: {
     fontSize: 20,
     marginBottom: 2,

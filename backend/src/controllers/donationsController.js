@@ -195,7 +195,6 @@ async function createDonation(req, res) {
     }
     
     // Cria a doação
-    const quantityNum = parseInt(quantity);
     console.log('Criando doação com:', { donor_id, need_id, institution_id: need.institution_id, quantity: quantityNum, unit: unit || 'unidades' });
     
     const result = await query(`
