@@ -21,6 +21,7 @@ const institutionsRoutes = require('./routes/institutions');
 const reviewsRoutes = require('./routes/reviews');
 const adminRoutes = require('./routes/admin');
 const mapRoutes = require('./routes/map');
+const offersRoutes = require('./routes/offers');
 
 // Configura nossa aplicação Express
 const app = express();
@@ -100,7 +101,11 @@ app.get('/', (req, res) => {
       'GET /admin/users - Listar todos os usuários (admin)',
       'PUT /admin/users/:id/verify - Verificar instituição (admin)',
       'PUT /admin/users/:id/suspend - Suspender usuário (admin)',
-      'GET /admin/reports/donations - Relatório CSV de doações (admin)'
+      'GET /admin/reports/donations - Relatório CSV de doações (admin)',
+      'POST /offers - Criar oferta de doação',
+      'GET /offers/my-offers - Listar ofertas de doação',
+      'PUT /offers/:id - Atualizar oferta de doação',
+      'DELETE /offers/:id - Remover oferta de doação',
     ]
   });
 });

@@ -1,507 +1,599 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform } from 'react-native';
-import useWebScroll from '../utils/useWebScroll';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  useWindowDimensions,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
+  FlatList, // Importar FlatList
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect } from '@react-navigation/native'; // Importar useFocusEffect
+import { colors } from '../styles/globalStyles';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
+import { Ionicons } from '@expo/vector-icons'; // Importar ícones
 
-const DonorProfileScreen = ({ navigation }) => {
-  // Habilitar scroll do mouse no web
-  useWebScroll('profile-scroll');
+// Importar os DOIS tipos de card
+import DonationCard from '../components/DonationCard';
+import DonationOfferCard from '../components/DonationOfferCard'; // O novo card que criamos
 
-  // Obter dados reais do usuário logado
-  const { user } = useAuth();
+const DonorProfileScreen = ({ route, navigation }) => {
+  const { user, logout } = useAuth(); // Pega o usuário logado do contexto
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState('ativas'); // 'ativas', 'historico'
+  
+  // Estados para dados REAIS
+  const [activeDonations, setActiveDonations] = useState([]); // Nossas "Ofertas"
+  const [donationHistory, setDonationHistory] = useState([]); // Nossas "Doações" (respostas)
 
-  // Dados do perfil do doador (mistura dados reais com fallbacks)
-  const donorData = {
-    name: user?.name || "Usuário Anônimo",
-    username: user?.username || `@${user?.name?.toLowerCase().replace(/\s+/g, '') || 'usuario'}`,
-    description: user?.description || "Doador ativo, apaixonado por ajudar causas humanitárias e apoiar comunidades em situação de vulnerabilidade.",
-    location: user?.location || "Brasil",
-    email: user?.email || "usuario@email.com",
-    avatar: user?.avatar || `https://via.placeholder.com/80x80/FF6B6B/FFFFFF?text=${user?.name?.charAt(0) || 'U'}`
-  };
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 1024;
 
-  // Mock data para doações realizadas
-  const donationsHistory = [
-    {
-      id: 1,
-      type: "Doação de Alimentos",
-      institution: "Cruz Vermelha Brasileira",
-      date: "01/09/2023",
-      image: "https://via.placeholder.com/200x120/4ECDC4/FFFFFF?text=Alimentos",
-      status: "Entregue"
-    },
-    {
-      id: 2,
-      type: "Doação de Roupas",
-      institution: "Casa de Apoio Santa Maria",
-      date: "15/08/2023",
-      image: "https://via.placeholder.com/200x120/45B7D1/FFFFFF?text=Roupas",
-      status: "Entregue"
-    },
-    {
-      id: 3,
-      type: "Doação de Medicamentos",
-      institution: "Hospital das Clínicas",
-      date: "30/07/2023",
-      image: "https://via.placeholder.com/200x120/96CEB4/FFFFFF?text=Medicamentos",
-      status: "Entregue"
+  // Função para carregar todos os dados do perfil
+  const loadProfileData = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
     }
-  ];
+    
+    try {
+      // Busca as "Doações Ativas" (Ofertas) e o "Histórico" (Doações) em paralelo
+      const [offersResponse, historyResponse] = await Promise.all([
+        api.getMyDonationOffers(),
+        api.getUserDonations({ status: 'entregue' }) // Busca só as entregues
+      ]);
 
-  // Mock data para doações em andamento
-  const activeDonations = [
-    {
-      id: 1,
-      type: "Cestas Básicas",
-      institution: "Instituto Beneficente",
-      quantity: "15 cestas",
-      image: "https://via.placeholder.com/300x180/FFA07A/FFFFFF?text=Cestas",
-      status: "Em preparação"
-    },
-    {
-      id: 2,
-      type: "Roupas de Inverno",
-      institution: "Abrigo Municipal",
-      quantity: "50 peças",
-      image: "https://via.placeholder.com/300x180/DDA0DD/FFFFFF?text=Roupas",
-      status: "Aguardando retirada"
+      if (offersResponse.success && offersResponse.data.offers) {
+        // Filtra para mostrar apenas as "available" na aba "Ativas"
+        const availableOffers = offersResponse.data.offers.filter(
+          (offer) => offer.status === 'available'
+        );
+        setActiveDonations(availableOffers);
+      } else {
+        console.error('Erro ao buscar ofertas ativas:', offersResponse.message);
+      }
+
+      if (historyResponse.success && historyResponse.data.donations) {
+        setDonationHistory(historyResponse.data.donations);
+      } else {
+        console.error('Erro ao buscar histórico:', historyResponse.message);
+      }
+
+    } catch (error) {
+      console.error('Erro ao carregar dados do perfil do doador:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os dados do perfil.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  ];
+  }, [user]); // Depende do 'user'
 
-  // Funções de navegação
-  const handleInstitutionPress = (institutionName, institutionId = null) => {
-    console.log('Navegar para perfil da instituição:', institutionName);
-    navigation.navigate('InstitutionProfile', { 
-      institutionId: institutionId,
-      institutionName: institutionName 
-    });
+  // useFocusEffect para recarregar os dados sempre que a tela entrar em foco
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadProfileData();
+    }, [loadProfileData])
+  );
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadProfileData();
   };
-
-  const handleNewDonation = () => {
-    console.log('Nova doação');
+  
+  const handleEditProfile = () => {
+    Alert.alert('Aviso', 'Tela de edição de perfil ainda não implementada.');
+  };
+  
+  const handleSettings = () => {
+    Alert.alert('Aviso', 'Tela de configurações ainda não implementada.');
+  };
+  
+  const handleAddDonation = () => {
+    // Navega para a tela de Publicar Doação (formulário complexo)
+    // Não passa needId, então a tela saberá que é para criar uma nova oferta
     navigation.navigate('PostDonation');
   };
 
-  const handleEditDonation = (donationId) => {
-    console.log('Editar doação:', donationId);
-    // TODO: Navegar para tela de edição
-  };
+  // ----- COMPONENTES DE RENDERIZAÇÃO -----
 
-  const handleCancelDonation = (donationId) => {
-    console.log('Cancelar doação:', donationId);
-    // TODO: Implementar cancelamento
-  };
-
-  const renderDonationHistoryCard = (donation) => (
-    <View key={donation.id} style={styles.historyCard}>
-      <Image source={{ uri: donation.image }} style={styles.historyCardImage} />
-      <View style={styles.historyCardContent}>
-        <View style={styles.historyCardHeader}>
-          <Text style={styles.historyCardIcon}>🎁</Text>
-          <Text style={styles.historyCardTitle}>{donation.type}</Text>
-        </View>
-        <TouchableOpacity onPress={() => handleInstitutionPress(donation.institution, donation.institutionId)}>
-          <Text style={[styles.historyCardInstitution, styles.clickableInstitution]}>
-            {donation.institution}
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.historyCardDate}>Entregue em {donation.date}</Text>
-      </View>
+  const renderHeader = () => (
+    <View style={[styles.header, isDesktop && styles.headerDesktop]}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation?.goBack?.()}
+        accessible={true}
+        accessibilityLabel="Voltar"
+        accessibilityRole="button"
+      >
+        <Text style={styles.backButtonText}>←</Text>
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Meu Perfil de Doador</Text>
+      <TouchableOpacity
+        style={styles.settingsButton}
+        onPress={handleSettings}
+        accessible={true}
+        accessibilityLabel="Configurações"
+        accessibilityRole="button"
+      >
+        <Ionicons name="settings-outline" size={24} color={colors.textPrimary} />
+      </TouchableOpacity>
     </View>
   );
 
-  const renderActiveDonationCard = (donation) => (
-    <View key={donation.id} style={styles.activeCard}>
-      <Image source={{ uri: donation.image }} style={styles.activeCardImage} />
-      <View style={styles.activeCardContent}>
-        <View style={styles.activeCardHeader}>
-          <Text style={styles.activeCardIcon}>📦</Text>
-          <Text style={styles.activeCardTitle}>{donation.type}</Text>
-        </View>
-        <Text style={styles.activeCardQuantity}>{donation.quantity}</Text>
-        <TouchableOpacity onPress={() => handleInstitutionPress(donation.institution, donation.institutionId)}>
-          <Text style={[styles.activeCardInstitution, styles.clickableInstitution]}>
-            Para: {donation.institution}
-          </Text>
-        </TouchableOpacity>
-        <View style={styles.activeCardActions}>
-          <TouchableOpacity 
-            style={styles.editButton}
-            onPress={() => handleEditDonation(donation.id)}
-          >
-            <Text style={styles.editButtonText}>✏️ Editar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.cancelButton}
-            onPress={() => handleCancelDonation(donation.id)}
-          >
-            <Text style={styles.cancelButtonText}>✖️ Cancelar doação</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
+  const renderProfileInfo = () => {
+    if (!user) return null;
 
     return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerIcon}>🎁</Text>
-          <Text style={styles.headerTitle}>
-            Meu Perfil de Doador {user ? '✅' : '⚠️'}
-          </Text>
+      <View style={[styles.profileInfo, isDesktop && styles.profileInfoDesktop]}>
+        <Image 
+          source={{ uri: user.avatar || `https://via.placeholder.com/120x120/FFDDAA/888888?text=${user.name?.charAt(0) || 'U'}` }} 
+          style={styles.avatar} 
+        />
+        <Text style={styles.profileName}>{user.name}</Text>
+        <Text style={styles.profileLocation}>📍 {user.location || 'Localização não definida'}</Text>
+        <Text style={styles.profileDescription}>
+          {user.description || 'Doador comprometido em ajudar o próximo. Junte-se a mim!'}
+        </Text>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{donationHistory.length}</Text>
+            <Text style={styles.statLabel}>Doações Concluídas</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{activeDonations.length}</Text>
+            <Text style={styles.statLabel}>Doações Ativas</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={handleNewDonation}>
-          <Text style={styles.addButtonText}>+ Nova Doação</Text>
+
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={handleEditProfile}
+        >
+          <Text style={styles.editButtonText}>Editar Perfil</Text>
         </TouchableOpacity>
       </View>
+    );
+  };
 
-      {/* Status do usuário */}
-      {user ? (
-        <View style={styles.userStatusContainer}>
-          <Text style={styles.userStatusText}>
-            ✅ Dados carregados do usuário: {user.name}
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.userStatusContainer}>
-          <Text style={styles.userStatusTextWarning}>
-            ⚠️ Usuário não logado - usando dados padrão
-          </Text>
-        </View>
-      )}
-
-      <ScrollView nativeID="profile-scroll" style={styles.scrollContent}>
-        {/* Banner e Profile Info */}
-        <View style={styles.profileSection}>
-          <Image 
-            source={{ uri: "https://via.placeholder.com/1000x200/4ECDC4/FFFFFF?text=Banner+Doador" }} 
-            style={styles.bannerImage} 
-          />
-          <View style={styles.profileInfo}>
-            <Image source={{ uri: donorData.avatar }} style={styles.avatar} />
-            <View style={styles.profileText}>
-              <Text style={styles.profileName}>{donorData.name}</Text>
-              <Text style={styles.profileUsername}>{donorData.username}</Text>
-              <Text style={styles.profileDescription}>{donorData.description}</Text>
-              <View style={styles.profileContact}>
-                <Text style={styles.contactItem}>📍 {donorData.location}</Text>
-                <Text style={styles.contactItem}>✉️ {donorData.email}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Content Sections */}
-        <View style={styles.contentContainer}>
-          {/* Doações em Andamento */}
-          <View style={styles.leftColumn}>
-            <Text style={styles.sectionTitle}>Doações em Andamento</Text>
-            {activeDonations.map(renderActiveDonationCard)}
-          </View>
-
-          {/* Histórico de Doações */}
-          <View style={styles.rightColumn}>
-            <Text style={styles.sectionTitle}>Histórico de Doações</Text>
-            {donationsHistory.map(renderDonationHistoryCard)}
-          </View>
-        </View>
-      </ScrollView>
+  const renderTabs = () => (
+    <View style={[styles.tabsContainer, isDesktop && styles.tabsContainerDesktop]}>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'ativas' && styles.activeTab]}
+        onPress={() => setActiveTab('ativas')}
+      >
+        <Text style={[styles.tabText, activeTab === 'ativas' && styles.activeTabText]}>
+          Doações Ativas ({activeDonations.length})
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'historico' && styles.activeTab]}
+        onPress={() => setActiveTab('historico')}
+      >
+        <Text style={[styles.tabText, activeTab === 'historico' && styles.activeTabText]}>
+          Histórico ({donationHistory.length})
+        </Text>
+      </TouchableOpacity>
     </View>
+  );
+
+  // Componente de "Lista Vazia"
+  const EmptyListMessage = ({ icon, title, description }) => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name={icon} size={48} color={colors.gray300} />
+      <Text style={styles.emptyTitle}>{title}</Text>
+      <Text style={styles.emptyDescription}>{description}</Text>
+    </View>
+  );
+
+  // Aba 1: Doações Ativas (Ofertas)
+  const renderActiveDonations = () => (
+    <FlatList
+      data={activeDonations}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item }) => (
+        <DonationOfferCard
+          offer={item}
+          onDetails={() => Alert.alert('Aviso', 'Tela de detalhes da oferta a implementar.')}
+          onEdit={() => Alert.alert('Aviso', 'Tela de edição da oferta a implementar.')}
+        />
+      )}
+      ListEmptyComponent={
+        <EmptyListMessage
+          icon="cube-outline"
+          title="Nenhuma doação ativa"
+          description="Itens que você publicar para doação aparecerão aqui."
+        />
+      }
+      contentContainerStyle={styles.listPadding}
+    />
+  );
+
+  // Aba 2: Histórico (Doações a posts)
+  const renderDonationHistory = () => (
+    <FlatList
+      data={donationHistory}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item }) => (
+        <DonationCard
+          donation={item} // O DonationCard espera a prop 'donation'
+          onPress={() => Alert.alert('Aviso', 'Tela de recibo/detalhe a implementar.')}
+          onReview={() => Alert.alert('Aviso', 'Tela de avaliação a implementar.')}
+        />
+      )}
+      ListEmptyComponent={
+        <EmptyListMessage
+          icon="archive-outline"
+          title="Nenhum histórico"
+          description="Doações que você fizer e forem entregues aparecerão aqui."
+        />
+      }
+      contentContainerStyle={styles.listPadding}
+    />
+  );
+
+  const renderTabContent = () => {
+    return activeTab === 'ativas' ? renderActiveDonations() : renderDonationHistory();
+  };
+
+  const renderMobileLayout = () => (
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={handleRefresh}
+          tintColor={colors.primary}
+        />
+      }
+    >
+      {renderProfileInfo()}
+      {renderTabs()}
+      {renderTabContent()}
+    </ScrollView>
+  );
+
+  const renderDesktopLayout = () => (
+    <View style={styles.desktopContainer}>
+      <View style={styles.desktopLeftColumn}>
+        {renderProfileInfo()}
+      </View>
+      <View style={styles.desktopRightColumn}>
+        {renderTabs()}
+        {renderTabContent()}
+      </View>
+    </View>
+  );
+
+  if (loading && !refreshing) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        {renderHeader()}
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Carregando perfil...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+  
+  if (!user) {
+     return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        {renderHeader()}
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Usuário não encontrado.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
+      {renderHeader()}
+      {isDesktop ? renderDesktopLayout() : renderMobileLayout()}
+      
+      {/* Botão flutuante para adicionar doação (apenas no mobile) */}
+      {!isDesktop && (
+        <TouchableOpacity 
+          style={styles.fab} 
+          onPress={handleAddDonation}
+          accessible={true}
+          accessibilityLabel="Publicar nova doação"
+          accessibilityRole="button"
+        >
+          <Ionicons name="add" size={28} color={colors.white} />
+        </TouchableOpacity>
+      )}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.backgroundLight,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
-  webScrollContainer: {
+  loadingContainer: {
     flex: 1,
-    overflow: 'auto',
-    maxHeight: '100%',
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  
-  // Status do usuário
-  userStatusContainer: {
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  userStatusText: {
-    fontSize: 12,
-    color: '#2E7D32',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  userStatusTextWarning: {
-    fontSize: 12,
-    color: '#F57C00',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  
-  // Header Styles
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  headerLeft: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  backButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    marginRight: 12,
-    borderRadius: 8,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#FF4757',
-    fontWeight: 'bold',
-  },
-  headerIcon: {
-    fontSize: 24,
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  addButton: {
-    backgroundColor: '#FF4757',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 16,
   },
 
-  // Profile Section Styles
-  profileSection: {
-    backgroundColor: '#FFFFFF',
-  },
-  bannerImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
-  },
-  profileInfo: {
+  // Desktop Layout
+  desktopContainer: {
+    flex: 1,
     flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 30,
+    paddingHorizontal: 20,
+    paddingTop: 20, // Espaço abaixo do header
+  },
+  desktopLeftColumn: {
+    width: 380,
+    minWidth: 320,
+    maxWidth: 420,
+  },
+  desktopRightColumn: {
+    flex: 1,
+    maxWidth: 800,
+    minWidth: 500,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 20, // Espaço para sombra
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.secondary,
+  },
+  headerDesktop: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 20,
+    borderRadius: 16,
+    borderBottomWidth: 0,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    backgroundColor: colors.white,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Informações do Perfil
+  profileInfo: {
+    backgroundColor: colors.white,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    alignItems: 'center',
     padding: 20,
-    alignItems: 'flex-start',
+  },
+  profileInfoDesktop: {
+    margin: 0,
+    marginBottom: 20,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginTop: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.secondary,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
-    marginRight: 20,
-  },
-  profileText: {
-    flex: 1,
-    paddingTop: 10,
+    borderColor: colors.white,
+    marginBottom: 12,
   },
   profileName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 4,
+    color: colors.textPrimary,
   },
-  profileUsername: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 12,
+  profileLocation: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   profileDescription: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
     lineHeight: 20,
-    marginBottom: 16,
   },
-  profileContact: {
+  statsContainer: {
     flexDirection: 'row',
-    gap: 20,
-  },
-  contactItem: {
-    fontSize: 14,
-    color: '#888888',
-  },
-
-  // Content Container
-  contentContainer: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 30,
-  },
-  leftColumn: {
-    flex: 1,
-  },
-  rightColumn: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 20,
-  },
-
-  // Active Donations Cards
-  activeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  activeCardImage: {
+    justifyContent: 'space-around',
     width: '100%',
-    height: 180,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    resizeMode: 'cover',
+    marginTop: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray100,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray100,
   },
-  activeCardContent: {
-    padding: 16,
-  },
-  activeCardHeader: {
-    flexDirection: 'row',
+  statItem: {
     alignItems: 'center',
-    marginBottom: 8,
+    flex: 1,
   },
-  activeCardIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  activeCardTitle: {
+  statNumber: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333333',
+    color: colors.textPrimary,
   },
-  activeCardQuantity: {
-    fontSize: 14,
-    color: '#FF4757',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  activeCardInstitution: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 16,
-  },
-  activeCardActions: {
-    flexDirection: 'row',
-    gap: 10,
+  statLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   editButton: {
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 20,
   },
   editButtonText: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  cancelButton: {
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-  },
-  cancelButtonText: {
-    fontSize: 12,
-    color: '#666666',
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
 
-  // History Cards
-  historyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  historyCardImage: {
-    width: '100%',
-    height: 120,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    resizeMode: 'cover',
-  },
-  historyCardContent: {
-    padding: 16,
-  },
-  historyCardHeader: {
+  // Abas
+  tabsContainer: {
     flexDirection: 'row',
+    backgroundColor: colors.white,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  tabsContainerDesktop: {
+    margin: 0,
+    borderRadius: 0,
+    padding: 8,
+    shadow: 'none',
+    elevation: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray200,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 8,
   },
-  historyCardIcon: {
-    fontSize: 16,
-    marginRight: 6,
+  activeTab: {
+    backgroundColor: colors.primary,
   },
-  historyCardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  historyCardInstitution: {
+  tabText: {
     fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
-  historyCardDate: {
-    fontSize: 12,
-    color: '#999999',
+  activeTabText: {
+    color: colors.white,
+    fontWeight: '600',
   },
   
-  // Estilo para instituições clicáveis
-  clickableInstitution: {
-    color: '#FF4757',
-    textDecorationLine: 'underline',
-    fontWeight: '600',
+  // Listas
+  listPadding: {
+    padding: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+    opacity: 0.6,
+    color: colors.gray300,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  // Botão flutuante (FAB)
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });
 

@@ -13,7 +13,7 @@ const notificationRoutes = require('./notifications');
 const reviewRoutes = require('./reviews');
 const searchRoutes = require('./search');
 const userRoutes = require('./users');
-const offerRoutes = require('./offers'); // <-- 1. ADICIONADO AQUI
+const offerRoutes = require('./offers');
 
 // Rotas públicas
 router.use('/auth', authRoutes);
