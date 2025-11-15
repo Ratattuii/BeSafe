@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createOffer, getMyOffers } = require('../controllers/offerController');
+const { createOffer, getMyOffers, updateOffer } = require('../controllers/offerController');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
@@ -14,5 +14,11 @@ router.post('/', authenticateToken, createOffer);
  * Lista as ofertas de doação publicadas pelo doador logado
  */
 router.get('/my-offers', authenticateToken, getMyOffers);
+
+/**
+ * PUT /offers/:id
+ * Atualiza uma oferta de doação existente
+ */
+router.put('/:id', authenticateToken, updateOffer);
 
 module.exports = router;

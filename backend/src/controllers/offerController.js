@@ -14,7 +14,7 @@ async function createOffer(req, res) {
       description,
       quantity,
       category,
-      conditions, // Renomeado de condition
+      conditions, 
       location,
       availability,
     } = req.body;
@@ -40,7 +40,7 @@ async function createOffer(req, res) {
         description,
         quantity,
         category,
-        conditions, // Renomeado de condition
+        conditions,
         location || null,
         availability,
       ]
@@ -58,6 +58,81 @@ async function createOffer(req, res) {
     return errors.serverError(res);
   }
 }
+
+/**
+ * Atualiza uma oferta de doação existente
+ * PUT /offers/:id
+ */
+async function updateOffer(req, res) {
+  try {
+    const donor_id = req.user.id;
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      quantity,
+      category,
+      conditions,
+      location,
+      availability,
+    } = req.body;
+
+    // 1. Verifica se a oferta existe e pertence ao usuário
+    const offer = await queryOne(
+      'SELECT * FROM donation_offers WHERE id = ?',
+      [id]
+    );
+
+    if (!offer) {
+      return errors.notFound(res, 'Oferta de doação não encontrada.');
+    }
+
+    if (offer.donor_id !== donor_id) {
+      return errors.forbidden(res, 'Você não tem permissão para editar esta oferta.');
+    }
+
+    // 2. Validação
+    const validationError = validateRequired(
+      ['title', 'description', 'quantity', 'category', 'conditions', 'availability'],
+      req.body
+    );
+    
+    if (validationError) {
+      return errors.badRequest(res, validationError);
+    }
+
+    // 3. Atualiza no banco
+    await query(
+      `UPDATE donation_offers SET 
+       title = ?, description = ?, quantity = ?, category = ?, 
+       conditions = ?, location = ?, availability = ?
+       WHERE id = ? AND donor_id = ?`,
+      [
+        title,
+        description,
+        quantity,
+        category,
+        conditions,
+        location || null,
+        availability,
+        id,
+        donor_id
+      ]
+    );
+
+    const updatedOffer = await queryOne(
+      'SELECT * FROM donation_offers WHERE id = ?',
+      [id]
+    );
+
+    return success(res, 'Oferta de doação atualizada com sucesso', { offer: updatedOffer });
+
+  } catch (error) {
+    console.error('Erro ao atualizar oferta de doação:', error.message);
+    return errors.serverError(res);
+  }
+}
+
 
 /**
  * Lista as ofertas de doação do usuário logado
@@ -82,5 +157,6 @@ async function getMyOffers(req, res) {
 
 module.exports = {
   createOffer,
+  updateOffer,
   getMyOffers,
 };

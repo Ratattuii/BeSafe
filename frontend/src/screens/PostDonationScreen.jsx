@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -97,7 +97,7 @@ const SimpleDonationForm = ({ route, onConfirm, loading }) => {
         />
       </View>
 
-      {/* Botão de Confirmação (reutiliza o estilo do 'submitButton') */}
+      {/* Botão de Confirmação */}
       <TouchableOpacity
         style={[styles.submitButton, {flex: 1}, loading && styles.submitButtonDisabled]}
         onPress={handleSubmit}
@@ -114,7 +114,7 @@ const SimpleDonationForm = ({ route, onConfirm, loading }) => {
 };
 
 // ===================================================================
-// COMPONENTE 2: Formulário Complexo (o seu design original)
+// COMPONENTE 2: Formulário Complexo (para publicar uma oferta)
 // ===================================================================
 const ComplexDonationForm = ({ formData, updateFormData, errors, categories, conditions, availabilityOptions, isDesktop, onImagePick }) => {
   
@@ -152,7 +152,7 @@ const ComplexDonationForm = ({ formData, updateFormData, errors, categories, con
             key={category.id}
             style={[
               styles.optionCard,
-              formData.conditions === category.id && styles.optionCardSelected,
+              formData.category === category.id && styles.optionCardSelected,
               isDesktop && styles.optionCardDesktop,
             ]}
             onPress={() => updateFormData('category', category.id)}
@@ -173,7 +173,6 @@ const ComplexDonationForm = ({ formData, updateFormData, errors, categories, con
     </View>
   );
 
-  // --- CORREÇÃO: Usa 'conditions' ---
   const renderConditionSelector = () => (
     <View style={styles.fieldContainer}>
       <Text style={styles.fieldLabel}>Condição do Item *</Text>
@@ -319,7 +318,7 @@ const PostDonationScreen = ({ route, navigation }) => {
     description: '',
     quantity: '',
     category: '',
-    conditions: '', // --- CORREÇÃO: 'condition' -> 'conditions'
+    conditions: '', // 'condition' -> 'conditions'
     location: '',
     availability: '',
     expiryDate: '',
@@ -331,8 +330,27 @@ const PostDonationScreen = ({ route, navigation }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
-  const { needId, institutionName, needTitle } = route.params || {};
+  const { needId, institutionName, needTitle, offerToEdit } = route.params || {};
   const isSpecificDonation = !!needId; // true se estamos vindo de um post
+  const isEditMode = !!offerToEdit;    // true se estamos editando uma oferta
+
+  // --- NOVO useEffect para carregar dados de edição ---
+  useEffect(() => {
+    if (isEditMode) {
+      console.log('Modo de Edição. Carregando dados da oferta:', offerToEdit);
+      setFormData({
+        title: offerToEdit.title || '',
+        description: offerToEdit.description || '',
+        quantity: offerToEdit.quantity || '',
+        category: offerToEdit.category || '',
+        conditions: offerToEdit.conditions || '',
+        location: offerToEdit.location || '',
+        availability: offerToEdit.availability || '',
+        expiryDate: '', // expiryDate não está no schema, então fica vazio
+      });
+    }
+  }, [isEditMode, offerToEdit]); // Roda quando 'offerToEdit' for recebido
+
 
   // Opções de categorias
   const categories = [
@@ -364,60 +382,57 @@ const PostDonationScreen = ({ route, navigation }) => {
     { id: 'combinar', label: 'A combinar', description: 'Disponibilidade flexível' },
   ];
 
-  // --- CORREÇÃO: Validação agora depende do contexto ---
-  const validateForm = (isSimpleForm = false) => {
+  const validateComplexForm = () => {
     const newErrors = {};
 
-    // Validação complexa SÓ RODA se NÃO for o formulário simples
-    if (!isSimpleForm) {
-      if (!formData.title.trim()) {
-        newErrors.title = 'Título é obrigatório';
-      } else if (formData.title.length < 5) {
-        newErrors.title = 'Título deve ter pelo menos 5 caracteres';
-      }
-  
-      if (!formData.description.trim()) {
-        newErrors.description = 'Descrição é obrigatória';
-      } else if (formData.description.length < 20) {
-        newErrors.description = 'Descrição deve ter pelo menos 20 caracteres';
-      }
-  
-      if (!formData.category) {
-        newErrors.category = 'Selecione uma categoria';
-      }
-  
-      // --- CORREÇÃO: 'condition' -> 'conditions'
-      if (!formData.conditions) {
-        newErrors.conditions = 'Selecione a condição do item';
-      }
-  
-      if (!formData.availability) {
-        newErrors.availability = 'Selecione a disponibilidade';
-      }
-  
-      if (formData.category === 'alimentos' && !formData.expiryDate.trim()) {
-        newErrors.expiryDate = 'Data de validade é obrigatória para alimentos';
-      }
+    if (!formData.title.trim()) {
+      newErrors.title = 'Título é obrigatório';
+    } else if (formData.title.length < 5) {
+      newErrors.title = 'Título deve ter pelo menos 5 caracteres';
     }
-    
-    // Validação de quantidade (para ambos os formulários, mas o simples já valida)
-    if (!isSimpleForm) {
-      if (!formData.quantity.trim()) {
-        newErrors.quantity = 'Quantidade é obrigatória';
-      } else {
-        const quantityMatch = formData.quantity.match(/\d+/);
-        const quantityValue = quantityMatch ? parseInt(quantityMatch[0]) : parseInt(formData.quantity);
-        if (isNaN(quantityValue) || quantityValue <= 0) {
-          newErrors.quantity = 'Quantidade inválida. Insira um número válido.';
-        }
-      }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Descrição é obrigatória';
+    } else if (formData.description.length < 20) {
+      newErrors.description = 'Descrição deve ter pelo menos 20 caracteres';
+    }
+
+    if (!formData.quantity.trim()) {
+      newErrors.quantity = 'Quantidade é obrigatória';
+    } else {
+       const quantityMatch = formData.quantity.match(/\d+/);
+       const quantityValue = quantityMatch ? parseInt(quantityMatch[0]) : parseInt(formData.quantity);
+       if (isNaN(quantityValue) || quantityValue <= 0) {
+        newErrors.quantity = 'Quantidade inválida. Insira um número válido.';
+       }
+    }
+
+    if (!formData.category) {
+      newErrors.category = 'Selecione uma categoria';
+    }
+
+    if (!formData.conditions) {
+      newErrors.conditions = 'Selecione a condição do item';
+    }
+
+    if (!formData.availability) {
+      newErrors.availability = 'Selecione a disponibilidade';
+    }
+
+    if (formData.category === 'alimentos' && !formData.expiryDate.trim()) {
+      newErrors.expiryDate = 'Data de validade é obrigatória para alimentos';
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    const errorKeys = Object.keys(newErrors);
+    if (errorKeys.length > 0) {
+      return newErrors[errorKeys[0]]; 
+    }
+    return null; // Sem erros
   };
 
-  // --- CORREÇÃO: handleSubmit agora lida com os dois cenários ---
+  // --- handleSubmit ATUALIZADO para lidar com MODO DE EDIÇÃO ---
   const handleSubmit = async (simpleData = null) => {
     
     setLoading(true);
@@ -426,6 +441,7 @@ const PostDonationScreen = ({ route, navigation }) => {
     try {
       let donationData;
       let offerData;
+      let validationError = null; 
 
       if (isSpecificDonation) {
         // --- Cenário 1: Respondendo a um Post (Formulário Simples) ---
@@ -444,34 +460,37 @@ const PostDonationScreen = ({ route, navigation }) => {
         };
 
         console.log('Enviando doação (simples):', donationData);
-        response = await api.createDonation(donationData); // Chama a rota antiga
+        response = await api.createDonation(donationData); // Chama a rota /donations
 
       } else {
-        // --- Cenário 2: Criando um Novo Item (Formulário Complexo) ---
-        if (!validateForm(false)) { // false = não é simples
-          Alert.alert('Erro', 'Por favor, corrija os erros no formulário');
+        // --- Cenário 2: Criando ou Editando uma Oferta (Formulário Complexo) ---
+        
+        validationError = validateComplexForm();
+        if (validationError) {
+          Alert.alert('Erro no Formulário', validationError); 
           setLoading(false);
           return;
         }
-
-        // Não precisamos mais do alerta de "need_id obrigatório"
         
-        // --- CORREÇÃO: Monta o 'offerData' para a nova API ---
         offerData = {
           title: formData.title,
           description: formData.description,
-          quantity: formData.quantity, // Manda a string "20 peças"
+          quantity: formData.quantity, 
           category: formData.category,
-          conditions: formData.conditions, // --- CORREÇÃO: 'condition' -> 'conditions'
+          conditions: formData.conditions,
           location: formData.location,
           availability: formData.availability,
-          // (expiryDate não está na tabela 'donation_offers' que definimos, mas 'notes' está)
-          // (Podemos adicionar a validade na descrição se quisermos)
         };
 
-        console.log('Enviando oferta de doação (complexa):', offerData);
-        // Chama a NOVA rota da API
-        response = await api.createDonationOffer(offerData); 
+        if (isEditMode) {
+          // --- MODO DE EDIÇÃO ---
+          console.log(`Enviando ATUALIZAÇÃO para oferta ${offerToEdit.id}:`, offerData);
+          response = await api.updateDonationOffer(offerToEdit.id, offerData); // Chama a rota PUT /offers/:id
+        } else {
+          // --- MODO DE CRIAÇÃO ---
+          console.log('Enviando nova oferta de doação (complexa):', offerData);
+          response = await api.createDonationOffer(offerData); // Chama a rota POST /offers
+        }
       }
 
       // ----- Processamento da Resposta (Comum para ambos) -----
@@ -479,11 +498,21 @@ const PostDonationScreen = ({ route, navigation }) => {
       
       if (response.success) {
         const details = response.data.donation || response.data.offer;
+        let successMessage = '';
         
+        if (isSpecificDonation) {
+          successMessage = `Sua oferta de ${details.quantity} ${details.unit || ''} para "${needTitle || 'a necessidade'}" foi registrada!`;
+        } else if (isEditMode) {
+          successMessage = `Sua oferta "${details.title}" foi atualizada com sucesso!`;
+        } else {
+          successMessage = `Sua oferta "${details.title}" foi publicada com sucesso!`;
+        }
+
         Alert.alert(
           'Sucesso!', 
-          `Sua oferta de ${details.quantity} ${details.unit || ''} foi registrada com sucesso!`,
-          [{ text: 'OK', onPress: () => navigation?.goBack?.() }]
+          successMessage,
+          // Volta para a tela anterior (o Perfil do Doador)
+          [{ text: 'OK', onPress: () => navigation.goBack() }] 
         );
       } else {
         const errorMessage = response.message || response.error || 'Não foi possível publicar. Tente novamente.';
@@ -491,7 +520,7 @@ const PostDonationScreen = ({ route, navigation }) => {
       }
       
     } catch (error) {
-      console.error('Erro ao criar doação/oferta:', error);
+      console.error('Erro ao criar/atualizar doação/oferta:', error);
       const errorMessage = error.message || 'Não foi possível publicar. Verifique sua conexão e tente novamente.';
       Alert.alert('Erro', errorMessage);
     } finally {
@@ -545,7 +574,8 @@ const PostDonationScreen = ({ route, navigation }) => {
         <Text style={styles.backButtonText}>←</Text>
       </TouchableOpacity>
       <Text style={styles.headerTitle}>
-        {isSpecificDonation ? 'Oferecer Doação' : 'Publicar Item para Doação'}
+        {/* Título dinâmico */}
+        {isSpecificDonation ? 'Oferecer Doação' : (isEditMode ? 'Editar Oferta' : 'Publicar Item')}
       </Text>
       <View style={styles.headerSpacer} />
     </View>
@@ -567,15 +597,15 @@ const PostDonationScreen = ({ route, navigation }) => {
           isDesktop && styles.submitButtonDesktop,
           loading && styles.submitButtonDisabled
         ]}
-        // O handleSubmit do form complexo (simpleData = null)
-        onPress={() => handleSubmit(null)} 
+        onPress={() => handleSubmit(null)} // Chama o handleSubmit (modo complexo/edição)
         disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color={colors.white} size="small" />
         ) : (
           <Text style={styles.submitButtonText}>
-            {isSpecificDonation ? 'Confirmar Doação' : 'Publicar Doação'}
+            {/* Texto do botão dinâmico */}
+            {isEditMode ? 'Salvar Alterações' : 'Publicar Doação'}
           </Text>
         )}
       </TouchableOpacity>
@@ -595,7 +625,7 @@ const PostDonationScreen = ({ route, navigation }) => {
       );
     }
 
-    // --- MODO 2: Formulário Complexo (Publicando um Novo Item) ---
+    // --- MODO 2: Formulário Complexo (Publicando ou Editando) ---
     return (
       <>
         <ComplexDonationForm
@@ -603,7 +633,7 @@ const PostDonationScreen = ({ route, navigation }) => {
           updateFormData={updateFormData}
           errors={errors}
           categories={categories}
-          conditions={conditions} // Passa a lista de 'conditions'
+          conditions={conditions} 
           availabilityOptions={availabilityOptions}
           isDesktop={isDesktop}
           onImagePick={handleImagePicker}
@@ -622,62 +652,7 @@ const PostDonationScreen = ({ route, navigation }) => {
     </ScrollView>
   );
 
-  // --- CORREÇÃO: renderDesktopLayoutFixed para usar renderFormContent ---
-  const renderDesktopLayoutFixed = () => (
-    <View style={styles.desktopContainer}>
-      <View style={styles.desktopContent}>
-        {renderHeader()}
-        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {isSpecificDonation ? (
-            // MODO 1: Desktop - Formulário Simples
-            <View style={[styles.formContainer, styles.desktopFormContainerSimple]}>
-              {renderFormContent()}
-            </View>
-          ) : (
-            // MODO 2: Desktop - Formulário Complexo
-            <>
-              <View style={styles.desktopFormContainer}>
-                <View style={styles.desktopFormLeft}>
-                  {/* Reutiliza o renderFormField para os campos da esquerda */}
-                  {renderFormField(
-                    'Título', formData.title, (value) => updateFormData('title', value),
-                    'Ex: Roupas de inverno para doação', false, errors.title
-                  )}
-                  {renderFormField(
-                    'Descrição', formData.description, (value) => updateFormData('description', value),
-                    'Descreva os itens que você está oferecendo...', true, errors.description
-                  )}
-                  {renderFormField(
-                    'Quantidade', formData.quantity, (value) => updateFormData('quantity', value),
-                    'Ex: 20 peças, 5kg, 10 unidades...', false, errors.quantity
-                  )}
-                  {formData.category === 'alimentos' && renderFormField(
-                    'Data de Validade', formData.expiryDate, (value) => updateFormData('expiryDate', value),
-                    'DD/MM/AAAA', false, errors.expiryDate
-                  )}
-                  {renderFormField(
-                    'Localização', formData.location, (value) => updateFormData('location', value),
-                    'Ex: São Paulo, SP - Vila Madalena', false, null, true
-                  )}
-                </View>
-
-                <View style={styles.desktopFormRight}>
-                  {/* Reutiliza os seletores para os campos da direita */}
-                  {renderCategorySelector()}
-                  {renderConditionSelector()}
-                  {renderAvailabilitySelector()}
-                  {renderImageUploader()}
-                </View>
-              </View>
-              {renderSubmitButtons()}
-            </>
-          )}
-        </ScrollView>
-      </View>
-    </View>
-  );
-
-  // --- CORREÇÃO: Funções que faltavam no escopo global ---
+  // --- Funções de renderização do formulário complexo para Desktop ---
   const renderFormField = (label, value, onChangeText, placeholder, multiline = false, error = null, optional = false) => (
     <View style={styles.fieldContainer}>
       <Text style={styles.fieldLabel}>
@@ -818,6 +793,57 @@ const PostDonationScreen = ({ route, navigation }) => {
   );
   // --- Fim das funções de renderização ---
 
+  const renderDesktopLayoutFixed = () => (
+    <View style={styles.desktopContainer}>
+      <View style={styles.desktopContent}>
+        {renderHeader()}
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {isSpecificDonation ? (
+            // MODO 1: Desktop - Formulário Simples
+            <View style={[styles.formContainer, styles.desktopFormContainerSimple]}>
+              {renderFormContent()}
+            </View>
+          ) : (
+            // MODO 2: Desktop - Formulário Complexo
+            <>
+              <View style={styles.desktopFormContainer}>
+                <View style={styles.desktopFormLeft}>
+                  {renderFormField(
+                    'Título', formData.title, (value) => updateFormData('title', value),
+                    'Ex: Roupas de inverno para doação', false, errors.title
+                  )}
+                  {renderFormField(
+                    'Descrição', formData.description, (value) => updateFormData('description', value),
+                    'Descreva os itens que você está oferecendo...', true, errors.description
+                  )}
+                  {renderFormField(
+                    'Quantidade', formData.quantity, (value) => updateFormData('quantity', value),
+                    'Ex: 20 peças, 5kg, 10 unidades...', false, errors.quantity
+                  )}
+                  {formData.category === 'alimentos' && renderFormField(
+                    'Data de Validade', formData.expiryDate, (value) => updateFormData('expiryDate', value),
+                    'DD/MM/AAAA', false, errors.expiryDate
+                  )}
+                  {renderFormField(
+                    'Localização', formData.location, (value) => updateFormData('location', value),
+                    'Ex: São Paulo, SP - Vila Madalena', false, null, true
+                  )}
+                </View>
+
+                <View style={styles.desktopFormRight}>
+                  {renderCategorySelector()}
+                  {renderConditionSelector()}
+                  {renderAvailabilitySelector()}
+                  {renderImageUploader()}
+                </View>
+              </View>
+              {renderSubmitButtons()}
+            </>
+          )}
+        </ScrollView>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -828,7 +854,6 @@ const PostDonationScreen = ({ route, navigation }) => {
 };
 
 // --- ESTILOS ---
-// (Adicionando os estilos que faltavam para o formulário simples)
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -844,7 +869,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 20,
-    backgroundColor: colors.backgroundLight, // Fundo para desktop
+    backgroundColor: colors.backgroundLight, 
   },
   desktopContent: {
     width: 900,
@@ -865,8 +890,8 @@ const styles = StyleSheet.create({
   },
   desktopFormContainerSimple: {
     padding: 32,
-    maxWidth: 600, // Limita o form simples no desktop
-    alignSelf: 'center', // Centraliza o form simples
+    maxWidth: 600, 
+    alignSelf: 'center', 
     width: '100%',
   },
   desktopFormLeft: {
@@ -908,12 +933,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.textPrimary,
-    flex: 1, // Permite que o título cresça
-    textAlign: 'center', // Centraliza o título
-    marginHorizontal: 16, // Espaçamento
+    flex: 1, 
+    textAlign: 'center', 
+    marginHorizontal: 16, 
   },
   headerSpacer: {
-    width: 44, // Mesmo tamanho do botão de voltar
+    width: 44, 
   },
 
   // Formulário

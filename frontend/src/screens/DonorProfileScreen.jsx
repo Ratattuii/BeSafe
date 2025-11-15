@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,59 +11,69 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
-  FlatList, // Importar FlatList
+  FlatList, 
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useFocusEffect } from '@react-navigation/native'; // Importar useFocusEffect
-import { colors } from '../styles/globalStyles';
+import { useFocusEffect, useNavigation } from '@react-navigation/native'; 
+import { colors, globalStyles } from '../styles/globalStyles';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Ionicons } from '@expo/vector-icons'; // Importar ícones
+import { Ionicons } from '@expo/vector-icons'; 
 
-// Importar os DOIS tipos de card
 import DonationCard from '../components/DonationCard';
-import DonationOfferCard from '../components/DonationOfferCard'; // O novo card que criamos
+import DonationOfferCard from '../components/DonationOfferCard'; 
 
-const DonorProfileScreen = ({ route, navigation }) => {
-  const { user, logout } = useAuth(); // Pega o usuário logado do contexto
+const DonorProfileScreen = ({ route }) => {
+  const navigation = useNavigation(); 
+  const { user, logout } = useAuth(); 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
   const [activeTab, setActiveTab] = useState('ativas'); // 'ativas', 'historico'
   
-  // Estados para dados REAIS
   const [activeDonations, setActiveDonations] = useState([]); // Nossas "Ofertas"
   const [donationHistory, setDonationHistory] = useState([]); // Nossas "Doações" (respostas)
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  
+  const isInitialLoad = useRef(true);
 
-  // Função para carregar todos os dados do perfil
   const loadProfileData = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
     
+    if (isInitialLoad.current) {
+      setLoading(true);
+      isInitialLoad.current = false;
+    }
+    
     try {
-      // Busca as "Doações Ativas" (Ofertas) e o "Histórico" (Doações) em paralelo
+      console.log('--- DEBUG: Buscando dados do perfil do doador... ---');
+      
       const [offersResponse, historyResponse] = await Promise.all([
         api.getMyDonationOffers(),
-        api.getUserDonations({ status: 'entregue' }) // Busca só as entregues
+        api.getUserDonations({ status: 'entregue' }) 
       ]);
 
+      console.log('API /api/offers/my-offers respondeu:', JSON.stringify(offersResponse, null, 2));
+      console.log('API /api/donations/me respondeu:', JSON.stringify(historyResponse, null, 2));
+
       if (offersResponse.success && offersResponse.data.offers) {
-        // Filtra para mostrar apenas as "available" na aba "Ativas"
         const availableOffers = offersResponse.data.offers.filter(
           (offer) => offer.status === 'available'
         );
         setActiveDonations(availableOffers);
+        console.log(`--- DEBUG: ${availableOffers.length} ofertas ativas carregadas. ---`);
       } else {
         console.error('Erro ao buscar ofertas ativas:', offersResponse.message);
       }
 
       if (historyResponse.success && historyResponse.data.donations) {
         setDonationHistory(historyResponse.data.donations);
+        console.log(`--- DEBUG: ${historyResponse.data.donations.length} itens de histórico carregados. ---`);
       } else {
         console.error('Erro ao buscar histórico:', historyResponse.message);
       }
@@ -75,15 +85,21 @@ const DonorProfileScreen = ({ route, navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]); // Depende do 'user'
+  }, [user]); 
 
-  // useFocusEffect para recarregar os dados sempre que a tela entrar em foco
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      loadProfileData();
+      if (!isInitialLoad.current) {
+        loadProfileData(); 
+      }
     }, [loadProfileData])
   );
+  
+  useEffect(() => {
+    isInitialLoad.current = true; 
+    loadProfileData();
+  }, [loadProfileData]);
+
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -99,9 +115,38 @@ const DonorProfileScreen = ({ route, navigation }) => {
   };
   
   const handleAddDonation = () => {
-    // Navega para a tela de Publicar Doação (formulário complexo)
-    // Não passa needId, então a tela saberá que é para criar uma nova oferta
     navigation.navigate('PostDonation');
+  };
+
+  // --- FUNÇÕES DE AÇÃO DOS CARDS ---
+  const handleEditOffer = (offer) => {
+    // Navega para a tela de PostDonation, passando a oferta para edição
+    navigation.navigate('PostDonation', { offerToEdit: offer });
+  };
+  
+  const handleViewOfferDetails = (offer) => {
+    Alert.alert(
+      offer.title,
+      `Descrição: ${offer.description}\n` +
+      `Quantidade: ${offer.quantity}\n` +
+      `Condição: ${offer.conditions}\n` +
+      `Local: ${offer.location || 'Não informado'}\n` +
+      `Disponível: ${offer.availability}`
+    );
+  };
+  
+  const handleViewDonationDetails = (donation) => {
+     Alert.alert(
+       `Doação para "${donation.need_title}"`,
+       `Instituição: ${donation.institution_name}\n` +
+       `Quantidade: ${donation.quantity} ${donation.unit}\n` +
+       `Status: ${donation.status}\n` +
+       `Entregue em: ${new Date(donation.delivered_at).toLocaleDateString('pt-BR')}`
+     );
+  };
+  
+  const handleReviewDonation = (donation) => {
+    Alert.alert('Aviso', `Tela de avaliação para a doação ID: ${donation.id} (A implementar)`);
   };
 
   // ----- COMPONENTES DE RENDERIZAÇÃO -----
@@ -140,7 +185,7 @@ const DonorProfileScreen = ({ route, navigation }) => {
           style={styles.avatar} 
         />
         <Text style={styles.profileName}>{user.name}</Text>
-        <Text style={styles.profileLocation}>📍 {user.location || 'Localização não definida'}</Text>
+        <Text style={styles.profileLocation}>📍 {user.address || 'Localização não definida'}</Text>
         <Text style={styles.profileDescription}>
           {user.description || 'Doador comprometido em ajudar o próximo. Junte-se a mim!'}
         </Text>
@@ -204,8 +249,8 @@ const DonorProfileScreen = ({ route, navigation }) => {
       renderItem={({ item }) => (
         <DonationOfferCard
           offer={item}
-          onDetails={() => Alert.alert('Aviso', 'Tela de detalhes da oferta a implementar.')}
-          onEdit={() => Alert.alert('Aviso', 'Tela de edição da oferta a implementar.')}
+          onDetails={() => handleViewOfferDetails(item)}
+          onEdit={() => handleEditOffer(item)}
         />
       )}
       ListEmptyComponent={
@@ -226,9 +271,9 @@ const DonorProfileScreen = ({ route, navigation }) => {
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => (
         <DonationCard
-          donation={item} // O DonationCard espera a prop 'donation'
-          onPress={() => Alert.alert('Aviso', 'Tela de recibo/detalhe a implementar.')}
-          onReview={() => Alert.alert('Aviso', 'Tela de avaliação a implementar.')}
+          donation={item} 
+          onPress={() => handleViewDonationDetails(item)}
+          onReview={() => handleReviewDonation(item)}
         />
       )}
       ListEmptyComponent={
@@ -307,7 +352,6 @@ const DonorProfileScreen = ({ route, navigation }) => {
       {renderHeader()}
       {isDesktop ? renderDesktopLayout() : renderMobileLayout()}
       
-      {/* Botão flutuante para adicionar doação (apenas no mobile) */}
       {!isDesktop && (
         <TouchableOpacity 
           style={styles.fab} 
@@ -383,17 +427,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.secondary,
   },
   headerDesktop: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 20,
-    borderRadius: 16,
-    borderBottomWidth: 0,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    backgroundColor: colors.white,
+    // Estilo do header no desktop, se for diferente
+    // (atualmente é o mesmo)
   },
   backButton: {
     width: 40,
