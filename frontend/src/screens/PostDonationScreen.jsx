@@ -597,7 +597,10 @@ const PostDonationScreen = ({ route, navigation }) => {
           isDesktop && styles.submitButtonDesktop,
           loading && styles.submitButtonDisabled
         ]}
-        onPress={() => handleSubmit(null)} // Chama o handleSubmit (modo complexo/edição)
+        onPress={() => {
+          handleSubmit(null);
+          navigation?.goBack?.();
+        }}
         disabled={loading}
       >
         {loading ? (

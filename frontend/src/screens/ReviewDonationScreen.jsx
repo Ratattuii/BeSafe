@@ -154,7 +154,10 @@ const ReviewDonationScreen = ({ route, navigation }) => {
             styles.submitButton,
             (rating === 0 || loading) && styles.submitButtonDisabled
           ]}
-          onPress={handleSubmit}
+          onPress={() => {
+            handleSubmit(null);
+            navigation?.goBack?.();
+          }}
           disabled={rating === 0 || loading}
           accessible={true}
           accessibilityLabel={loading ? "Enviando avaliação" : "Enviar avaliação"}

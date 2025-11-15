@@ -42,6 +42,7 @@ const HomeStackNavigator = () => (
     <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
     <Stack.Screen name="PostNeed" component={PostNeedScreen} />
     <Stack.Screen name="PostDonation" component={PostDonationScreen} />
+    <Stack.Screen name="Chat" component={ChatScreen} />
   </Stack.Navigator>
 );
 
