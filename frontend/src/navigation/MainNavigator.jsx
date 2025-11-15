@@ -4,7 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useWindowDimensions } from 'react-native';
 
 // Screens
-import Home from '../screens/Home';
+import Home from '../screens/HomeDonor.jsx';
 import SearchScreen from '../screens/SearchScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -16,6 +16,8 @@ import PostNeedScreen from '../screens/PostNeedScreen';
 import PostDonationScreen from '../screens/PostDonationScreen';
 import ReviewDonationScreen from '../screens/ReviewDonationScreen';
 import EditProfileScreen from '../screens/EditProfileScreen.jsx';
+import RootProfileScreen from '../screens/RootProfileScreen';
+import MyInstitutionProfileScreen from '../screens/MyInstitutionProfileScreen.jsx';
 
 // Components
 import TabBar from '../components/TabBar';
@@ -40,6 +42,7 @@ const HomeStackNavigator = () => (
     <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     <Stack.Screen name="ReviewDonation" component={ReviewDonationScreen} />
     <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
+    <Stack.Screen name="MyInstitutionProfileScreen" component={MyInstitutionProfileScreen} />
     <Stack.Screen name="PostNeed" component={PostNeedScreen} />
     <Stack.Screen name="PostDonation" component={PostDonationScreen} />
     <Stack.Screen name="Chat" component={ChatScreen} />
@@ -51,6 +54,7 @@ const SearchStackNavigator = () => (
     <Stack.Screen name="SearchTab" component={SearchScreen} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfileScreen} />
     <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
+    <Stack.Screen name="MyInstitutionProfileScreen" component={MyInstitutionProfileScreen} />
   </Stack.Navigator>
 );
 
