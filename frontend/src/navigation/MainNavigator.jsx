@@ -14,6 +14,8 @@ import InstitutionListScreen from '../screens/InstitutionListScreen';
 import DonorProfileScreen from '../screens/DonorProfileScreen';
 import PostNeedScreen from '../screens/PostNeedScreen';
 import PostDonationScreen from '../screens/PostDonationScreen';
+import ReviewDonationScreen from '../screens/ReviewDonationScreen';
+import EditProfileScreen from '../screens/EditProfileScreen.jsx';
 
 // Components
 import TabBar from '../components/TabBar';
@@ -35,6 +37,8 @@ const HomeStackNavigator = () => (
     <Stack.Screen name="HomeTab" component={Home} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfileScreen} />
     <Stack.Screen name="InstitutionList" component={InstitutionListScreen} />
+    <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+    <Stack.Screen name="ReviewDonation" component={ReviewDonationScreen} />
     <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
     <Stack.Screen name="PostNeed" component={PostNeedScreen} />
     <Stack.Screen name="PostDonation" component={PostDonationScreen} />

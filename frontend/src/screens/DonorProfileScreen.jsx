@@ -107,7 +107,8 @@ const DonorProfileScreen = ({ route }) => {
   };
   
   const handleEditProfile = () => {
-    Alert.alert('Aviso', 'Tela de edição de perfil ainda não implementada.');
+    // MODIFICADO: Navega para a tela de Edição
+    navigation.navigate('EditProfile');
   };
   
   const handleSettings = () => {
@@ -146,7 +147,8 @@ const DonorProfileScreen = ({ route }) => {
   };
   
   const handleReviewDonation = (donation) => {
-    Alert.alert('Aviso', `Tela de avaliação para a doação ID: ${donation.id} (A implementar)`);
+    // MODIFICADO: Navega para a tela de Avaliação (como feito anteriormente)
+    navigation.navigate('ReviewDonation', { donation: donation });
   };
 
   // ----- COMPONENTES DE RENDERIZAÇÃO -----
@@ -274,6 +276,7 @@ const DonorProfileScreen = ({ route }) => {
           donation={item} 
           onPress={() => handleViewDonationDetails(item)}
           onReview={() => handleReviewDonation(item)}
+          isReviewed={item.is_reviewed}
         />
       )}
       ListEmptyComponent={

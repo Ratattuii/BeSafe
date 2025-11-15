@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/globalStyles';
 
 // Card para a aba "Histórico" (baseado na imagem d072e7.png)
-const DonationCard = ({ donation, onPress, onReview }) => {
+// O componente agora aceita o prop 'isReviewed'
+const DonationCard = ({ donation, onPress, onReview, isReviewed }) => {
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -72,9 +73,15 @@ const DonationCard = ({ donation, onPress, onReview }) => {
       {/* Footer (Apenas se a doação foi entregue) */}
       {donation.status === 'entregue' && (
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
-            <Text style={styles.reviewButtonText}>Avaliar Doação</Text>
-          </TouchableOpacity>
+          {isReviewed ? (
+            <Text style={styles.reviewedText}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.successDark} /> Avaliação Concluída
+            </Text>
+          ) : (
+            <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
+              <Text style={styles.reviewButtonText}>Avaliar Doação</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -167,6 +174,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
+  // 👇 NOVO ESTILO 👇
+  reviewedText: {
+    color: colors.successDark,
+    fontWeight: '600',
+    fontSize: 14,
+    paddingVertical: 8,
+  }
+
 });
 
 export default DonationCard;

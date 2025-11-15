@@ -1,10 +1,199 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../services/api';
-import firebaseAuth from '../services/auth/firebaseAuth';
+import api from '../services/api'; // ADICIONADO
 
-const AuthContext = createContext({});
+// 1. Criação do Contexto
+const AuthContext = createContext(null);
 
+// 2. Provedor do Contexto
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // Começa true para verificar o storage
+  const [error, setError] = useState(null);
+
+  // Efeito para carregar usuário do AsyncStorage na inicialização
+  useEffect(() => {
+    const loadUserFromStorage = async () => {
+      setLoading(true);
+      try {
+        const storedUser = await AsyncStorage.getItem('user');
+        const storedToken = await AsyncStorage.getItem('token');
+        
+        if (storedUser && storedToken) {
+          const parsedUser = JSON.parse(storedUser);
+          console.log('[AuthContext] Usuário carregado do Storage:', parsedUser.email);
+          setUser(parsedUser);
+          api.setToken(storedToken); // Configura o token na API
+        } else {
+          console.log('[AuthContext] Nenhum usuário no Storage.');
+        }
+      } catch (e) {
+        console.error('[AuthContext] Erro ao carregar usuário do Storage:', e);
+        setError('Erro ao carregar sessão.');
+        await logout(); // Limpa em caso de erro de parsing
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserFromStorage();
+  }, []);
+
+  // Função de Login
+  const login = async (email, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // 1. Chama a API para autenticar
+      console.log('[AuthContext] Tentando login com:', email);
+      const response = await api.login(email, password);
+      console.log('[AuthContext] Resposta da API:', response);
+
+      // 2. Verifica se a resposta foi bem-sucedida e contém os dados
+      if (response.success && response.data.user && response.data.token) {
+        const { user: userData, token } = response.data;
+        
+        // 3. Atualiza o estado global
+        setUser(userData);
+        
+        // 4. Configura o token na API
+        api.setToken(token);
+        
+        // 5. Salva no AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        await AsyncStorage.setItem('token', token);
+        
+        console.log(`[AuthContext] Login bem-sucedido para: ${userData.email}`);
+        return response;
+      } else {
+        // Lança um erro se a API retornou success: false ou dados faltando
+        throw new Error(response.message || 'E-mail ou senha inválidos.');
+      }
+    } catch (err) {
+      console.error('[AuthContext] Erro no login:', err);
+      setError(err.message || 'Não foi possível fazer login.');
+      return { success: false, message: err.message || 'Erro de conexão.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função de Registro
+  const register = async (userData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('[AuthContext] Tentando registrar usuário:', userData.email);
+      const response = await api.register(userData);
+      console.log('[AuthContext] Resposta da API de registro:', response);
+
+      if (response.success && response.data.user && response.data.token) {
+        const { user: newUserData, token } = response.data;
+
+        // Atualiza o estado e armazena (mesma lógica do login)
+        setUser(newUserData);
+        api.setToken(token);
+        await AsyncStorage.setItem('user', JSON.stringify(newUserData));
+        await AsyncStorage.setItem('token', token);
+
+        console.log(`[AuthContext] Registro bem-sucedido para: ${newUserData.email}`);
+        return response;
+      } else {
+        throw new Error(response.message || 'Não foi possível completar o registro.');
+      }
+    } catch (err) {
+      console.error('[AuthContext] Erro no registro:', err);
+      setError(err.message || 'Não foi possível registrar.');
+      return { success: false, message: err.message || 'Erro de conexão.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  // Função de Logout
+  const logout = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('[AuthContext] Fazendo logout...');
+      // 1. Limpa o estado global
+      setUser(null);
+      
+      // 2. Limpa o token da API
+      api.clearToken();
+      
+      // 3. Remove do AsyncStorage
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('token');
+      
+      console.log('[AuthContext] Logout completo.');
+    } catch (e) {
+      console.error('[AuthContext] Erro no logout:', e);
+      setError('Erro ao sair da conta.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ADICIONADO: Função de Atualizar Perfil
+  const updateProfile = async (userData, avatarFile = null) => {
+    if (!user) {
+      setError('Usuário não autenticado');
+      return { success: false, message: 'Usuário não autenticado' };
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // A função api.updateUser já deve lidar com FormData
+      const response = await api.updateUser(user.id, userData, avatarFile);
+
+      if (response.success && response.data.user) {
+        const updatedUser = response.data.user;
+        
+        // Atualiza o estado local
+        setUser(updatedUser);
+        
+        // Atualiza o AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        setLoading(false);
+        console.log('[AuthContext] Perfil atualizado:', updatedUser);
+        return response; // Retorna a resposta de sucesso
+      } else {
+        throw new Error(response.message || 'Erro ao atualizar perfil.');
+      }
+    } catch (err) {
+      console.error('[AuthContext] Erro ao atualizar perfil:', err);
+      setError(err.message);
+      setLoading(false);
+      return { success: false, message: err.message };
+    }
+  };
+
+  // 3. Monta o valor do Provedor
+  const value = {
+    user,
+    login,
+    logout,
+    register,
+    loading,
+    error,
+    setUser, // Expondo setUser caso seja necessário (ex: refresh manual)
+    updateProfile, // ADICIONADO
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// 4. Hook customizado para consumir o Contexto
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -12,184 +201,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null);
-
-  useEffect(() => {
-    loadStoredAuth();
-  }, []);
-
-  const loadStoredAuth = async () => {
-    try {
-      // Para desenvolvimento: limpar cache para sempre começar na splash
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Modo desenvolvimento: limpando dados salvos');
-        await AsyncStorage.multiRemove(['@BeSafe:token', '@BeSafe:user']);
-        return;
-      }
-      
-      // Produção: carregar dados salvos
-      const storedToken = await AsyncStorage.getItem('@BeSafe:token');
-      const storedUser = await AsyncStorage.getItem('@BeSafe:user');
-      
-      if (storedToken && storedUser) {
-        api.setToken(storedToken);
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados de autenticação:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = async (email, password) => {
-    try {
-      console.log('🔐 Tentando login real com:', { email });
-      
-      // Validação básica
-      if (!email.trim() || !password.trim()) {
-        throw new Error('Email e senha são obrigatórios');
-      }
-      
-      // Usar backend real
-      const response = await api.login(email, password);
-      
-      if (response.success && response.data) {
-        const { user, token } = response.data;
-        
-        // Salvar dados no AsyncStorage
-        await AsyncStorage.setItem('@BeSafe:token', token);
-        await AsyncStorage.setItem('@BeSafe:user', JSON.stringify(user));
-        
-        // Configurar API e estado
-        api.setToken(token);
-        setToken(token);
-        setUser(user);
-        
-        console.log('✅ Login realizado com sucesso no banco:', user);
-        return;
-      }
-      
-      throw new Error('Resposta inválida do servidor');
-      
-    } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      throw error;
-    }
-  };
-
-  const register = async (userData) => {
-    try {
-      console.log('🔐 Tentando registro real com dados:', userData);
-      
-      // Usar backend real
-      const response = await api.register(userData);
-      
-      if (response.success && response.data) {
-        console.log('✅ Registro realizado com sucesso no banco:', response.data);
-        
-        // NÃO salvar dados automaticamente - usuário deve fazer login
-        return response;
-      }
-      
-      return {
-        success: false,
-        error: 'Resposta inválida do servidor'
-      };
-      
-    } catch (error) {
-      console.error('Erro ao fazer registro:', error);
-      return {
-        success: false,
-        error: error.message || 'Erro ao criar conta'
-      };
-    }
-  };
-
-  const loginWithGoogle = async () => {
-    try {
-      console.log('🔐 Tentando login com Google...');
-      
-      const result = await firebaseAuth.signInWithGoogle();
-      
-      if (result.success && result.token) {
-        // Enviar token Firebase para o backend
-        const backendResponse = await api.post('/auth/firebase', {
-          firebaseToken: result.token,
-          role: 'donor' // Default role
-        });
-        
-        if (backendResponse.success && backendResponse.data) {
-          const { user, token } = backendResponse.data;
-          
-          // Salvar dados no AsyncStorage
-          await AsyncStorage.setItem('@BeSafe:token', token);
-          await AsyncStorage.setItem('@BeSafe:user', JSON.stringify(user));
-          
-          // Configurar API e estado
-          api.setToken(token);
-          setToken(token);
-          setUser(user);
-          
-          console.log('✅ Login Google realizado com sucesso:', user);
-          return { success: true };
-        }
-      }
-      
-      throw new Error(result.error || 'Erro no login com Google');
-      
-    } catch (error) {
-      console.error('Erro ao fazer login com Google:', error);
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      // Logout do Firebase também
-      await firebaseAuth.signOut();
-      
-      await AsyncStorage.multiRemove(['@BeSafe:token', '@BeSafe:user']);
-      api.clearToken();
-      setToken(null);
-      setUser(null);
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-    }
-  };
-
-  const updateUser = async (updatedUserData) => {
-    try {
-      const newUserData = { ...user, ...updatedUserData };
-      await AsyncStorage.setItem('@BeSafe:user', JSON.stringify(newUserData));
-      setUser(newUserData);
-    } catch (error) {
-      console.error('Erro ao atualizar usuário:', error);
-      throw error;
-    }
-  };
-
-  const isAuthenticated = () => !!(token && user);
-  const getUserRole = () => user?.role || null;
-
-  const value = {
-    user,
-    token,
-    loading,
-    login,
-    register,
-    loginWithGoogle,
-    logout,
-    updateUser,
-    isAuthenticated,
-    getUserRole,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
