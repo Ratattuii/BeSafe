@@ -180,12 +180,10 @@ const styles = StyleSheet.create({
   statusTextRejected: {
     color: colors.errorDark,
   },
-  statusDonated: {
+  statusCompleted: {
     backgroundColor: colors.gray200,
   },
-  statusTextDonated: {
-    color: colors.textSecondary,
-  },
+  statusTextCompleted: {
     color: colors.textSecondary,
   },
   statusDefault: {
@@ -243,26 +241,38 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: 'capitalize',
   },
-    textTransform: 'capitalize',
-  },
   footer: {
     flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: colors.gray100,
   },
-  buttonOutline: {
+  buttonPrimary: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     gap: 6,
+    backgroundColor: colors.primary,
   },
-  buttonOutlineText: {
+  buttonPrimaryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.white,
   },
+  buttonSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+    backgroundColor: colors.secondary,
+  },
+  buttonSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
   },
 });
 
