@@ -317,16 +317,21 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
   };
 
   const handleChat = () => {
-    // TODO: Abrir chat com instituição
-    navigation?.navigate?.('Chat', { 
-      contact: {
-        name: institution.name,
-        avatar: institution.logo,
+    if (!institution || !institution.id) {
+        Alert.alert('Erro', 'Dados da instituição incompletos.');
+        return;
+    }
+    
+    const contactData = {
+        id: institution.id,
+        name: institution.name || 'Instituição',
+        avatar: institution.avatar || null,
         type: 'institution',
-      }
-    });
-    console.log('Abrir chat com', institution.name);
-  };
+    };
+
+    console.log('Abrir chat com', contactData.name);
+    navigation.navigate('Chat', { contact: contactData });
+};
 
   const handleNeedPress = (need) => {
     // TODO: Navegar para detalhes da necessidade

@@ -106,46 +106,87 @@ async function getNeedsWithFilters(req, res) {
 }
 
 /**
- * Cria uma nova necessidade (para teste)
+ * Cria uma nova necessidade
  * POST /needs
  */
 async function createNeed(req, res) {
   try {
-    const { title, description, urgency, category, quantity_needed, unit, location } = req.body;
+    console.log('📦 Body completo:', req.body);
     
-    // Validações básicas
-    const validationError = validateRequired(
-      ['title', 'description', 'urgency', 'category', 'quantity_needed'], 
-      { title, description, urgency, category, quantity_needed }
-    );
+    const { title, description, urgency, type, category, quantity, unit, location } = req.body;
     
-    if (validationError) {
-      return errors.badRequest(res, validationError);
+    const finalCategory = category || type;
+    
+    console.log('🎯 Category final:', finalCategory);
+    console.log('📍 Location:', location);
+    console.log('🔢 Quantity (goal_quantity):', quantity);
+    
+    // Validações
+    const validationErrors = [];
+    
+    if (!title) validationErrors.push('Título é obrigatório');
+    if (!description) validationErrors.push('Descrição é obrigatória');
+    if (!urgency) validationErrors.push('Urgência é obrigatória');
+    if (!finalCategory) validationErrors.push('Categoria é obrigatória');
+    if (!quantity) validationErrors.push('Quantidade é obrigatória');
+    if (!location || location.trim() === '') validationErrors.push('Localização é obrigatória');
+    
+    if (validationErrors.length > 0) {
+      console.log('❌ Erros de validação:', validationErrors);
+      return res.status(400).json({
+        success: false,
+        message: 'Dados inválidos',
+        errors: validationErrors
+      });
     }
     
-    // Para teste, usar institution_id = 1 (Cruz Vermelha)
-    // Em produção, pegar do token do usuário autenticado
-    const institution_id = 1;
+    if (req.user.role !== 'institution') {
+      return res.status(403).json({
+        success: false,
+        message: 'Apenas instituições podem criar necessidades'
+      });
+    }
     
+    const institution_id = req.user.id;
+    
+    console.log('💾 Inserindo no banco...');
+    
+    // ✅ CORRETO: Usar quantity como quantity_needed
     const result = await query(`
       INSERT INTO needs 
       (institution_id, title, description, urgency, category, quantity_needed, unit, location) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      institution_id, title, description, urgency, category, 
-      parseInt(quantity_needed), unit || 'unidades', location
+      institution_id, 
+      title, 
+      description, 
+      urgency, 
+      finalCategory,
+      parseInt(quantity), // ✅ quantity → quantity_needed
+      unit || 'unidades', 
+      location.trim()
     ]);
     
-    // Busca a necessidade criada com dados da instituição
+    console.log('✅ Necessidade criada com ID:', result.insertId);
+    
     const newNeed = await queryOne(`
       SELECT * FROM needs_with_institution WHERE id = ?
     `, [result.insertId]);
     
-    return success(res, 'Necessidade criada com sucesso', { need: newNeed }, 201);
+    return res.status(201).json({
+      success: true,
+      message: 'Necessidade criada com sucesso',
+      data: {
+        need: newNeed
+      }
+    });
     
   } catch (error) {
-    console.error('Erro ao criar necessidade:', error.message);
-    return errors.serverError(res);
+    console.error('❌ Erro ao criar necessidade:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
   }
 }
 

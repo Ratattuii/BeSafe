@@ -1,136 +1,187 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  useWindowDimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/globalStyles';
 
-const DonationCard = ({ donation, onPress }) => {
-  const { width } = useWindowDimensions();
-  const isDesktop = width > 900;
+// Card para a aba "Histórico" (baseado na imagem d072e7.png)
+// O componente agora aceita o prop 'isReviewed'
+const DonationCard = ({ donation, onPress, onReview, isReviewed }) => {
 
-  const formatDate = (dateString) => {
-    // Formata data para padrão brasileiro
-    return dateString; // Por enquanto retorna como está
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case 'entregue':
+        return {
+          container: styles.statusDelivered,
+          text: styles.statusTextDelivered,
+          label: 'Entregue',
+          icon: 'checkmark-circle'
+        };
+      case 'pendente':
+        return {
+          container: styles.statusPending,
+          text: styles.statusTextPending,
+          label: 'Pendente',
+          icon: 'time-outline'
+        };
+      case 'confirmada':
+         return {
+          container: styles.statusConfirmed,
+          text: styles.statusTextConfirmed,
+          label: 'Confirmada',
+          icon: 'calendar-outline'
+        };
+      default:
+        return {
+          container: styles.statusDefault,
+          text: styles.statusTextDefault,
+          label: status,
+          icon: 'alert-circle-outline'
+        };
+    }
   };
 
-  const handlePress = () => {
-    onPress?.(donation);
-    // TODO: Navegar para detalhes da doação ou expandir informações
-  };
+  const statusStyle = getStatusStyle(donation.status);
+  const deliveredDate = donation.delivered_at || donation.created_at;
 
   return (
-    <TouchableOpacity
-      style={[styles.card, isDesktop && styles.cardDesktop]}
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardContent}>
-        {/* Informações da doação */}
-        <View style={styles.donationInfo}>
-          <Text style={styles.donationTitle}>{donation.title}</Text>
-          <Text style={styles.donationDescription}>
-            {donation.description}
-          </Text>
-          {donation.amount && (
-            <Text style={styles.donationAmount}>
-              Quantidade: {donation.amount}
-            </Text>
-          )}
+    <View style={styles.card}>
+      {/* Cabeçalho do Card */}
+      <View style={styles.header}>
+        <View style={[styles.statusBadge, statusStyle.container]}>
+          <Ionicons name={statusStyle.icon} size={14} color={statusStyle.text.color} />
+          <Text style={[styles.statusText, statusStyle.text]}>{statusStyle.label}</Text>
         </View>
-
-        {/* Imagem da doação */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: donation.image }}
-            style={styles.donationImage}
-            defaultSource={{ uri: 'https://via.placeholder.com/60x60/cccccc/white?text=?' }}
-          />
-        </View>
-      </View>
-
-      {/* Data no canto inferior */}
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>
-          Recebido em {formatDate(donation.date)}
+        <Text style={styles.date}>
+          {new Date(deliveredDate).toLocaleDateString('pt-BR')}
         </Text>
       </View>
-    </TouchableOpacity>
+
+      {/* Conteúdo principal */}
+      <TouchableOpacity style={styles.content} onPress={onPress}>
+        <View style={styles.info}>
+          <Text style={styles.title} numberOfLines={2}>{donation.need_title}</Text>
+          <Text style={styles.institution} numberOfLines={1}>
+            para {donation.institution_name}
+          </Text>
+          <Text style={styles.quantity} numberOfLines={1}>
+            Você doou: {donation.quantity} {donation.unit}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
+      </TouchableOpacity>
+
+      {/* Footer (Apenas se a doação foi entregue) */}
+      {donation.status === 'entregue' && (
+        <View style={styles.footer}>
+          {isReviewed ? (
+            <Text style={styles.reviewedText}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.successDark} /> Avaliação Concluída
+            </Text>
+          ) : (
+            <TouchableOpacity style={styles.reviewButton} onPress={onReview}>
+              <Text style={styles.reviewButtonText}>Avaliar Doação</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.tertiary,
+    backgroundColor: colors.white,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.secondary,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardDesktop: {
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 12,
-  },
-  cardContent: {
+  header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: colors.gray100,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
-
-  // Informações da doação
-  donationInfo: {
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  statusDelivered: { backgroundColor: colors.successLight },
+  statusTextDelivered: { color: colors.successDark },
+  statusPending: { backgroundColor: colors.warningLight },
+  statusTextPending: { color: colors.warningDark },
+  statusConfirmed: { backgroundColor: colors.infoLight },
+  statusTextConfirmed: { color: colors.infoDark },
+  statusDefault: { backgroundColor: colors.gray200 },
+  statusTextDefault: { color: colors.textSecondary },
+  date: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  content: {
+    flexDirection: 'row',
+    padding: 16,
+    alignItems: 'center',
+  },
+  info: {
     flex: 1,
+    marginRight: 12,
   },
-  donationTitle: {
+  title: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.textPrimary,
     marginBottom: 4,
   },
-  donationDescription: {
+  institution: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  donationAmount: {
-    fontSize: 13,
-    color: colors.textSecondary,
+  quantity: {
+    fontSize: 14,
+    color: colors.textPrimary,
     fontWeight: '500',
   },
-
-  // Imagem
-  imageContainer: {
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  donationImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: colors.secondary,
-  },
-
-  // Data
-  dateContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+  footer: {
     borderTopWidth: 1,
-    borderTopColor: colors.secondary,
+    borderTopColor: colors.gray100,
+    padding: 12,
+    alignItems: 'center',
   },
-  dateText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
+  reviewButton: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
+  reviewButtonText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // 👇 NOVO ESTILO 👇
+  reviewedText: {
+    color: colors.successDark,
+    fontWeight: '600',
+    fontSize: 14,
+    paddingVertical: 8,
+  }
+
 });
 
 export default DonationCard;

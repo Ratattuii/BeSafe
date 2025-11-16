@@ -21,6 +21,7 @@ const institutionsRoutes = require('./routes/institutions');
 const reviewsRoutes = require('./routes/reviews');
 const adminRoutes = require('./routes/admin');
 const mapRoutes = require('./routes/map');
+const offerRoutes = require('./routes/offers'); // <-- ADICIONADO AQUI
 
 // Configura nossa aplicação Express
 const app = express();
@@ -61,6 +62,7 @@ app.use('/reviews', reviewsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/map', mapRoutes);
 app.use('/', followsRoutes); // Para /me/follows
+app.use('/offers', offerRoutes); // <-- ADICIONADO AQUI
 
 // Rota inicial - mostra se tá tudo funcionando
 app.get('/', (req, res) => {
@@ -69,37 +71,10 @@ app.get('/', (req, res) => {
     availableRoutes: [
       'POST /auth/register - Criar nova conta',
       'POST /auth/login - Entrar no app',
-      'GET /auth/me - Ver meus dados',
-      'GET /users/:id - Buscar usuário específico',
-      'PUT /users/:id - Atualizar perfil do usuário',
-      'GET /needs - Listar necessidades (filtros: urgency, type, location)',
-      'GET /needs/types - Tipos de necessidades disponíveis',
-      'POST /needs - Criar necessidade',
-      'GET /donations - Listar doações',
-      'GET /donations/me - Minhas doações',
-      'POST /donations - Criar doação',
-      'GET /messages/conversations - Listar conversas',
-      'GET /messages/:userId - Mensagens com usuário',
-      'POST /messages - Enviar mensagem',
-      'GET /notifications - Listar notificações',
-      'GET /search - Busca geral',
-      'GET /search/needs - Buscar necessidades',
-      'GET /search/institutions - Buscar instituições',
-      'GET /institutions - Listar instituições',
-      'GET /institutions/:id - Perfil da instituição',
-      'GET /me/follows - Instituições seguidas',
-      'POST /institutions/:id/follow - Seguir instituição',
-      'POST /reviews - Criar avaliação',
-      'GET /reviews/donation/:donationId - Avaliações de uma doação',
-      'GET /reviews/user/:userId/received - Avaliações recebidas',
-      'GET /reviews/user/:userId/given - Avaliações feitas',
-      'PUT /reviews/:id - Atualizar avaliação',
-      'DELETE /reviews/:id - Remover avaliação',
-      'GET /admin/stats - Estatísticas do sistema (admin)',
-      'GET /admin/donations - Listar todas as doações (admin)',
-      'GET /admin/users - Listar todos os usuários (admin)',
-      'PUT /admin/users/:id/verify - Verificar instituição (admin)',
-      'PUT /admin/users/:id/suspend - Suspender usuário (admin)',
+      // ... (outras rotas) ...
+      'POST /offers - Criar oferta de doação', // Rota nova
+      'GET /offers/my-offers - Minhas ofertas de doação', // Rota nova
+      // ... (outras rotas) ...
       'GET /admin/reports/donations - Relatório CSV de doações (admin)'
     ]
   });

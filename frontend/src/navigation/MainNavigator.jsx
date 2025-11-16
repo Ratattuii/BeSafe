@@ -1,3 +1,4 @@
+// navigation/MainNavigator.js
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -11,9 +12,12 @@ import ChatScreen from '../screens/ChatScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import InstitutionProfileScreen from '../screens/InstitutionProfileScreen';
 import InstitutionListScreen from '../screens/InstitutionListScreen';
-import DonorProfileScreen from '../screens/DonorProfileScreen';
+import ProfileScreen from '../screens/ProfileScreen.jsx';
+import PublicDonorProfileScreen from '../screens/PublicDonorProfileScreen'; 
 import PostNeedScreen from '../screens/PostNeedScreen';
 import PostDonationScreen from '../screens/PostDonationScreen';
+import ReviewDonationScreen from '../screens/ReviewDonationScreen';
+import EditProfileScreen from '../screens/EditProfileScreen.jsx';
 
 // Components
 import TabBar from '../components/TabBar';
@@ -35,9 +39,12 @@ const HomeStackNavigator = () => (
     <Stack.Screen name="HomeTab" component={Home} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfileScreen} />
     <Stack.Screen name="InstitutionList" component={InstitutionListScreen} />
-    <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
+    <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+    <Stack.Screen name="ReviewDonation" component={ReviewDonationScreen} />
+    <Stack.Screen name="PublicDonorProfile" component={PublicDonorProfileScreen} />
     <Stack.Screen name="PostNeed" component={PostNeedScreen} />
     <Stack.Screen name="PostDonation" component={PostDonationScreen} />
+    <Stack.Screen name="Chat" component={ChatScreen} />
   </Stack.Navigator>
 );
 
@@ -45,7 +52,7 @@ const SearchStackNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="SearchTab" component={SearchScreen} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfileScreen} />
-    <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
+    <Stack.Screen name="PublicDonorProfile" component={PublicDonorProfileScreen} />
   </Stack.Navigator>
 );
 
@@ -53,8 +60,16 @@ const NotificationsStackNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="NotificationsTab" component={NotificationsScreen} />
     <Stack.Screen name="InstitutionProfile" component={InstitutionProfileScreen} />
-    <Stack.Screen name="DonorProfile" component={DonorProfileScreen} />
+    <Stack.Screen name="PublicDonorProfile" component={PublicDonorProfileScreen} />
     <Stack.Screen name="Chat" component={ChatScreen} />
+  </Stack.Navigator>
+);
+
+const ProfileStackNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ProfileTab" component={ProfileScreen} />
+    <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+    <Stack.Screen name="PublicDonorProfile" component={PublicDonorProfileScreen} />
   </Stack.Navigator>
 );
 
@@ -111,16 +126,14 @@ const MainNavigator = () => {
       
       <Tab.Screen 
         name="Profile" 
-        component={DonorProfileScreen}
+        component={ProfileStackNavigator}
         options={{
           tabBarLabel: 'Perfil',
           tabBarIcon: '👤',
         }}
-        initialParams={{ donorId: 'current' }}
       />
     </Tab.Navigator>
   );
 };
 
 export default MainNavigator;
-

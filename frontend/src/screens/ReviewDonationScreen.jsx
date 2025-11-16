@@ -12,6 +12,8 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+// Não precisamos mais do Toast, mas se ele estiver importado no seu ambiente, 
+// a lógica abaixo irá ignorá-lo e usar o Alert.
 
 const ReviewDonationScreen = ({ route, navigation }) => {
   const { donation } = route.params;
@@ -38,6 +40,7 @@ const ReviewDonationScreen = ({ route, navigation }) => {
 
       const response = await api.post('/reviews', reviewData);
       
+      // 🟢 MUDANÇA: REVERTENDO PARA ALERT.ALERT (Com navegação goBack)
       if (response.success) {
         Alert.alert(
           'Sucesso', 
@@ -45,10 +48,12 @@ const ReviewDonationScreen = ({ route, navigation }) => {
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       } else {
+        // Lógica de erro para conflito (409) ou falha de API
         Alert.alert('Erro', response.message || 'Erro ao enviar avaliação');
       }
     } catch (error) {
       console.error('Erro ao enviar avaliação:', error);
+      // Lógica de erro de conexão
       Alert.alert('Erro', 'Erro de conexão. Tente novamente.');
     } finally {
       setLoading(false);

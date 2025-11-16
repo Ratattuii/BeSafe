@@ -5,294 +5,276 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  useWindowDimensions,
 } from 'react-native';
-import { colors } from '../styles/globalStyles';
 
-const NeedCard = ({ need, onPress }) => {
-  const { width } = useWindowDimensions();
-  const isDesktop = width > 900;
+const NeedCard = ({ 
+  need, 
+  onPress, 
+  onEdit, 
+  onDetails, 
+  isInstitutionView = false,
+  isCompleted = false,
+  isClickable = true // Nova prop para controlar se o card é clicável
+}) => {
+  // Verificações de segurança
+  if (!need) {
+    return (
+      <View style={styles.container}>
+        <Text>Necessidade não disponível</Text>
+      </View>
+    );
+  }
 
-  // --- CORREÇÃO AQUI ---
-  // Define um objeto 'stats' padrão para evitar o crash
-  // Se 'need.stats' não existir, ele usará este objeto com zeros.
-  const stats = need.stats || { likes: 0, comments: 0, shares: 0 };
-  // --- FIM DA CORREÇÃO ---
-
-  const formatTimestamp = (timestamp) => {
-    // Simples formatação de data/hora
-    const date = new Date(timestamp);
-    return date.toLocaleString('pt-BR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const handleCardPress = () => {
+    if (onPress && isClickable) {
+      onPress(need);
+    }
   };
+
+  const handleEditPress = (e) => {
+    e.stopPropagation(); // Previne que o evento chegue no card pai
+    if (onEdit) {
+      onEdit(need);
+    }
+  };
+
+  const handleDetailsPress = (e) => {
+    e.stopPropagation(); // Previne que o evento chegue no card pai
+    if (onDetails) {
+      onDetails(need);
+    }
+  };
+
+  // Dados seguros com fallbacks
+  const needTitle = need.title || 'Necessidade sem título';
+  const needDescription = need.description || 'Sem descrição disponível';
+  const needUrgency = need.urgency || 'media';
+  const needCategory = need.category || 'outros';
+  const needQuantity = need.quantity || 1;
+  const needUnit = need.unit || 'unidade';
+  const institutionName = need.institution_name || 'Instituição';
+  const institutionAvatar = need.institution_avatar || `https://via.placeholder.com/40x40/4A90E2/FFFFFF?text=${institutionName.charAt(0)}`;
 
   const getUrgencyColor = (urgency) => {
     switch (urgency) {
-      case 'urgente':
-        return colors.urgent;
-      case 'alta':
-        return colors.warning;
-      case 'media':
-        return colors.success;
-      default:
-        return colors.gray500;
+      case 'critica': return '#FF1744';
+      case 'alta': return '#FF9800';
+      case 'media': return '#FFC107';
+      case 'baixa': return '#4CAF50';
+      default: return '#9E9E9E';
     }
   };
 
-  const formatStats = (number) => {
-    if (number >= 1000) {
-      return `${(number / 1000).toFixed(1)}k`;
-    }
-    // Garante que 'number' não seja nulo ou indefinido antes de 'toString'
-    return (number || 0).toString();
-  };
+  const urgencyColor = getUrgencyColor(needUrgency);
 
-  return (
-    <TouchableOpacity
-      style={[styles.card, isDesktop && styles.cardDesktop]}
-      onPress={onPress}
-      activeOpacity={0.9}
-      accessible={true}
-      accessibilityLabel={`Necessidade: ${need.description}. Instituição: ${need.institution.name}. Urgência: ${need.urgency}`}
-      accessibilityHint="Toque para ver detalhes da necessidade e como ajudar"
-      accessibilityRole="button"
-    >
-      {/* Cabeçalho com info da instituição */}
+  // Conteúdo do card
+  const CardContent = () => (
+    <>
+      {/* Cabeçalho - Instituição */}
       <View style={styles.header}>
-        <View style={styles.institutionInfo}>
-          <View style={styles.logoContainer}>
-            <Image
-              source={{ uri: need.institution.logo }}
-              style={styles.institutionLogo}
-              defaultSource={{ uri: 'https://via.placeholder.com/40x40/cccccc/white?text=?' }}
-              accessible={true}
-              accessibilityLabel={`Logo da instituição ${need.institution.name}`}
-            />
-            {need.institution.isActive && <View style={styles.activeIndicator} />}
-          </View>
-          <View style={styles.institutionDetails}>
-            <Text style={styles.institutionName} numberOfLines={1}>
-              {need.institution.name}
-            </Text>
-            <Text style={styles.timestamp}>
-              {formatTimestamp(need.timestamp)}
-            </Text>
-          </View>
+        <Image 
+          source={{ uri: institutionAvatar }} 
+          style={styles.institutionAvatar}
+          defaultSource={{ uri: 'https://via.placeholder.com/40x40/4A90E2/FFFFFF?text=I' }}
+        />
+        <View style={styles.headerInfo}>
+          <Text style={styles.institutionName}>{institutionName}</Text>
+          <Text style={styles.needDate}>
+            {need.created_at ? new Date(need.created_at).toLocaleDateString('pt-BR') : 'Data não disponível'}
+          </Text>
         </View>
-        <View style={[styles.urgencyBadge, { backgroundColor: getUrgencyColor(need.urgency) }]}>
+        
+        {/* Badge de Urgência */}
+        <View style={[styles.urgencyBadge, { backgroundColor: urgencyColor }]}>
           <Text style={styles.urgencyText}>
-            {need.urgency.toUpperCase()}
+            {needUrgency === 'critica' ? 'Urgente' : 
+             needUrgency === 'alta' ? 'Alta' : 
+             needUrgency === 'media' ? 'Média' : 'Baixa'}
           </Text>
         </View>
       </View>
 
-      {/* Descrição */}
-      <Text style={styles.description} numberOfLines={3}>
-        {need.description}
-      </Text>
-
-      {/* Imagem principal */}
-      <Image
-        source={{ uri: need.image }}
-        style={[styles.needImage, isDesktop && styles.needImageDesktop]}
-        defaultSource={{ uri: 'https://via.placeholder.com/350x200/cccccc/white?text=Carregando...' }}
-        accessible={true}
-        accessibilityLabel="Imagem da necessidade"
-        accessibilityHint="Imagem relacionada à necessidade descrita"
-      />
-
-      {/* Footer com estatísticas */}
-      <View style={styles.footer}>
-        <View style={styles.stats}>
-          <TouchableOpacity 
-            style={styles.statButton}
-            accessible={true}
-            accessibilityLabel={`${formatStats(stats.likes)} curtidas`}
-            accessibilityRole="button"
-          >
-            <Text style={styles.statIcon}>♥</Text>
-            {/* CORREÇÃO AQUI: usa 'stats.likes' em vez de 'need.stats.likes' */}
-            <Text style={styles.statText}>{formatStats(stats.likes)}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.statButton}
-            accessible={true}
-            accessibilityLabel={`${formatStats(stats.comments)} comentários`}
-            accessibilityRole="button"
-          >
-            <Text style={styles.statIcon}>💬</Text>
-            {/* CORREÇÃO AQUI: usa 'stats.comments' */}
-            <Text style={styles.statText}>{formatStats(stats.comments)}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.statButton}
-            accessible={true}
-            accessibilityLabel={`${formatStats(stats.shares)} compartilhamentos`}
-            accessibilityRole="button"
-          >
-            <Text style={styles.statIcon}>↗</Text>
-            {/* CORREÇÃO AQUI: usa 'stats.shares' */}
-            <Text style={styles.statText}>{formatStats(stats.shares)}</Text>
-          </TouchableOpacity>
+      {/* Conteúdo da Necessidade */}
+      <View style={styles.content}>
+        <Text style={styles.needTitle}>{needTitle}</Text>
+        <Text style={styles.needDescription}>{needDescription}</Text>
+        
+        <View style={styles.details}>
+          <Text style={styles.detailText}>
+            Quantidade: {needQuantity} {needUnit}
+          </Text>
+          <Text style={styles.detailText}>
+            Categoria: {needCategory}
+          </Text>
         </View>
-
-        <TouchableOpacity 
-          style={styles.actionButton}
-          accessible={true}
-          accessibilityLabel="Botão para ajudar com esta necessidade"
-          accessibilityHint="Toque para oferecer ajuda ou fazer uma doação"
-          accessibilityRole="button"
-        >
-          <Text style={styles.actionButtonText}>Ajudar</Text>
-        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+
+      {/* Ações */}
+      <View style={styles.actions}>
+        {isInstitutionView ? (
+          // Ações para instituição (editar, detalhes)
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.detailsButton]}
+              onPress={handleDetailsPress}
+            >
+              <Text style={styles.detailsButtonText}>Detalhes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.editButton]}
+              onPress={handleEditPress}
+            >
+              <Text style={styles.editButtonText}>Editar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          // Ações para doador (doar)
+          <TouchableOpacity 
+            style={styles.donateButton}
+            onPress={handleDetailsPress} // Usa handleDetailsPress para evitar conflito
+          >
+            <Text style={styles.donateButtonText}>Doar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </>
+  );
+
+  // Renderização condicional baseada na prop isClickable
+  if (isClickable) {
+    return (
+      <TouchableOpacity 
+        style={styles.container}
+        onPress={handleCardPress}
+        activeOpacity={0.7}
+      >
+        <CardContent />
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <CardContent />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.white,
+  container: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-    overflow: 'hidden', // Para a imagem ficar bonita
-  },
-  cardDesktop: {
-    borderRadius: 16,
-    marginBottom: 0,
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 3,
+    overflow: 'hidden',
   },
-
-  // Cabeçalho
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    padding: 16,
-    paddingBottom: 12,
-  },
-  institutionInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  logoContainer: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  institutionLogo: {
+  institutionAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.secondary,
+    marginRight: 12,
+    backgroundColor: '#F6F8F9',
   },
-  activeIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.success,
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
-  institutionDetails: {
+  headerInfo: {
     flex: 1,
   },
   institutionName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: '#212121',
     marginBottom: 2,
   },
-  timestamp: {
+  needDate: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: '#757575',
   },
   urgencyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginLeft: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   urgencyText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.white,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-
-  // Descrição
-  description: {
+  content: {
+    padding: 16,
+  },
+  needTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#212121',
+    marginBottom: 8,
+  },
+  needDescription: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: '#212121',
     lineHeight: 20,
     marginBottom: 12,
-    paddingHorizontal: 16,
   },
-
-  // Imagem
-  needImage: {
-    width: '100%',
-    height: 240,
-    backgroundColor: colors.secondary,
-    marginBottom: 0,
+  details: {
+    marginBottom: 16,
   },
-  needImageDesktop: {
-    height: 280,
+  detailText: {
+    fontSize: 12,
+    color: '#757575',
+    marginBottom: 4,
   },
-
-  // Footer
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  actions: {
     padding: 16,
-    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
-  stats: {
+  actionButtons: {
     flexDirection: 'row',
-    gap: 16,
-  },
-  statButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statIcon: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  statText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
+    gap: 12,
   },
   actionButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  actionButtonText: {
+  detailsButton: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  editButton: {
+    backgroundColor: '#FF1434',
+  },
+  detailsButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textOnPrimary,
+    color: '#374151',
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  donateButton: {
+    backgroundColor: '#FF1434',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  donateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

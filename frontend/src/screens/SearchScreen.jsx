@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../styles/globalStyles';
@@ -62,7 +63,6 @@ const SearchScreen = ({ navigation }) => {
     { id: 'urgencia', label: 'Urgência' },
     { id: 'relevancia', label: 'Relevância' },
   ];
-
 
   useEffect(() => {
     if (hasSearched) {
@@ -153,6 +153,31 @@ const SearchScreen = ({ navigation }) => {
   const handleBackPress = () => {
     navigation?.goBack?.();
   };
+
+  // ✅ Função renderNeedItem no lugar correto
+  const renderNeedItem = ({ item }) => (
+    <NeedCard
+      need={item}
+      onPress={(need) => {
+        // Navega para o perfil da instituição ou mostra detalhes
+        navigation.navigate('InstitutionProfile', { 
+          institutionId: need.institution_id,
+          institutionName: need.institution_name 
+        });
+      }}
+      onDetails={(need) => {
+        // Mostra detalhes da necessidade
+        Alert.alert(
+          need.title,
+          `Descrição: ${need.description}\n` +
+          `Quantidade: ${need.quantity} ${need.unit}\n` +
+          `Categoria: ${need.category}\n` +
+          `Urgência: ${need.urgency}`
+        );
+      }}
+      isClickable={true} // 🔥 IMPORTANTE: Torna o card clicável
+    />
+  );
 
   const renderHeader = () => (
     <View style={[styles.header, isDesktop && styles.headerDesktop]}>
@@ -335,18 +360,16 @@ const SearchScreen = ({ navigation }) => {
         <Text style={styles.resultsCount}>
           {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
         </Text>
-        <View style={styles.resultsList}>
-          {results.map((need) => (
-            <NeedCard
-              key={need.id}
-              need={need}
-              onPress={() => {
-                // TODO: Navegar para detalhes da necessidade
-                console.log('Ver detalhes:', need.title);
-              }}
-            />
-          ))}
-        </View>
+        
+        {/* ✅ AGORA USANDO FlatList EM VEZ DE map */}
+        <FlatList
+          data={results}
+          renderItem={renderNeedItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.resultsList}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false} // Desabilita scroll interno pois já está dentro de um ScrollView
+        />
       </View>
     );
   };
@@ -623,6 +646,7 @@ const styles = StyleSheet.create({
   },
   resultsList: {
     gap: 16,
+    paddingBottom: 20, // Para dar espaçamento no final
   },
 });
 

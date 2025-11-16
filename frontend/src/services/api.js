@@ -198,7 +198,8 @@ class ApiService {
     
     // Adiciona dados do usuário
     Object.keys(userData).forEach(key => {
-      if (userData[key] !== null && userData[key] !== undefined) {
+      // 👇 LINHA MODIFICADA 👇
+      if (userData[key] !== undefined) {
         formData.append(key, userData[key]);
       }
     });
@@ -291,6 +292,60 @@ class ApiService {
     return this.get('/offers/my-offers');
   }
 
+  /**
+ * Lista ofertas de doação de um usuário específico
+ * @param {number} userId - ID do usuário
+ * @returns {Promise} Resposta da API
+ */
+    async getUserDonationOffers(userId) {
+      return this.get(`/offers/user/${userId}`);
+    }
+
+  /**
+   * Atualiza uma oferta de doação existente
+   * @param {number} id - ID da oferta
+   * @param {object} offerData - Dados da oferta
+   * @returns {Promise} Resposta da API
+   */
+  async updateDonationOffer(id, offerData) {
+    // Esta é a função que estava faltando
+    return this.put(`/offers/${id}`, offerData);
+  }
+
+  /**
+   * Lista TODAS as ofertas de doação disponíveis (para instituições)
+   * @param {object} filters - Filtros de busca
+   * @returns {Promise} Resposta da API
+   */
+  async getDonationOffers(filters = {}) {
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined) {
+        queryParams.append(key, filters[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    
+    return this.get(`/offers/available${queryString ? `?${queryString}` : ''}`);
+  }
+  
+  /**
+   * Aceita uma oferta de doação (para instituições)
+   * @param {number} offerId - ID da oferta
+   * @returns {Promise} Resposta da API
+   */
+  async acceptDonationOffer(offerId) {
+    return this.put(`/offers/${offerId}/accept`);
+  }
+  
+  /**
+   * Rejeita uma oferta de doação (para instituições)
+   * @param {number} offerId - ID da oferta
+   * @returns {Promise} Resposta da API
+   */
+  async rejectDonationOffer(offerId) {
+    return this.put(`/offers/${offerId}/reject`);
+  }
 
   // ===== MÉTODOS DE MENSAGENS =====
 
@@ -647,15 +702,17 @@ class ApiService {
   async createNeed(needData, imageFile = null) {
     if (imageFile) {
       const formData = new FormData();
+      
       Object.keys(needData).forEach(key => {
         if (needData[key] !== null && needData[key] !== undefined) {
           formData.append(key, needData[key]);
         }
       });
+      
       formData.append('image', imageFile);
       return this.upload('/needs', formData, 'POST');
     } else {
-      return this.post('/needs', needData);
+      return this.post('/needs', needData); 
     }
   }
 

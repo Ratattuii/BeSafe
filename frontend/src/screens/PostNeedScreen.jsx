@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,161 +12,168 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/globalStyles';
-import { showSuccess, showError } from '../utils/alerts';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext'; // Necessário para obter user.id
 
-const PostNeedScreen = ({ navigation }) => {
+// ===================================================================
+// TELA PRINCIPAL (Controlador)
+// ===================================================================
+
+const PostNeedScreen = ({ route, navigation }) => {
+  const { user } = useAuth(); // Obtém o usuário logado
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    quantity: '',
     category: '',
-    urgency: '',
+    unit: '',
+    urgency: 'medium',
+    goal_quantity: '',
+    goal_value: '',
+    pix_key: '',
     location: '',
   });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
+  const { needToEdit } = route.params || {};
+  const isEditMode = !!needToEdit;
+
+  // --- useEffect para carregar dados de edição ---
+  useEffect(() => {
+    if (isEditMode) {
+      setFormData({
+        title: needToEdit.title || '',
+        description: needToEdit.description || '',
+        category: needToEdit.category || '',
+        unit: needToEdit.unit || '',
+        urgency: needToEdit.urgency || 'medium',
+        goal_quantity: String(needToEdit.goal_quantity || ''),
+        goal_value: String(needToEdit.goal_value || ''),
+        pix_key: needToEdit.pix_key || '',
+      });
+    }
+  }, [isEditMode, needToEdit]);
+
+
   // Opções de categorias
   const categories = [
-    { id: 'alimentos', label: 'Alimentos', icon: '🥫', description: 'Comida e bebidas' },
-    { id: 'roupas', label: 'Roupas', icon: '👕', description: 'Vestuário e calçados' },
-    { id: 'medicamentos', label: 'Medicamentos', icon: '💊', description: 'Remédios e suprimentos médicos' },
-    { id: 'agua', label: 'Água', icon: '💧', description: 'Água potável' },
-    { id: 'abrigo', label: 'Abrigo', icon: '🏠', description: 'Moradia temporária' },
-    { id: 'outros', label: 'Outros', icon: '📦', description: 'Outras necessidades' },
+    { id: 'alimentos', label: 'Alimentos', icon: '🥫' },
+    { id: 'roupas', label: 'Roupas', icon: '👕' },
+    { id: 'medicamentos', label: 'Medicamentos', icon: '💊' },
+    // ... adicione mais categorias
+    { id: 'outros', label: 'Outros', icon: '📦' },
   ];
 
-  // Níveis de urgência
-  const urgencyLevels = [
-    { 
-      id: 'critica', 
-      label: 'Crítica', 
-      color: colors.urgent,
-      description: 'Situação de emergência - necessário imediatamente'
-    },
-    { 
-      id: 'alta', 
-      label: 'Alta', 
-      color: colors.warning,
-      description: 'Muito importante - necessário em poucos dias'
-    },
-    { 
-      id: 'media', 
-      label: 'Média', 
-      color: colors.success,
-      description: 'Importante - necessário em algumas semanas'
-    },
-    { 
-      id: 'baixa', 
-      label: 'Baixa', 
-      color: colors.gray500,
-      description: 'Quando possível - sem prazo específico'
-    },
+  const urgencyOptions = [
+    { id: 'alta', label: 'Alta' },
+    { id: 'media', label: 'Média' },
+    { id: 'baixa', label: 'Baixa' },
   ];
 
   const validateForm = () => {
     const newErrors = {};
-
+  
     if (!formData.title.trim()) {
       newErrors.title = 'Título é obrigatório';
-    } else if (formData.title.length < 10) {
-      newErrors.title = 'Título deve ter pelo menos 10 caracteres';
     }
-
+  
     if (!formData.description.trim()) {
       newErrors.description = 'Descrição é obrigatória';
-    } else if (formData.description.length < 20) {
-      newErrors.description = 'Descrição deve ter pelo menos 20 caracteres';
     }
-
-    if (!formData.quantity.trim()) {
-      newErrors.quantity = 'Quantidade é obrigatória';
-    }
-
+  
     if (!formData.category) {
       newErrors.category = 'Selecione uma categoria';
     }
-
-    if (!formData.urgency) {
-      newErrors.urgency = 'Selecione o nível de urgência';
+  
+    if (!formData.unit.trim()) {
+      newErrors.unit = 'Unidade de medida é obrigatória (Ex: kg, un)';
     }
-
+  
+    if (!formData.location.trim()) {
+      newErrors.location = 'Localização é obrigatória';
+    }
+  
+    const quantityValue = parseFloat(formData.goal_quantity);
+    if (!formData.goal_quantity.trim() || isNaN(quantityValue) || quantityValue <= 0) {
+      newErrors.goal_quantity = 'Meta de quantidade inválida ou ausente.';
+    }
+  
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    const errorKeys = Object.keys(newErrors);
+    if (errorKeys.length > 0) {
+      return newErrors[errorKeys[0]]; 
+    }
+    return null;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      showError('Por favor, corrija os erros no formulário');
+    if (!user || user.role !== 'institution') {
+      Alert.alert('Erro', 'Você deve ser uma instituição logada para postar.');
       return;
     }
-
+  
+    const validationError = validateForm();
+    if (validationError) {
+      Alert.alert('Erro no Formulário', validationError); 
+      return;
+    }
+    
     setLoading(true);
-
+    
     try {
-      // Enviar necessidade para a API
-      const response = await api.post('/needs', {
+      const needData = {
         title: formData.title,
         description: formData.description,
-        urgency: formData.urgency,
         category: formData.category,
-        quantity_needed: parseInt(formData.quantity),
-        location: formData.location || null,
-      });
-
+        type: formData.category,
+        urgency: formData.urgency,
+        quantity: parseFloat(formData.goal_quantity),
+        unit: formData.unit,
+        location: formData.location,
+      };
+  
+      console.log('📤 Enviando dados para API:', needData);
+  
+      const response = await api.post('/needs', needData);
+  
+      console.log('✅ Resposta da API:', response);
+  
       if (response.success) {
-        showSuccess('Pedido publicado com sucesso!');
-        // Limpar formulário
-        setFormData({
-          title: '',
-          description: '',
-          quantity: '',
-          category: '',
-          urgency: '',
-          location: '',
-        });
-        setImages([]);
-        // Voltar para a tela anterior após um breve delay
+        console.log('🎉 Necessidade criada com sucesso! Redirecionando...');
+        
         setTimeout(() => {
           navigation.goBack();
-        }, 1500);
+        }, 500);
+        
       } else {
-        showError(response.message || 'Não foi possível publicar o pedido. Tente novamente.');
+        Alert.alert('Erro', response.message || 'Não foi possível criar a necessidade.');
       }
+      
     } catch (error) {
-      console.error('Erro ao publicar pedido:', error);
-      showError('Erro ao publicar pedido. Verifique sua conexão e tente novamente.');
+      console.error('❌ Erro completo:', error);
+      
+      if (error.message && error.message.includes('HTTP')) {
+        Alert.alert('Erro do Servidor', error.message);
+      } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        Alert.alert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+      } else {
+        Alert.alert('Erro', error.message || 'Ocorreu um erro inesperado.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImagePicker = async () => {
-    const { showImagePickerOptions } = await import('../utils/ImagePicker');
-    
-    showImagePickerOptions(
-      (selectedImage) => {
-        if (selectedImage) {
-          setImages(prev => [...prev, selectedImage]);
-          console.log('Imagem selecionada:', selectedImage.uri);
-        }
-      },
-      {
-        aspect: [4, 3],
-        quality: 0.8,
-      }
-    );
-  };
-
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Remove erro quando campo é corrigido
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -181,26 +188,24 @@ const PostNeedScreen = ({ navigation }) => {
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation?.goBack?.()}
-        accessible={true}
-        accessibilityLabel="Voltar"
-        accessibilityRole="button"
       >
         <Text style={styles.backButtonText}>←</Text>
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Postar Pedido</Text>
+      <Text style={styles.headerTitle}>
+        {isEditMode ? 'Editar Necessidade' : 'Publicar Pedido de Doação'}
+      </Text>
       <View style={styles.headerSpacer} />
     </View>
   );
 
   const renderFormField = (label, value, onChangeText, placeholder, multiline = false, error = null) => (
     <View style={styles.fieldContainer}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldLabel}>{label} *</Text>
       <TextInput
         style={[
           styles.textInput,
           multiline && styles.textInputMultiline,
           error && styles.textInputError,
-          isDesktop && styles.textInputDesktop,
         ]}
         value={value}
         onChangeText={onChangeText}
@@ -208,14 +213,10 @@ const PostNeedScreen = ({ navigation }) => {
         placeholderTextColor={colors.textSecondary}
         multiline={multiline}
         numberOfLines={multiline ? 4 : 1}
-        accessible={true}
-        accessibilityLabel={label}
-        accessibilityHint={placeholder}
+        keyboardType={(label === 'Meta de Quantidade' || label === 'Valor Total (PIX)') ? 'numeric' : 'default'}
       />
       {error && (
-        <Text style={styles.errorText} accessible={true} accessibilityRole="alert">
-          {error}
-        </Text>
+        <Text style={styles.errorText}>{error}</Text>
       )}
     </View>
   );
@@ -230,14 +231,8 @@ const PostNeedScreen = ({ navigation }) => {
             style={[
               styles.optionCard,
               formData.category === category.id && styles.optionCardSelected,
-              isDesktop && styles.optionCardDesktop,
             ]}
             onPress={() => updateFormData('category', category.id)}
-            accessible={true}
-            accessibilityLabel={`Categoria ${category.label}`}
-            accessibilityHint={category.description}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: formData.category === category.id }}
           >
             <Text style={styles.optionIcon}>{category.icon}</Text>
             <Text style={[
@@ -246,14 +241,11 @@ const PostNeedScreen = ({ navigation }) => {
             ]}>
               {category.label}
             </Text>
-            <Text style={styles.optionDescription}>{category.description}</Text>
           </TouchableOpacity>
         ))}
       </View>
       {errors.category && (
-        <Text style={styles.errorText} accessible={true} accessibilityRole="alert">
-          {errors.category}
-        </Text>
+        <Text style={styles.errorText}>{errors.category}</Text>
       )}
     </View>
   );
@@ -262,247 +254,158 @@ const PostNeedScreen = ({ navigation }) => {
     <View style={styles.fieldContainer}>
       <Text style={styles.fieldLabel}>Nível de Urgência *</Text>
       <View style={styles.urgencyList}>
-        {urgencyLevels.map((level) => (
+        {urgencyOptions.map((option) => (
           <TouchableOpacity
-            key={level.id}
+            key={option.id}
             style={[
               styles.urgencyOption,
-              formData.urgency === level.id && styles.urgencyOptionSelected,
+              formData.urgency === option.id && styles.urgencyOptionSelected,
             ]}
-            onPress={() => updateFormData('urgency', level.id)}
-            accessible={true}
-            accessibilityLabel={`Urgência ${level.label}`}
-            accessibilityHint={level.description}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: formData.urgency === level.id }}
+            onPress={() => updateFormData('urgency', option.id)}
           >
-            <View style={styles.urgencyInfo}>
-              <View style={styles.urgencyHeader}>
-                <View style={[styles.urgencyIndicator, { backgroundColor: level.color }]} />
-                <Text style={[
-                  styles.urgencyLabel,
-                  formData.urgency === level.id && styles.urgencyLabelSelected
-                ]}>
-                  {level.label}
-                </Text>
-              </View>
-              <Text style={styles.urgencyDescription}>{level.description}</Text>
-            </View>
-            {formData.urgency === level.id && (
+            <Text style={[
+              styles.urgencyLabel,
+              formData.urgency === option.id && styles.urgencyLabelSelected
+            ]}>
+              {option.label}
+            </Text>
+            {formData.urgency === option.id && (
               <Text style={styles.selectedIndicator}>✓</Text>
             )}
           </TouchableOpacity>
         ))}
       </View>
-      {errors.urgency && (
-        <Text style={styles.errorText} accessible={true} accessibilityRole="alert">
-          {errors.urgency}
-        </Text>
-      )}
     </View>
   );
 
-  const renderImageUploader = () => (
-    <View style={styles.fieldContainer}>
-      <Text style={styles.fieldLabel}>Imagens (Opcional)</Text>
-      <TouchableOpacity
-        style={[styles.imageUploader, isDesktop && styles.imageUploaderDesktop]}
-        onPress={handleImagePicker}
-        accessible={true}
-        accessibilityLabel="Adicionar imagens"
-        accessibilityHint="Toque para adicionar fotos que ilustrem a necessidade"
-        accessibilityRole="button"
-      >
-        <Text style={styles.imageUploaderIcon}>📷</Text>
-        <Text style={styles.imageUploaderText}>Adicionar Fotos</Text>
-        <Text style={styles.imageUploaderHint}>
-          Mostre o que é necessário para facilitar doações
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderSubmitButtons = () => (
-    <View style={[styles.submitContainer, isDesktop && styles.submitContainerDesktop]}>
-      <TouchableOpacity
-        style={[styles.cancelButton, isDesktop && styles.cancelButtonDesktop]}
-        onPress={() => navigation?.goBack?.()}
-        disabled={loading}
-        accessible={true}
-        accessibilityLabel="Cancelar publicação"
-        accessibilityRole="button"
-      >
-        <Text style={styles.cancelButtonText}>Cancelar</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.submitButton,
-          isDesktop && styles.submitButtonDesktop,
-          loading && styles.submitButtonDisabled
-        ]}
-        onPress={handleSubmit}
-        disabled={loading}
-        accessible={true}
-        accessibilityLabel={loading ? "Publicando pedido" : "Publicar pedido"}
-        accessibilityRole="button"
-        accessibilityState={{ busy: loading }}
-      >
-        {loading ? (
-          <ActivityIndicator color={colors.white} size="small" />
-        ) : (
-          <Text style={styles.submitButtonText}>Publicar Pedido</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderMobileLayout = () => (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {renderHeader()}
-      <View style={styles.formContainer}>
-        {renderFormField(
-          'Título *',
-          formData.title,
-          (value) => updateFormData('title', value),
-          'Ex: Alimentos para 100 famílias',
-          false,
-          errors.title
-        )}
-
-        {renderFormField(
-          'Descrição *',
-          formData.description,
-          (value) => updateFormData('description', value),
-          'Descreva detalhadamente o que é necessário e por quê...',
-          true,
-          errors.description
-        )}
-
-        {renderFormField(
-          'Quantidade *',
-          formData.quantity,
-          (value) => updateFormData('quantity', value),
-          'Ex: 500kg, 100 unidades, 50 famílias...',
-          false,
-          errors.quantity
-        )}
-
-        {renderCategorySelector()}
-        {renderUrgencySelector()}
-
-        {renderFormField(
-          'Localização (Opcional)',
-          formData.location,
-          (value) => updateFormData('location', value),
-          'Ex: São Paulo, SP - Centro'
-        )}
-
-        {renderImageUploader()}
-        {renderSubmitButtons()}
-      </View>
-    </ScrollView>
-  );
-
-  const renderDesktopLayout = () => (
-    <View style={styles.desktopContainer}>
-      <View style={styles.desktopContent}>
-        {renderHeader()}
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.desktopFormContainer}>
-            <View style={styles.desktopFormLeft}>
-              {renderFormField(
-                'Título *',
-                formData.title,
-                (value) => updateFormData('title', value),
-                'Ex: Alimentos para 100 famílias',
-                false,
-                errors.title
-              )}
-
-              {renderFormField(
-                'Descrição *',
-                formData.description,
-                (value) => updateFormData('description', value),
-                'Descreva detalhadamente o que é necessário e por quê...',
-                true,
-                errors.description
-              )}
-
-              {renderFormField(
-                'Quantidade *',
-                formData.quantity,
-                (value) => updateFormData('quantity', value),
-                'Ex: 500kg, 100 unidades, 50 famílias...',
-                false,
-                errors.quantity
-              )}
-
-              {renderFormField(
-                'Localização (Opcional)',
-                formData.location,
-                (value) => updateFormData('location', value),
-                'Ex: São Paulo, SP - Centro'
-              )}
-            </View>
-
-            <View style={styles.desktopFormRight}>
-              {renderCategorySelector()}
-              {renderUrgencySelector()}
-              {renderImageUploader()}
-            </View>
-          </View>
-          {renderSubmitButtons()}
-        </ScrollView>
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      {isDesktop ? renderDesktopLayout() : renderMobileLayout()}
+      {renderHeader()}
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.formContainer}>
+
+          {renderFormField(
+            'Título da Necessidade',
+            formData.title,
+            (value) => updateFormData('title', value),
+            'Ex: Pedido de 20kg de alimentos não perecíveis',
+            false,
+            errors.title
+          )}
+          
+          {renderFormField(
+            'Descrição Detalhada',
+            formData.description,
+            (value) => updateFormData('description', value),
+            'Explique a urgência e para quem se destina a ajuda...',
+            true,
+            errors.description
+          )}
+
+          {renderCategorySelector()}
+
+          {renderUrgencySelector()}
+
+          {renderFormField(
+            'Localização',
+            formData.location,
+            (value) => updateFormData('location', value),
+            'Ex: São Paulo, SP - Centro',
+            false,
+            errors.location
+          )}
+
+          {/* Quantidade e Unidade */}
+          <View style={styles.quantityContainer}>
+            {renderFormField(
+              'Meta de Quantidade',
+              formData.goal_quantity,
+              (value) => updateFormData('goal_quantity', value),
+              '20',
+              false,
+              errors.goal_quantity
+            )}
+          <View style={styles.unitField}>
+            {renderFormField(
+              'Unidade (Ex: kg, un)',
+              formData.unit,
+              (value) => updateFormData('unit', value),
+              'kg',
+              false,
+              errors.unit
+            )}
+          </View>
+      </View>
+          
+          <View style={styles.optionalSection}>
+            <Text style={styles.optionalTitle}>Informações Opcionais (Doação Financeira)</Text>
+            {renderFormField(
+                'Valor Total (PIX)',
+                formData.goal_value,
+                (value) => updateFormData('goal_value', value),
+                'R$ 500.00',
+            )}
+            {renderFormField(
+                'Chave PIX',
+                formData.pix_key,
+                (value) => updateFormData('pix_key', value),
+                'Ex: email@instituicao.com',
+            )}
+          </View>
+        </View>
+
+        <View style={[styles.submitContainer, isDesktop && styles.submitContainerDesktop]}>
+          <TouchableOpacity
+            style={[styles.cancelButton, isDesktop && styles.cancelButtonDesktop]}
+            onPress={() => navigation?.goBack?.()}
+            disabled={loading}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              isDesktop && styles.submitButtonDesktop,
+              loading && styles.submitButtonDisabled
+            ]}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {isEditMode ? 'Salvar Alterações' : 'Publicar Pedido'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {showSuccessModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Sucesso!</Text>
+            <Text style={styles.modalMessage}>Necessidade publicada com sucesso!</Text>
+            <ActivityIndicator color={colors.primary} size="large" />
+            <Text style={styles.modalSubtext}>Redirecionando...</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
 
+// --- ESTILOS ---
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.backgroundLight,
   },
   container: {
-    flex: 1,
-  },
-
-  // Desktop Layout
-  desktopContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  desktopContent: {
-    width: 900,
-    maxWidth: '90%',
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-    overflow: 'hidden',
-  },
-  desktopFormContainer: {
-    flexDirection: 'row',
-    gap: 40,
-    padding: 32,
-  },
-  desktopFormLeft: {
-    flex: 1,
-  },
-  desktopFormRight: {
     flex: 1,
   },
 
@@ -517,10 +420,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.secondary,
   },
-  headerDesktop: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-    borderBottomWidth: 2,
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    flex: 1, 
+    textAlign: 'center', 
+    marginHorizontal: 16, 
   },
   backButton: {
     width: 44,
@@ -534,13 +440,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.textPrimary,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-  },
   headerSpacer: {
-    width: 44,
+    width: 44, 
   },
 
   // Formulário
@@ -548,7 +449,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   fieldContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   fieldLabel: {
     fontSize: 16,
@@ -567,9 +468,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     minHeight: 48,
   },
-  textInputDesktop: {
-    paddingVertical: 14,
-  },
   textInputMultiline: {
     minHeight: 100,
     textAlignVertical: 'top',
@@ -583,6 +481,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  // Quantidade e Unidade
+  quantityContainer: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 20,
+  },
+  unitField: {
+    flex: 0.4,
+  },
+
   // Seletor de categoria
   optionsGrid: {
     flexDirection: 'row',
@@ -590,18 +498,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   optionCard: {
-    flex: 1,
-    minWidth: 150,
+    width: '30%',
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.secondary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    minHeight: 100,
-  },
-  optionCardDesktop: {
-    minWidth: 140,
+    minHeight: 80,
   },
   optionCardSelected: {
     borderColor: colors.primary,
@@ -615,23 +519,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginBottom: 4,
     textAlign: 'center',
   },
   optionLabelSelected: {
     color: colors.primary,
   },
-  optionDescription: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
 
   // Seletor de urgência
   urgencyList: {
+    flexDirection: 'row',
     gap: 12,
   },
   urgencyOption: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -640,25 +540,11 @@ const styles = StyleSheet.create({
     borderColor: colors.secondary,
     borderRadius: 12,
     padding: 16,
-    minHeight: 60,
+    minHeight: 50,
   },
   urgencyOptionSelected: {
     borderColor: colors.primary,
     backgroundColor: colors.primaryLight,
-  },
-  urgencyInfo: {
-    flex: 1,
-  },
-  urgencyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  urgencyIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
   },
   urgencyLabel: {
     fontSize: 16,
@@ -668,59 +554,35 @@ const styles = StyleSheet.create({
   urgencyLabelSelected: {
     color: colors.primary,
   },
-  urgencyDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: 24,
-  },
   selectedIndicator: {
     fontSize: 18,
     color: colors.primary,
     fontWeight: 'bold',
   },
 
-  // Upload de imagem
-  imageUploader: {
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderColor: colors.secondary,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center',
-    minHeight: 120,
+  // Seção Opcional
+  optionalSection: {
+    borderTopWidth: 1,
+    borderTopColor: colors.gray200,
+    marginTop: 20,
+    paddingTop: 20,
   },
-  imageUploaderDesktop: {
-    minHeight: 140,
-  },
-  imageUploaderIcon: {
-    fontSize: 32,
-    marginBottom: 12,
-  },
-  imageUploaderText: {
+  optionalTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  imageUploaderHint: {
-    fontSize: 14,
+    fontWeight: 'bold',
     color: colors.textSecondary,
-    textAlign: 'center',
+    marginBottom: 16,
   },
+
 
   // Botões de submit
   submitContainer: {
     flexDirection: 'row',
     gap: 16,
-    paddingTop: 20,
-    marginTop: 20,
+    padding: 20,
     borderTopWidth: 1,
     borderTopColor: colors.secondary,
-  },
-  submitContainerDesktop: {
-    paddingHorizontal: 32,
-    paddingBottom: 32,
+    backgroundColor: colors.white,
   },
   cancelButton: {
     flex: 1,
@@ -730,9 +592,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 48,
     justifyContent: 'center',
-  },
-  cancelButtonDesktop: {
-    paddingVertical: 18,
   },
   cancelButtonText: {
     fontSize: 16,
@@ -747,9 +606,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 48,
     justifyContent: 'center',
-  },
-  submitButtonDesktop: {
-    paddingVertical: 18,
   },
   submitButtonDisabled: {
     backgroundColor: colors.gray400,
