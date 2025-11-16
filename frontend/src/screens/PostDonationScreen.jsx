@@ -317,7 +317,7 @@ const PostDonationScreen = ({ route, navigation }) => {
     description: '',
     quantity: '',
     category: '',
-    conditions: '',
+    conditions: '', // --- CORREÇÃO: 'condition' -> 'conditions'
     location: '',
     availability: '',
     expiryDate: '',
@@ -329,25 +329,8 @@ const PostDonationScreen = ({ route, navigation }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
-  const { needId, institutionName, needTitle, offerToEdit } = route.params || {};
-  const isSpecificDonation = !!needId;
-  const isEditMode = !!offerToEdit;
-
-  // CORREÇÃO: Carregar dados da oferta para edição
-  useEffect(() => {
-    if (isEditMode && offerToEdit) {
-      setFormData({
-        title: offerToEdit.title || '',
-        description: offerToEdit.description || '',
-        quantity: offerToEdit.quantity || '',
-        category: offerToEdit.category || '',
-        conditions: offerToEdit.conditions || '',
-        location: offerToEdit.location || '',
-        availability: offerToEdit.availability || '',
-        expiryDate: offerToEdit.expiryDate || '',
-      });
-    }
-  }, [isEditMode, offerToEdit]);
+  const { needId, institutionName, needTitle } = route.params || {};
+  const isSpecificDonation = !!needId; // true se estamos vindo de um post
 
   // Opções de categorias
   const categories = [
@@ -421,15 +404,17 @@ const PostDonationScreen = ({ route, navigation }) => {
     }
 
     setErrors(newErrors);
-    
     return Object.keys(newErrors).length === 0;
   };
 
-  // CORREÇÃO: Função handleSubmit simplificada
+  // --- CORREÇÃO: handleSubmit agora lida com os dois cenários ---
   const handleSubmit = async (simpleData = null) => {
     setLoading(true);
     
     try {
+      let donationData;
+      let offerData;
+
       if (isSpecificDonation) {
         // --- Cenário 1: Respondendo a um Post (Formulário Simples) ---
         if (!simpleData) {
@@ -446,61 +431,56 @@ const PostDonationScreen = ({ route, navigation }) => {
         };
 
         console.log('Enviando doação (simples):', donationData);
-        const response = await api.createDonation(donationData);
-
-        if (response.success) {
-          Alert.alert(
-            'Sucesso!', 
-            `Sua doação foi registrada com sucesso!`,
-            [{ text: 'OK', onPress: () => navigation.goBack() }]
-          );
-        } else {
-          Alert.alert('Erro', response.message || 'Não foi possível registrar a doação.');
-        }
+        response = await api.createDonation(donationData); // Chama a rota antiga
 
       } else {
-        // --- Cenário 2: Criando ou Editando uma Oferta (Formulário Complexo) ---
-        if (!validateComplexForm()) {
-          Alert.alert('Erro no Formulário', 'Por favor, corrija os erros destacados.');
+        // --- Cenário 2: Criando um Novo Item (Formulário Complexo) ---
+        if (!validateForm(false)) { // false = não é simples
+          Alert.alert('Erro', 'Por favor, corrija os erros no formulário');
           setLoading(false);
           return;
         }
+
+        // Não precisamos mais do alerta de "need_id obrigatório"
         
-        const offerData = {
+        // --- CORREÇÃO: Monta o 'offerData' para a nova API ---
+        offerData = {
           title: formData.title,
           description: formData.description,
-          quantity: formData.quantity,
+          quantity: formData.quantity, // Manda a string "20 peças"
           category: formData.category,
           conditions: formData.conditions,
           location: formData.location,
           availability: formData.availability,
-          expiryDate: formData.expiryDate,
+          // (expiryDate não está na tabela 'donation_offers' que definimos, mas 'notes' está)
+          // (Podemos adicionar a validade na descrição se quisermos)
         };
 
-        let response;
-        if (isEditMode) {
-          response = await api.updateDonationOffer(offerToEdit.id, offerData);
-        } else {
-          response = await api.createDonationOffer(offerData);
-        }
+        console.log('Enviando oferta de doação (complexa):', offerData);
+        // Chama a NOVA rota da API
+        response = await api.createDonationOffer(offerData); 
+      }
 
-        if (response.success) {
-          const details = response.data.offer || response.data;
-          Alert.alert(
-            'Sucesso!', 
-            isEditMode 
-              ? `Sua oferta "${details.title}" foi atualizada com sucesso!`
-              : `Sua oferta "${details.title}" foi publicada com sucesso!`,
-            [{ text: 'OK', onPress: () => navigation.goBack() }]
-          );
-        } else {
-          Alert.alert('Erro', response.message || 'Não foi possível publicar a oferta.');
-        }
+      // ----- Processamento da Resposta (Comum para ambos) -----
+      console.log('Resposta da API:', response);
+      
+      if (response.success) {
+        const details = response.data.donation || response.data.offer;
+        
+        Alert.alert(
+          'Sucesso!', 
+          `Sua oferta de ${details.quantity} ${details.unit || ''} foi registrada com sucesso!`,
+          [{ text: 'OK', onPress: () => navigation?.goBack?.() }]
+        );
+      } else {
+        const errorMessage = response.message || response.error || 'Não foi possível publicar. Tente novamente.';
+        Alert.alert('Erro', errorMessage);
       }
       
     } catch (error) {
-      console.error('Erro:', error);
-      Alert.alert('Erro', 'Não foi possível completar a operação. Tente novamente.');
+      console.error('Erro ao criar doação/oferta:', error);
+      const errorMessage = error.message || 'Não foi possível publicar. Verifique sua conexão e tente novamente.';
+      Alert.alert('Erro', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -551,7 +531,7 @@ const PostDonationScreen = ({ route, navigation }) => {
         <Text style={styles.backButtonText}>←</Text>
       </TouchableOpacity>
       <Text style={styles.headerTitle}>
-        {isSpecificDonation ? 'Oferecer Doação' : (isEditMode ? 'Editar Oferta' : 'Publicar Item')}
+        {isSpecificDonation ? 'Oferecer Doação' : 'Publicar Item para Doação'}
       </Text>
       <View style={styles.headerSpacer} />
     </View>
@@ -573,14 +553,15 @@ const PostDonationScreen = ({ route, navigation }) => {
           isDesktop && styles.submitButtonDesktop,
           loading && styles.submitButtonDisabled
         ]}
-        onPress={() => handleSubmit()}
+        // O handleSubmit do form complexo (simpleData = null)
+        onPress={() => handleSubmit(null)} 
         disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color={colors.white} size="small" />
         ) : (
           <Text style={styles.submitButtonText}>
-            {isEditMode ? 'Salvar Alterações' : 'Publicar Doação'}
+            {isSpecificDonation ? 'Confirmar Doação' : 'Publicar Doação'}
           </Text>
         )}
       </TouchableOpacity>
@@ -599,6 +580,7 @@ const PostDonationScreen = ({ route, navigation }) => {
       );
     }
 
+    // --- MODO 2: Formulário Complexo (Publicando um Novo Item) ---
     return (
       <>
         <ComplexDonationForm
@@ -627,18 +609,202 @@ const PostDonationScreen = ({ route, navigation }) => {
     </ScrollView>
   );
 
-  const renderDesktopLayout = () => (
+  // --- CORREÇÃO: renderDesktopLayoutFixed para usar renderFormContent ---
+  const renderDesktopLayoutFixed = () => (
     <View style={styles.desktopContainer}>
       <View style={styles.desktopContent}>
         {renderHeader()}
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={[styles.formContainer, styles.desktopFormContainer]}>
-            {renderFormContent()}
-          </View>
+          {isSpecificDonation ? (
+            // MODO 1: Desktop - Formulário Simples
+            <View style={[styles.formContainer, styles.desktopFormContainerSimple]}>
+              {renderFormContent()}
+            </View>
+          ) : (
+            // MODO 2: Desktop - Formulário Complexo
+            <>
+              <View style={styles.desktopFormContainer}>
+                <View style={styles.desktopFormLeft}>
+                  {/* Reutiliza o renderFormField para os campos da esquerda */}
+                  {renderFormField(
+                    'Título', formData.title, (value) => updateFormData('title', value),
+                    'Ex: Roupas de inverno para doação', false, errors.title
+                  )}
+                  {renderFormField(
+                    'Descrição', formData.description, (value) => updateFormData('description', value),
+                    'Descreva os itens que você está oferecendo...', true, errors.description
+                  )}
+                  {renderFormField(
+                    'Quantidade', formData.quantity, (value) => updateFormData('quantity', value),
+                    'Ex: 20 peças, 5kg, 10 unidades...', false, errors.quantity
+                  )}
+                  {formData.category === 'alimentos' && renderFormField(
+                    'Data de Validade', formData.expiryDate, (value) => updateFormData('expiryDate', value),
+                    'DD/MM/AAAA', false, errors.expiryDate
+                  )}
+                  {renderFormField(
+                    'Localização', formData.location, (value) => updateFormData('location', value),
+                    'Ex: São Paulo, SP - Vila Madalena', false, null, true
+                  )}
+                </View>
+
+                <View style={styles.desktopFormRight}>
+                  {/* Reutiliza os seletores para os campos da direita */}
+                  {renderCategorySelector()}
+                  {renderConditionSelector()}
+                  {renderAvailabilitySelector()}
+                  {renderImageUploader()}
+                </View>
+              </View>
+              {renderSubmitButtons()}
+            </>
+          )}
         </ScrollView>
       </View>
     </View>
   );
+
+  // --- CORREÇÃO: Funções que faltavam no escopo global ---
+  const renderFormField = (label, value, onChangeText, placeholder, multiline = false, error = null, optional = false) => (
+    <View style={styles.fieldContainer}>
+      <Text style={styles.fieldLabel}>
+        {label} {!optional && '*'}
+      </Text>
+      <TextInput
+        style={[
+          styles.textInput,
+          multiline && styles.textInputMultiline,
+          error && styles.textInputError,
+          isDesktop && styles.textInputDesktop,
+        ]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textSecondary}
+        multiline={multiline}
+        numberOfLines={multiline ? 4 : 1}
+      />
+      {error && (
+        <Text style={styles.errorText}>{error}</Text>
+      )}
+    </View>
+  );
+
+  const renderCategorySelector = () => (
+    <View style={styles.fieldContainer}>
+      <Text style={styles.fieldLabel}>Categoria *</Text>
+      <View style={styles.optionsGrid}>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.optionCard,
+              formData.category === category.id && styles.optionCardSelected,
+              isDesktop && styles.optionCardDesktop,
+            ]}
+            onPress={() => updateFormData('category', category.id)}
+          >
+            <Text style={styles.optionIcon}>{category.icon}</Text>
+            <Text style={[
+              styles.optionLabel,
+              formData.category === category.id && styles.optionLabelSelected
+            ]}>
+              {category.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {errors.category && (
+        <Text style={styles.errorText}>{errors.category}</Text>
+      )}
+    </View>
+  );
+
+  const renderConditionSelector = () => (
+    <View style={styles.fieldContainer}>
+      <Text style={styles.fieldLabel}>Condição do Item *</Text>
+      <View style={styles.conditionList}>
+        {conditions.map((condition) => (
+          <TouchableOpacity
+            key={condition.id}
+            style={[
+              styles.conditionOption,
+              formData.conditions === condition.id && styles.conditionOptionSelected,
+            ]}
+            onPress={() => updateFormData('conditions', condition.id)}
+          >
+            <View style={styles.conditionInfo}>
+              <Text style={[
+                styles.conditionLabel,
+                formData.conditions === condition.id && styles.conditionLabelSelected
+              ]}>
+                {condition.label}
+              </Text>
+              <Text style={styles.conditionDescription}>{condition.description}</Text>
+            </View>
+            {formData.conditions === condition.id && (
+              <Text style={styles.selectedIndicator}>✓</Text>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+      {errors.conditions && (
+        <Text style={styles.errorText}>{errors.conditions}</Text>
+      )}
+    </View>
+  );
+
+  const renderAvailabilitySelector = () => (
+    <View style={styles.fieldContainer}>
+      <Text style={styles.fieldLabel}>Disponibilidade *</Text>
+      <View style={styles.availabilityList}>
+        {availabilityOptions.map((availability) => (
+          <TouchableOpacity
+            key={availability.id}
+            style={[
+              styles.availabilityOption,
+              formData.availability === availability.id && styles.availabilityOptionSelected,
+            ]}
+            onPress={() => updateFormData('availability', availability.id)}
+          >
+            <View style={styles.availabilityInfo}>
+              <Text style={[
+                styles.availabilityLabel,
+                formData.availability === availability.id && styles.availabilityLabelSelected
+              ]}>
+                {availability.label}
+              </Text>
+              <Text style={styles.availabilityDescription}>{availability.description}</Text>
+            </View>
+            {formData.availability === availability.id && (
+              <Text style={styles.selectedIndicator}>✓</Text>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+      {errors.availability && (
+        <Text style={styles.errorText}>{errors.availability}</Text>
+      )}
+    </View>
+  );
+
+  const renderImageUploader = () => (
+    <View style={styles.fieldContainer}>
+      <Text style={styles.fieldLabel}>Fotos dos Itens (Recomendado)</Text>
+      <TouchableOpacity
+        style={[styles.imageUploader, isDesktop && styles.imageUploaderDesktop]}
+        onPress={handleImagePicker}
+      >
+        <Text style={styles.imageUploaderIcon}>📷</Text>
+        <Text style={styles.imageUploaderText}>Adicionar Fotos</Text>
+        <Text style={styles.imageUploaderHint}>
+          Mostre os itens para que as instituições vejam o que está sendo oferecido
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+  // --- Fim das funções de renderização ---
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -648,7 +814,8 @@ const PostDonationScreen = ({ route, navigation }) => {
   );
 };
 
-// Mantenha os estilos existentes...
+// --- ESTILOS ---
+// (Adicionando os estilos que faltavam para o formulário simples)
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -679,6 +846,20 @@ const styles = StyleSheet.create({
   desktopFormContainer: {
     padding: 32,
   },
+  desktopFormContainerSimple: {
+    padding: 32,
+    maxWidth: 600, // Limita o form simples no desktop
+    alignSelf: 'center', // Centraliza o form simples
+    width: '100%',
+  },
+  desktopFormLeft: {
+    flex: 1,
+  },
+  desktopFormRight: {
+    flex: 1,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -710,12 +891,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.textPrimary,
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 16,
+    flex: 1, // Permite que o título cresça
+    textAlign: 'center', // Centraliza o título
+    marginHorizontal: 16, // Espaçamento
   },
   headerSpacer: {
-    width: 44,
+    width: 44, // Mesmo tamanho do botão de voltar
   },
   formContainer: {
     padding: 20,

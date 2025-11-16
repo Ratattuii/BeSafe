@@ -180,10 +180,12 @@ const styles = StyleSheet.create({
   statusTextRejected: {
     color: colors.errorDark,
   },
-  statusCompleted: {
+  statusDonated: {
     backgroundColor: colors.gray200,
   },
-  statusTextCompleted: {
+  statusTextDonated: {
+    color: colors.textSecondary,
+  },
     color: colors.textSecondary,
   },
   statusDefault: {
@@ -199,7 +201,7 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     padding: 16,
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   donationImage: {
     width: 60,
@@ -237,8 +239,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   quantity: {
-    fontSize: 12,
-    color: colors.textTertiary,
+    fontSize: 14,
+    color: colors.textSecondary,
+    textTransform: 'capitalize',
+  },
     textTransform: 'capitalize',
   },
   footer: {
@@ -246,34 +250,19 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.gray100,
   },
-  // ❌ ESTILOS DO BOTÃO "VER DETALHES" REMOVIDOS
-  buttonPrimary: {
+  buttonOutline: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     gap: 6,
-    backgroundColor: colors.primary,
   },
-  buttonPrimaryText: {
+  buttonOutlineText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.white,
+    color: colors.textSecondary,
   },
-  buttonSecondary: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 6,
-    backgroundColor: colors.success,
-  },
-  buttonSecondaryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.white,
   },
 });
 

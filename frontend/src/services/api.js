@@ -2,8 +2,8 @@
 import { API_CONFIG } from './api/config';
 
 /**
- * Classe para gerenciar as chamadas à API
- */
+ * Classe para gerenciar as chamadas à API
+ */
 class ApiService {
   constructor() {
     this.baseURL = API_CONFIG.BASE_URL.replace('/api', '') || 'http://localhost:3000';

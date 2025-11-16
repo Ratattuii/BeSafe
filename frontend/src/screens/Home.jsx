@@ -23,7 +23,9 @@ import { colors } from '../styles/globalStyles';
 import PostCard from '../components/PostCard';
 import DonationOfferCard from '../components/DonationOfferCard';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import HomeDonor from './HomeDonor'; // Importa a Home para Doador
+import HomeInstitution from './HomeInstitution'; // Importa a Home para Instituição
+import { colors } from '../styles/globalStyles';
 
 const { width } = Dimensions.get('window');
 const isDesktop = width > 768;
