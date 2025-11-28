@@ -1,3 +1,4 @@
+// components/NeedCard.jsx
 import React from 'react';
 import {
   View,
@@ -5,18 +6,29 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 
 const NeedCard = ({ 
   need, 
   onPress, 
   onEdit, 
-  onDetails, 
+  onChat,
+  onFinalize,
   isInstitutionView = false,
   isCompleted = false,
-  isClickable = true // Nova prop para controlar se o card é clicável
+  isClickable = true
 }) => {
-  // Verificações de segurança
+
+  console.log('🎯 [NEEDCARD DEBUG] Props recebidas:', {
+    needId: need?.id,
+    onFinalize,
+    onFinalizeType: typeof onFinalize,
+    onFinalizeExists: !!onFinalize,
+    isInstitutionView,
+    allProps: { onPress, onEdit, onChat, onFinalize, isInstitutionView, isCompleted }
+  });
+  
   if (!need) {
     return (
       <View style={styles.container}>
@@ -25,23 +37,56 @@ const NeedCard = ({
     );
   }
 
-  const handleCardPress = () => {
-    if (onPress && isClickable) {
-      onPress(need);
-    }
-  };
-
   const handleEditPress = (e) => {
-    e.stopPropagation(); // Previne que o evento chegue no card pai
-    if (onEdit) {
+    e?.stopPropagation?.();
+    if (onEdit && typeof onEdit === 'function') {
+      console.log('✏️ [NEEDCARD] Chamando onEdit');
       onEdit(need);
     }
   };
 
-  const handleDetailsPress = (e) => {
-    e.stopPropagation(); // Previne que o evento chegue no card pai
-    if (onDetails) {
-      onDetails(need);
+  const handleChatPress = (e) => {
+    e?.stopPropagation?.();
+    if (onChat && typeof onChat === 'function') {
+      console.log('💬 [NEEDCARD] Chamando onChat');
+      onChat(need);
+    }
+  };
+
+  const handleFinalizePress = (e) => {
+    console.log('🟡 [NEEDCARD] Botão Finalizar pressionado');
+    e?.stopPropagation?.();
+    
+    // Verificação mais robusta da função
+    if (onFinalize && typeof onFinalize === 'function') {
+      console.log('🟢 [NEEDCARD] onFinalize é uma função válida, chamando com need:', {
+        id: need.id,
+        title: need.title,
+        status: need.status
+      });
+      
+      try {
+        onFinalize(need);
+        console.log('✅ [NEEDCARD] onFinalize executado com sucesso');
+      } catch (error) {
+        console.error('💥 [NEEDCARD] Erro ao executar onFinalize:', error);
+      }
+    } else {
+      console.log('🔴 [NEEDCARD] onFinalize não é uma função válida:', {
+        type: typeof onFinalize,
+        value: onFinalize
+      });
+    }
+  };
+
+  const handleDonatePress = (e) => {
+    e?.stopPropagation?.();
+    if (isInstitutionView && onEdit && typeof onEdit === 'function') {
+      onEdit(need);
+    } else if (!isInstitutionView && onChat && typeof onChat === 'function') {
+      onChat(need);
+    } else if (onPress && typeof onPress === 'function') {
+      onPress(need);
     }
   };
 
@@ -54,6 +99,7 @@ const NeedCard = ({
   const needUnit = need.unit || 'unidade';
   const institutionName = need.institution_name || 'Instituição';
   const institutionAvatar = need.institution_avatar || `https://via.placeholder.com/40x40/4A90E2/FFFFFF?text=${institutionName.charAt(0)}`;
+  const needStatus = need.status || 'ativa';
 
   const getUrgencyColor = (urgency) => {
     switch (urgency) {
@@ -66,6 +112,22 @@ const NeedCard = ({
   };
 
   const urgencyColor = getUrgencyColor(needUrgency);
+
+  // Verifica se a necessidade está concluída
+  const isNeedCompleted = needStatus === 'concluida' || needStatus === 'fulfilled' || isCompleted;
+
+  // Verifica se deve mostrar o botão Finalizar
+  const shouldShowFinalizeButton = isInstitutionView && 
+                                 !isNeedCompleted && 
+                                 onFinalize && 
+                                 typeof onFinalize === 'function';
+
+  console.log('🔍 [NEEDCARD] Renderização:', {
+    shouldShowFinalizeButton,
+    isInstitutionView,
+    isNeedCompleted,
+    hasOnFinalize: !!onFinalize
+  });
 
   // Conteúdo do card
   const CardContent = () => (
@@ -96,6 +158,13 @@ const NeedCard = ({
 
       {/* Conteúdo da Necessidade */}
       <View style={styles.content}>
+        {/* Badge de Status */}
+        {isNeedCompleted && (
+          <View style={styles.completedBadge}>
+            <Text style={styles.completedText}>CONCLUÍDA</Text>
+          </View>
+        )}
+        
         <Text style={styles.needTitle}>{needTitle}</Text>
         <Text style={styles.needDescription}>{needDescription}</Text>
         
@@ -106,47 +175,67 @@ const NeedCard = ({
           <Text style={styles.detailText}>
             Categoria: {needCategory}
           </Text>
+          <Text style={styles.detailText}>
+            Status: {needStatus}
+          </Text>
         </View>
       </View>
 
       {/* Ações */}
       <View style={styles.actions}>
         {isInstitutionView ? (
-          // Ações para instituição (editar, detalhes)
-          <View style={styles.actionButtons}>
+          <View style={styles.institutionActions}>
             <TouchableOpacity 
-              style={[styles.actionButton, styles.detailsButton]}
-              onPress={handleDetailsPress}
-            >
-              <Text style={styles.detailsButtonText}>Detalhes</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.editButton]}
+              style={[
+                styles.editButton,
+                isNeedCompleted && styles.disabledButton
+              ]}
               onPress={handleEditPress}
+              disabled={isNeedCompleted}
             >
-              <Text style={styles.editButtonText}>Editar</Text>
+              <Text style={styles.editButtonText}>
+                {isNeedCompleted ? 'Concluída' : 'Editar'}
+              </Text>
             </TouchableOpacity>
+            
+            {shouldShowFinalizeButton && (
+              <TouchableOpacity 
+                style={styles.finalizeButton}
+                onPress={handleFinalizePress}
+              >
+                <Text style={styles.finalizeButtonText}>Finalizar</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
-          // Ações para doador (doar)
+          // Botão Doar para doador
           <TouchableOpacity 
-            style={styles.donateButton}
-            onPress={handleDetailsPress} // Usa handleDetailsPress para evitar conflito
+            style={[
+              styles.donateButton,
+              isNeedCompleted && styles.disabledButton
+            ]}
+            onPress={handleDonatePress}
+            disabled={isNeedCompleted}
           >
-            <Text style={styles.donateButtonText}>Doar</Text>
+            <Text style={styles.donateButtonText}>
+              {isNeedCompleted ? 'Concluída' : 'Doar'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
     </>
   );
 
-  // Renderização condicional baseada na prop isClickable
-  if (isClickable) {
+  if (isClickable && !isNeedCompleted) {
     return (
       <TouchableOpacity 
-        style={styles.container}
-        onPress={handleCardPress}
+        style={[
+          styles.container,
+          isNeedCompleted && styles.completedContainer
+        ]}
+        onPress={handleDonatePress}
         activeOpacity={0.7}
+        disabled={isNeedCompleted}
       >
         <CardContent />
       </TouchableOpacity>
@@ -154,11 +243,16 @@ const NeedCard = ({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      isNeedCompleted && styles.completedContainer
+    ]}>
       <CardContent />
     </View>
   );
 };
+
+// ... (estilos permanecem os mesmos)
 
 const styles = StyleSheet.create({
   container: {
@@ -171,6 +265,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     overflow: 'hidden',
+  },
+  completedContainer: {
+    opacity: 0.8,
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
@@ -211,6 +309,22 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    position: 'relative',
+  },
+  completedBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 16,
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  completedText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   needTitle: {
     fontSize: 18,
@@ -237,30 +351,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  actionButtons: {
+  institutionActions: {
     flexDirection: 'row',
     gap: 12,
   },
-  actionButton: {
+  editButton: {
     flex: 1,
+    backgroundColor: '#FF1434',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  detailsButton: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  editButton: {
-    backgroundColor: '#FF1434',
-  },
-  detailsButtonText: {
+  editButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#FFFFFF',
   },
-  editButtonText: {
+  finalizeButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  finalizeButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
@@ -275,6 +389,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  disabledButton: {
+    backgroundColor: '#9E9E9E',
   },
 });
 

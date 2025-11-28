@@ -8,12 +8,11 @@ const {
   updateUserRole,
   deleteUser,
   getAdminStats,
-  sendGlobalDisasterAlert, // <-- Nome correto (com "Global")
+  sendGlobalDisasterAlert,
   getAlertHistory,
   getAlertStats
 } = require('../controllers/adminController');
 
-// Todas as rotas de admin precisam de autenticação E verificação de admin
 router.use(authenticateToken, isAdmin);
 
 /**
@@ -44,7 +43,7 @@ router.get('/stats', getAdminStats);
  * POST /admin/alerts
  * Envia um alerta de desastre global
  */
-router.post('/alerts', sendGlobalDisasterAlert); // <-- Nome correto (com "Global")
+router.post('/alerts', sendGlobalDisasterAlert);
 
 /**
  * GET /admin/alerts/history

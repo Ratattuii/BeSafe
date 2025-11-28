@@ -19,7 +19,6 @@ async function getUserById(req, res) {
     }
 
     // Busca usuário no banco (sem senha)
-    // ATUALIZADO: Adicionado 'description' e 'address'
     const user = await queryOne(
       'SELECT id, name, email, role, avatar, description, address, created_at FROM users WHERE id = ?',
       [id]
@@ -55,7 +54,7 @@ async function getUserById(req, res) {
 async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    // CORREÇÃO: Ler 'description' e 'address' do body
+
     const { name, description, address } = req.body;
 
     // Validações básicas
@@ -91,8 +90,6 @@ async function updateUser(req, res) {
     let updateFields = [];
     let updateValues = [];
 
-    // CORREÇÃO: Lógica de atualização para todos os campos
-
     // Atualiza nome se fornecido (e não for undefined)
     if (name !== undefined) {
       updateFields.push('name = ?');
@@ -101,7 +98,6 @@ async function updateUser(req, res) {
     
     // Atualiza descrição se fornecida (e não for undefined)
     if (description !== undefined) {
-      // Converte a string "null" (do FormData) para o valor null
       const finalDescription = description === 'null' ? null : description;
       updateFields.push('description = ?');
       updateValues.push(finalDescription);
@@ -109,13 +105,10 @@ async function updateUser(req, res) {
 
     // Atualiza endereço se fornecido (e não for undefined)
     if (address !== undefined) {
-      // Converte a string "null" (do FormData) para o valor null
       const finalAddress = address === 'null' ? null : address;
       updateFields.push('address = ?');
       updateValues.push(finalAddress);
     }
-    
-    // 👆 FIM DA CORREÇÃO 👆
 
     // Atualiza avatar se enviado
     if (req.file) {
@@ -125,11 +118,9 @@ async function updateUser(req, res) {
         deleteFile(oldAvatarPath);
       }
 
-      // 👇👇👇 CORREÇÃO DEFINITIVA 👇👇👇
       const avatarPath = `/uploads/avatars/${req.file.filename}`;
       updateFields.push('avatar = ?');
       updateValues.push(avatarPath);
-      // 👆👆👆 FIM DA CORREÇÃO DEFINITIVA 👆👆👆
     }
 
     // Verifica se há dados para atualizar

@@ -15,7 +15,6 @@ const TabBar = ({ state, descriptors, navigation }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
-  // No desktop, não mostra tab bar (pode implementar sidebar depois)
   if (isDesktop) {
     return null;
   }

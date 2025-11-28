@@ -14,8 +14,6 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../contexts/AuthContext';
 import { validateEmail, validatePassword, validateRequired, validatePasswordConfirmation, runValidations } from '../utils/validation';
-// Import do showError removido, pois estamos usando Alert
-// import { showError } from '../utils/alerts';
 
 const RegisterScreen = ({ navigation, route }) => {
   const { register } = useAuth();
@@ -131,7 +129,6 @@ const RegisterScreen = ({ navigation, route }) => {
     setLoading(true);
 
     try {
-      // Prepara dados para cadastro
       const formData = userType === 'donor' ? donorData : institutionData;
       
       const userData = {
@@ -139,7 +136,6 @@ const RegisterScreen = ({ navigation, route }) => {
         email: formData.email,
         password: formData.password,
         role: userType,
-        // Dados específicos da instituição
         ...(userType === 'institution' && {
           cnpj: formData.cnpj,
           phone: formData.phone,
@@ -543,8 +539,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F2',
   },
-  
-  // Header com botão de voltar
   headerContainer: {
     paddingHorizontal: 20,
     paddingTop: 10,
@@ -568,7 +562,6 @@ const styles = StyleSheet.create({
     color: '#FF1434',
     fontWeight: 'bold',
   },
-  
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -576,8 +569,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
-
-  // Card
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -591,8 +582,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-
-  // Header do Card
   cardHeader: {
     alignItems: 'center',
     marginBottom: 24,
@@ -623,8 +612,6 @@ const styles = StyleSheet.create({
     color: '#757575',
     textAlign: 'center',
   },
-
-  // Seletor de Tipo
   userTypeSelector: {
     flexDirection: 'row',
     marginBottom: 24,
@@ -649,8 +636,6 @@ const styles = StyleSheet.create({
   typeTabTextActive: {
     color: '#FFFFFF',
   },
-
-  // Formulário
   formContainer: {
     flex: 1,
     maxHeight: 400,
@@ -683,8 +668,6 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-
-  // Password Input
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -709,8 +692,6 @@ const styles = StyleSheet.create({
   passwordToggleIcon: {
     fontSize: 18,
   },
-
-  // Dropdown
   dropdown: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -734,8 +715,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#757575',
   },
-
-  // Botão Register
   registerButton: {
     backgroundColor: '#FF1434',
     borderRadius: 8,
@@ -754,8 +733,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-
-  // Link Login
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -771,8 +748,6 @@ const styles = StyleSheet.create({
     color: '#FF1434',
     fontWeight: '600',
   },
-
-  // ESTILOS DO MODAL
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -784,7 +759,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 20,
     width: '80%',
-    maxHeight: '60%', // Adicionado ScrollView para listas longas
+    maxHeight: '60%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

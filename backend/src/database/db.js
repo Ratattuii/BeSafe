@@ -67,7 +67,7 @@ async function testConnection() {
 }
 
 /**
- * Fecha o pool de conexões (para shutdown graceful)
+ * Fecha o pool de conexões
  */
 async function closePool() {
   try {

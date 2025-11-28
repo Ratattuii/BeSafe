@@ -1,133 +1,195 @@
 // components/DonationOfferCard.jsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../styles/globalStyles';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-const DonationOfferCard = ({ offer, onDetails, onEdit, onViewDonorProfile }) => {
+const DonationOfferCard = ({ 
+  offer, 
+  onAccept, // Para instituição (Home)
+  onEdit,   // Para doador (Perfil)
+  onFinalize,
+  onViewDonorProfile,
+  isInstitutionView = false
+}) => {
+  const navigation = useNavigation();
 
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'available':
-      case 'disponivel':
-        return {
-          container: styles.statusAvailable,
-          text: styles.statusTextAvailable,
-          label: 'Disponível',
-        };
-      case 'accepted':
-      case 'aceita':
-        return {
-          container: styles.statusAccepted,
-          text: styles.statusTextAccepted,
-          label: 'Aceita',
-        };
-      case 'rejected':
-      case 'rejeitada':
-        return {
-          container: styles.statusRejected,
-          text: styles.statusTextRejected,
-          label: 'Rejeitada',
-        };
-      case 'completed':
-      case 'concluida':
-        return {
-          container: styles.statusCompleted,
-          text: styles.statusTextCompleted,
-          label: 'Concluída',
-        };
-      default:
-        return {
-          container: styles.statusDefault,
-          text: styles.statusTextDefault,
-          label: status || 'Disponível',
-        };
-    }
-  };
-
-  const statusStyle = getStatusStyle(offer.status);
-
-  // Função para lidar com aceitação de oferta
-  const handleAccept = () => {
-    Alert.alert(
-      'Aceitar Oferta',
-      `Você deseja aceitar a oferta "${offer.title}" e iniciar um chat com o doador?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Aceitar e Conversar', onPress: onEdit }
-      ]
+  if (!offer) {
+    return (
+      <View style={styles.container}>
+        <Text>Oferta não disponível</Text>
+      </View>
     );
-  };
+  }
 
-  // Função para lidar com clique no botão do doador
-  const handleDonorPress = () => {
-    console.log('DEBUG: Botão do doador pressionado');
-    if (onViewDonorProfile) {
-      onViewDonorProfile(offer);
-    } else {
-      console.warn('DEBUG: onViewDonorProfile não está definido');
-      Alert.alert('Info', 'Função de visualizar perfil não disponível');
+  const handleAcceptPress = () => {
+    if (onAccept) {
+      onAccept(offer);
     }
   };
+
+  const handleEditPress = () => {
+    if (onEdit) {
+      onEdit(offer);
+    }
+  };
+
+  const handleFinalizePress = () => {
+    if (onFinalize) {
+      onFinalize(offer);
+    }
+  };
+
+  // Navegar para perfil público do doador
+  const handleDonorProfilePress = () => {
+    console.log('DEBUG: Navegando para perfil do doador:', {
+      donor_id: offer.donor_id,
+      donor_name: offer.donor_name
+    });
+
+    if (!offer.donor_id && !offer.user_id) {
+      console.log('DEBUG: IDs do doador não disponíveis');
+      return;
+    }
+
+    const donorId = offer.donor_id || offer.user_id;
+    const donorName = offer.donor_name || 'Doador';
+
+    // Navegar para o perfil público do doador
+    navigation.navigate('PublicDonorProfile', { 
+      userId: donorId,
+      userName: donorName
+    });
+  };
+
+  const offerTitle = offer.title || 'Oferta sem título';
+  const offerDescription = offer.description || 'Sem descrição disponível';
+  const offerQuantity = offer.quantity || 'Não especificada';
+  const offerCategory = offer.category || 'Geral';
+  const offerConditions = offer.conditions || 'Não especificada';
+  const offerLocation = offer.location || 'Não informada';
+  const donorName = offer.donor_name || 'Anônimo';
+  const donorAvatar = offer.donor_avatar || `https://via.placeholder.com/40x40/4A90E2/FFFFFF?text=${donorName.charAt(0)}`;
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available': return '#4CAF50';
+      case 'reserved': return '#FF9800';
+      case 'completed': return '#757575';
+      default: return '#9E9E9E';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'available': return 'Disponível';
+      case 'reserved': return 'Reservada';
+      case 'completed': return 'Concluída';
+      default: return 'Indisponível';
+    }
+  };
+
+  const statusColor = getStatusColor(offer.status);
+  const statusText = getStatusText(offer.status);
+
+  const shouldShowFinalizeButton = !isInstitutionView && 
+  offer.status === 'available' && 
+  onFinalize && 
+  typeof onFinalize === 'function';
+
+  console.log('🔍 [DONATION OFFER CARD] Condições do botão Finalizar:', {
+  isInstitutionView,
+  offerStatus: offer.status,
+  hasOnFinalize: !!onFinalize,
+  onFinalizeType: typeof onFinalize,
+  shouldShowFinalizeButton
+  });
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={[styles.statusBadge, statusStyle.container]}>
-          <Text style={[styles.statusText, statusStyle.text]}>{statusStyle.label}</Text>
-        </View>
-        <Text style={styles.date}>
-          {offer.created_at ? `Publicado em ${new Date(offer.created_at).toLocaleDateString('pt-BR')}` : 'Data não disponível'}
-        </Text>
-      </View>
-
-      <View style={styles.content}>
+    <View style={styles.container}>
+      {/* Cabeçalho - Doador */}
+      <TouchableOpacity 
+        style={styles.header}
+        onPress={handleDonorProfilePress}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityLabel={`Ver perfil de ${donorName}`}
+        accessibilityRole="button"
+      >
         <Image 
-          source={{ 
-            uri: offer.image || offer.photo_url || 'https://via.placeholder.com/60x60/4A90E2/FFFFFF?text=Doação'
-          }} 
-          style={styles.donationImage} 
+          source={{ uri: donorAvatar }} 
+          style={styles.donorAvatar}
+          defaultSource={{ uri: 'https://via.placeholder.com/40x40/4A90E2/FFFFFF?text=${donorName.charAt(0)}' }}
         />
-        <View style={styles.info}>
-          <Text style={styles.title}>{offer.title || 'Oferta sem título'}</Text>
-          <Text style={styles.description} numberOfLines={2}>
-            {offer.description || 'Sem descrição disponível'}
+        <View style={styles.headerInfo}>
+          <Text style={styles.donorName}>{donorName}</Text>
+          <Text style={styles.offerDate}>
+            {offer.created_at ? new Date(offer.created_at).toLocaleDateString('pt-BR') : 'Data não disponível'}
           </Text>
-          
-          {/* Botão para ver perfil do doador */}
-          <TouchableOpacity 
-            style={styles.donorButton}
-            onPress={handleDonorPress}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="person-circle-outline" size={14} color={colors.primary} />
-            <Text style={styles.donorButtonText}>
-              👤 {offer.donor_name || 'Doador Anônimo'}
-            </Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.textTertiary} />
-          </TouchableOpacity>
-          
-          <Text style={styles.quantity}>
-            {offer.quantity || 1} unidade(s) • {offer.category || 'Geral'} • {offer.conditions || 'Boa condição'}
+          <Text style={styles.profileHint}>👤 Toque para ver perfil</Text>
+        </View>
+        
+        {/* Badge de Status */}
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+          <Text style={styles.statusText}>{statusText}</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Conteúdo da Oferta */}
+      <View style={styles.content}>
+        <Text style={styles.offerTitle}>{offerTitle}</Text>
+        <Text style={styles.offerDescription}>{offerDescription}</Text>
+        
+        <View style={styles.details}>
+          <Text style={styles.detailText}>
+            📦 Quantidade: {offerQuantity}
+          </Text>
+          <Text style={styles.detailText}>
+            🏷️ Categoria: {offerCategory}
+          </Text>
+          <Text style={styles.detailText}>
+            🔧 Condição: {offerConditions}
+          </Text>
+          <Text style={styles.detailText}>
+            📍 Localização: {offerLocation}
           </Text>
         </View>
       </View>
 
-      <View style={styles.footer}>
-        {/* ❌ BOTÃO "VER DETALHES" REMOVIDO */}
-        
-        {(offer.status === 'available' || offer.status === 'disponivel') && (
-          <TouchableOpacity style={styles.buttonPrimary} onPress={handleAccept}>
-            <Ionicons name="chatbubble-outline" size={16} color={colors.white} />
-            <Text style={styles.buttonPrimaryText}>Aceitar e Conversar</Text>
+      {/* Ações - CONDICIONAL baseada no tipo de usuário */}
+      <View style={styles.actions}>
+        {isInstitutionView ? (
+          // VISÃO DA INSTITUIÇÃO (Home) - APENAS Aceitar e Conversar
+          <TouchableOpacity 
+            style={styles.acceptButton}
+            onPress={handleAcceptPress}
+          >
+            <Text style={styles.acceptButtonText}>Aceitar e Conversar</Text>
           </TouchableOpacity>
-        )}
-        
-        {(offer.status === 'accepted' || offer.status === 'aceita') && (
-          <TouchableOpacity style={styles.buttonSecondary} onPress={onDetails}>
-            <Ionicons name="chatbubble" size={16} color={colors.white} />
-            <Text style={styles.buttonSecondaryText}>Continuar Chat</Text>
-          </TouchableOpacity>
+        ) : (
+          // VISÃO DO DOADOR (Perfil) - Editar e Finalizar
+          <View style={styles.donorActions}>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={handleEditPress}
+            >
+              <Text style={styles.editButtonText}>Editar</Text>
+            </TouchableOpacity>
+            
+            {shouldShowFinalizeButton && (
+              <TouchableOpacity 
+                style={styles.finalizeButton}
+                onPress={handleFinalizePress}
+              >
+                <Text style={styles.finalizeButtonText}>Finalizar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
     </View>
@@ -135,145 +197,127 @@ const DonationOfferCard = ({ offer, onDetails, onEdit, onViewDonorProfile }) => 
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.white,
+  container: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 3,
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: colors.gray100,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#FAFBFC',
+  },
+  donorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    backgroundColor: '#F6F8F9',
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  donorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212121',
+    marginBottom: 2,
+  },
+  offerDate: {
+    fontSize: 12,
+    color: '#757575',
+    marginBottom: 4,
+  },
+  profileHint: {
+    fontSize: 10,
+    color: '#FF1434',
+    fontWeight: '500',
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: 'bold',
-  },
-  statusAvailable: {
-    backgroundColor: colors.successLight,
-  },
-  statusTextAvailable: {
-    color: colors.successDark,
-  },
-  statusAccepted: {
-    backgroundColor: colors.primaryLight,
-  },
-  statusTextAccepted: {
-    color: colors.primaryDark,
-  },
-  statusRejected: {
-    backgroundColor: colors.errorLight,
-  },
-  statusTextRejected: {
-    color: colors.errorDark,
-  },
-  statusCompleted: {
-    backgroundColor: colors.gray200,
-  },
-  statusTextCompleted: {
-    color: colors.textSecondary,
-  },
-  statusDefault: {
-    backgroundColor: colors.gray200,
-  },
-  statusTextDefault: {
-    color: colors.textSecondary,
-  },
-  date: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   content: {
-    flexDirection: 'row',
     padding: 16,
-    alignItems: 'flex-start',
   },
-  donationImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: colors.secondary,
-    marginRight: 12,
+  offerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#212121',
+    marginBottom: 8,
   },
-  info: {
-    flex: 1,
+  offerDescription: {
+    fontSize: 14,
+    color: '#212121',
+    lineHeight: 20,
+    marginBottom: 12,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
+  details: {
+    marginBottom: 16,
+  },
+  detailText: {
+    fontSize: 12,
+    color: '#757575',
     marginBottom: 4,
   },
-  description: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  donorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    paddingVertical: 4,
-  },
-  donorButtonText: {
-    fontSize: 12,
-    color: colors.primary,
-    marginLeft: 4,
-    marginRight: 4,
-    fontWeight: '500',
-  },
-  quantity: {
-    fontSize: 12,
-    color: colors.textTertiary,
-    textTransform: 'capitalize',
-  },
-  footer: {
-    flexDirection: 'row',
+  actions: {
+    padding: 16,
     borderTopWidth: 1,
-    borderTopColor: colors.gray100,
+    borderTopColor: '#F3F4F6',
   },
-  // ❌ ESTILOS DO BOTÃO "VER DETALHES" REMOVIDOS
-  buttonPrimary: {
-    flex: 1,
+  donorActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 6,
-    backgroundColor: colors.primary,
+    gap: 12,
   },
-  buttonPrimaryText: {
+  acceptButton: {
+    backgroundColor: '#FF1434',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.white,
+    color: '#FFFFFF',
   },
-  buttonSecondary: {
+  editButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#FF1434',
     paddingVertical: 12,
-    gap: 6,
-    backgroundColor: colors.success,
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  buttonSecondaryText: {
+  finalizeButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.white,
+    color: '#FFFFFF',
+  },
+  finalizeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

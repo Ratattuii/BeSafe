@@ -18,7 +18,6 @@ const PostCard = ({
   onSharePress = () => {}, 
   onDonatePress = () => {} 
 }) => {
-  // Verificações de segurança para dados ausentes
   if (!post) {
     return (
       <View style={styles.container}>
@@ -27,7 +26,6 @@ const PostCard = ({
     );
   }
 
-  // Dados seguros com fallbacks
   const institution = post.institution || {};
   const institutionName = institution.name || post.institution_name || 'Instituição';
   const institutionAvatar = institution.avatar || `https://via.placeholder.com/40x40/4A90E2/FFFFFF?text=${institutionName.charAt(0)}`;
@@ -41,7 +39,6 @@ const PostCard = ({
   const postDescription = post.description || 'Sem descrição disponível';
   const postTimestamp = post.timestamp || post.created_at || 'Data não disponível';
   
-  // Estatísticas seguras
   const postStats = stats || { likes: 0, comments: 0, shares: 0 };
 
   const urgencyColor = getUrgencyColor(postUrgency);

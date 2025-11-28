@@ -1,17 +1,11 @@
-// Navegação básica da aplicação - stub inicial
-// TODO: Implementar navegação real quando as telas estiverem prontas
-
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-/**
- * Navegador principal da aplicação (stub)
- * Aqui será implementada a navegação entre telas usando React Navigation ou similar
- */
+
 const AppNavigator = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Navegação</Text>
+      <Text style={styles.title}>Navegaão</Text>
       <Text style={styles.subtitle}>
         A navegação será implementada quando as telas estiverem prontas
       </Text>

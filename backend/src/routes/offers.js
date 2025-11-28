@@ -6,7 +6,8 @@ const {
   updateOffer,
   getAvailableOffers,
   acceptOffer,
-  rejectOffer
+  rejectOffer,
+  finalizeDonationOffer
 } = require('../controllers/offerController');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -45,5 +46,10 @@ router.put('/:id/reject', authenticateToken, rejectOffer);
  * Atualiza uma oferta de doação existente
  */
 router.put('/:id', authenticateToken, updateOffer);
+/**
+ * POST /offers/:id/finalize
+ * Finaliza uma oferta de doação (marca como concluída)
+ */
+router.post('/:id/finalize', authenticateToken, finalizeDonationOffer);
 
 module.exports = router;

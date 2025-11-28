@@ -140,7 +140,8 @@ const PublicDonorProfileScreen = () => {
       offer={item}
       onDetails={() => handleViewOfferDetails(item)}
       onEdit={() => handleAcceptOffer(item)}
-      onViewDonorProfile={handleViewDonorProfile} // Desabilitado
+      onViewDonorProfile={handleViewDonorProfile}
+      isInstitutionView={true}
     />
   );
 

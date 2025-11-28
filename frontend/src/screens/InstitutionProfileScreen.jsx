@@ -11,6 +11,8 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../styles/globalStyles';
@@ -22,18 +24,22 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
   const [institution, setInstitution] = useState(null);
   const [currentNeeds, setCurrentNeeds] = useState([]);
   const [donationHistory, setDonationHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState('necessidades'); // necessidades, historico
+  const [activeTab, setActiveTab] = useState('necessidades');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   
+  // Estados para o modal de doação
+  const [donationModalVisible, setDonationModalVisible] = useState(false);
+  const [selectedNeed, setSelectedNeed] = useState(null);
+  const [donationAmount, setDonationAmount] = useState('');
+  const [donationMessage, setDonationMessage] = useState('');
+  const [isDonating, setIsDonating] = useState(false);
+  
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
-  // Obter dados reais do usuário logado
   const { user } = useAuth();
-
-  // Determinar se é o próprio perfil (receptor) ou perfil externo (doador)
   const institutionId = route?.params?.institutionId || 'current';
   const isOwnProfile = institutionId === 'current';
   const viewerType = isOwnProfile ? 'receptor' : 'doador';
@@ -41,7 +47,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
   // Dados da instituição (mistura dados reais com mockados)
   const getUserInstitutionData = () => {
     if (isOwnProfile && user && user.role === 'institution') {
-      // Se é o próprio perfil E o usuário é uma instituição, usa dados reais
       return {
         id: user.id || 1,
         name: user.name || 'Minha Instituição',
@@ -69,7 +74,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
       };
     }
     
-    // Dados mockados para perfil externo ou quando usuário não é instituição
     return mockInstitution;
   };
 
@@ -180,11 +184,9 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
     
     try {
       if (isOwnProfile && user && user.role === 'institution') {
-        // Se é o próprio perfil e o usuário é uma instituição, usa dados reais
         const institutionData = getUserInstitutionData();
         setInstitution(institutionData);
         
-        // Buscar necessidades reais
         const needsResponse = await api.getInstitutionNeeds(user.id || 1);
         if (needsResponse.success && needsResponse.data.needs) {
           setCurrentNeeds(needsResponse.data.needs);
@@ -195,7 +197,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
         setDonationHistory(mockDonationHistory);
         setIsFollowing(false);
       } else if (institutionId && institutionId !== 'current') {
-        // Buscar dados reais da instituição pelo ID
         console.log('Buscando dados da instituição ID:', institutionId);
         const institutionResponse = await api.getInstitution(institutionId);
         console.log('Resposta da API getInstitution:', institutionResponse);
@@ -204,7 +205,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
           const instData = institutionResponse.data.institution;
           console.log('Dados da instituição recebidos:', instData);
           
-          // Mapear dados da API para o formato esperado
           setInstitution({
             id: instData.id,
             name: instData.name,
@@ -231,7 +231,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
             }
           });
           
-          // Buscar necessidades da instituição
           const needsResponse = await api.getInstitutionNeeds(institutionId);
           if (needsResponse.success && needsResponse.data && needsResponse.data.needs) {
             setCurrentNeeds(needsResponse.data.needs);
@@ -239,7 +238,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
             setCurrentNeeds([]);
           }
           
-          // Verificar se já segue
           try {
             const followedResponse = await api.getFollowedInstitutions();
             if (followedResponse.success && followedResponse.data && followedResponse.data.institutions) {
@@ -255,21 +253,18 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
           
           setDonationHistory(mockDonationHistory);
         } else {
-          // Se não encontrou, mostrar erro ao invés de usar dados mockados
           console.error('Instituição não encontrada ou resposta inválida:', institutionResponse);
           Alert.alert(
             'Erro', 
             `Não foi possível carregar os dados da instituição. ${institutionResponse.message || ''}`,
             [{ text: 'OK', onPress: () => navigation?.goBack?.() }]
           );
-          // Não definir dados mockados - deixar null para mostrar erro
           setInstitution(null);
           setCurrentNeeds([]);
           setDonationHistory([]);
           setIsFollowing(false);
         }
       } else {
-        // Fallback para dados mockados
         const institutionData = getUserInstitutionData();
         setInstitution(institutionData);
         setCurrentNeeds(mockCurrentNeeds);
@@ -278,7 +273,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error('Erro ao carregar dados da instituição:', error);
-      // Em caso de erro, usar dados mockados como fallback
       const institutionData = getUserInstitutionData();
       setInstitution(institutionData);
       setCurrentNeeds(mockCurrentNeeds);
@@ -296,22 +290,200 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
   };
 
   const handleFollow = async () => {
-    // TODO: Implementar seguir/desseguir
-    // POST /institutions/${institutionId}/follow
-    // DELETE /institutions/${institutionId}/follow
-    
-    setIsFollowing(!isFollowing);
-    console.log(isFollowing ? 'Deixar de seguir' : 'Seguir', institution.name);
+    if (!user || !user.id) {
+      Alert.alert('Erro', 'Você precisa estar logado para seguir instituições.');
+      return;
+    }
+
+    if (!institution || !institution.id) {
+      Alert.alert('Erro', 'Instituição não encontrada.');
+      return;
+    }
+
+    try {
+      let response;
+      
+      if (isFollowing) {
+        // Deixar de seguir
+        response = await api.unfollowInstitution(institution.id);
+      } else {
+        // Seguir
+        response = await api.followInstitution(institution.id);
+      }
+
+      if (response.success) {
+        setIsFollowing(!isFollowing);
+        
+        // Atualizar contador de seguidores localmente
+        setInstitution(prev => ({
+          ...prev,
+          stats: {
+            ...prev.stats,
+            followers: isFollowing ? prev.stats.followers - 1 : prev.stats.followers + 1
+          }
+        }));
+
+        Alert.alert(
+          'Sucesso',
+          isFollowing ? 'Você deixou de seguir esta instituição.' : 'Agora você está seguindo esta instituição!',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Erro', response.message || 'Não foi possível processar a ação.');
+      }
+    } catch (error) {
+      console.error('Erro ao seguir/deseguir instituição:', error);
+      Alert.alert('Erro', 'Não foi possível processar a ação. Tente novamente.');
+    }
   };
 
-  const handleDonate = () => {
-    // TODO: Navegar para tela de doação
-    navigation?.navigate?.('PostDonation', { institutionId });
-    console.log('Doar para', institution.name);
+  // Função para abrir o modal de doação
+  const openDonationModal = (need = null) => {
+    setSelectedNeed(need);
+    setDonationAmount('');
+    setDonationMessage('');
+    setDonationModalVisible(true);
+  };
+
+  // Função para fechar o modal de doação
+  const closeDonationModal = () => {
+    setDonationModalVisible(false);
+    setSelectedNeed(null);
+  };
+
+  // Função para salvar a doação no banco de dados
+  const saveDonationToDatabase = async (donationData) => {
+    try {
+      console.log('Salvando doação:', donationData);
+      
+      // SEMPRE usar um need_id válido
+      let needId = donationData.need_id;
+      
+      // Se não tem need_id específico, usar a primeira necessidade ativa
+      if (!needId) {
+        if (currentNeeds.length > 0) {
+          needId = currentNeeds[0].id;
+          console.log('Usando primeira necessidade ativa:', needId);
+        } else {
+          // Se não há necessidades ativas, não podemos fazer a doação
+          return { 
+            success: false, 
+            error: 'Esta instituição não possui necessidades ativas no momento. Entre em contato para mais informações.' 
+          };
+        }
+      }
+      
+      // Payload único com need_id válido
+      const donationPayload = {
+        donor_id: donationData.donor_id,
+        institution_id: donationData.institution_id,
+        need_id: needId,
+        amount: donationData.amount,
+        donation_type: 'monetary',
+        quantity: donationData.amount, // Usar o valor como quantidade
+        unit: "reais",
+        notes: donationData.message || `Doação monetária para ${selectedNeed ? selectedNeed.title : institution?.name}`,
+        status: 'pendente',
+      };
+
+      console.log('Payload da doação:', donationPayload);
+      
+      // Fazer uma única tentativa
+      const response = await api.createDonation(donationPayload);
+      
+      if (response.success) {
+        console.log('Doação salva com sucesso:', response.data);
+        return { success: true, data: response.data };
+      } else {
+        console.error('Erro ao salvar doação:', response.message);
+        return { success: false, error: response.message };
+      }
+      
+    } catch (error) {
+      console.error('Erro na requisição de doação:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Função para processar a doação (SIMPLIFICADA)
+  const handleProcessDonation = async () => {
+    if (!donationAmount || isNaN(donationAmount) || parseFloat(donationAmount) <= 0) {
+      Alert.alert('Erro', 'Por favor, insira um valor válido para a doação.');
+      return;
+    }
+
+    if (!user || !user.id) {
+      Alert.alert('Erro', 'Você precisa estar logado para fazer uma doação.');
+      return;
+    }
+
+    if (!institution || !institution.id) {
+      Alert.alert('Erro', 'Instituição não encontrada.');
+      return;
+    }
+
+    // Verificar se há necessidades ativas para doações gerais
+    if (!selectedNeed && currentNeeds.length === 0) {
+      Alert.alert(
+        'Sem Necessidades Ativas',
+        'Esta instituição não possui necessidades ativas no momento. Entre em contato para saber como ajudar.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setIsDonating(true);
+    
+    try {
+      // Preparar dados básicos da doação
+      const donationData = {
+        donor_id: user.id,
+        institution_id: institution.id,
+        need_id: selectedNeed ? selectedNeed.id : null, // Será substituído se for null
+        amount: parseFloat(donationAmount),
+        message: donationMessage || null,
+      };
+
+      console.log('Processando doação:', donationData);
+
+      // Salvar no banco
+      const saveResult = await saveDonationToDatabase(donationData);
+
+      if (saveResult.success) {
+        Alert.alert(
+          'Doação Realizada! 🎉',
+          `Sua doação de R$ ${parseFloat(donationAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para ${selectedNeed ? selectedNeed.title : institution.name} foi registrada com sucesso!`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                closeDonationModal();
+                loadInstitutionData(); // Atualizar dados
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Erro na Doação',
+          saveResult.error,
+          [{ text: 'OK' }]
+        );
+      }
+
+    } catch (error) {
+      console.error('Erro ao processar doação:', error);
+      Alert.alert(
+        'Erro', 
+        `Ocorreu um erro inesperado: ${error.message}`,
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsDonating(false);
+    }
   };
 
   const handleAddNeed = () => {
-    // TODO: Navegar para criar necessidade
     navigation?.navigate?.('PostNeed');
     console.log('Adicionar nova necessidade');
   };
@@ -325,17 +497,17 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
     const contactData = {
         id: institution.id,
         name: institution.name || 'Instituição',
-        avatar: institution.avatar || null,
+        avatar: institution.logo || null,
         type: 'institution',
     };
 
     console.log('Abrir chat com', contactData.name);
     navigation.navigate('Chat', { contact: contactData });
-};
+  };
 
   const handleNeedPress = (need) => {
-    // TODO: Navegar para detalhes da necessidade
-    console.log('Ver necessidade:', need.title);
+    // Abrir modal de doação quando clicar no card
+    openDonationModal(need);
   };
 
   const formatNumber = (num) => {
@@ -344,6 +516,132 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
     }
     return num.toString();
   };
+
+  // Modal de Doação
+  const renderDonationModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={donationModalVisible}
+      onRequestClose={closeDonationModal}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {selectedNeed ? `Doar para: ${selectedNeed.title}` : 'Fazer Doação'}
+            </Text>
+            <TouchableOpacity onPress={closeDonationModal} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalBody}>
+            {selectedNeed && (
+              <View style={styles.needInfo}>
+                <Image source={{ uri: selectedNeed.image }} style={styles.needImage} />
+                <View style={styles.needDetails}>
+                  <Text style={styles.needTitle}>{selectedNeed.title}</Text>
+                  <Text style={styles.needDescription} numberOfLines={2}>
+                    {selectedNeed.description}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Valor da Doação (R$)</Text>
+              <TextInput
+                style={styles.amountInput}
+                placeholder="Ex: 50.00"
+                keyboardType="decimal-pad"
+                value={donationAmount}
+                onChangeText={setDonationAmount}
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Mensagem (opcional)</Text>
+              <TextInput
+                style={styles.messageInput}
+                placeholder="Deixe uma mensagem de apoio..."
+                multiline
+                numberOfLines={3}
+                value={donationMessage}
+                onChangeText={setDonationMessage}
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.quickAmounts}>
+              <Text style={styles.quickAmountsLabel}>Valores rápidos:</Text>
+              <View style={styles.quickAmountButtons}>
+                {[10, 25, 50, 100].map((amount) => (
+                  <TouchableOpacity
+                    key={amount}
+                    style={styles.quickAmountButton}
+                    onPress={() => setDonationAmount(amount.toString())}
+                  >
+                    <Text style={styles.quickAmountText}>R$ {amount}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Informações da doação */}
+            <View style={styles.donationInfo}>
+              <Text style={styles.donationInfoTitle}>Resumo da Doação:</Text>
+              <View style={styles.donationDetails}>
+                <Text style={styles.donationDetail}>
+                  <Text style={styles.detailLabel}>Instituição: </Text>
+                  {institution?.name}
+                </Text>
+                {selectedNeed && (
+                  <Text style={styles.donationDetail}>
+                    <Text style={styles.detailLabel}>Necessidade: </Text>
+                    {selectedNeed.title}
+                  </Text>
+                )}
+                <Text style={styles.donationDetail}>
+                  <Text style={styles.detailLabel}>Valor: </Text>
+                  R$ {donationAmount || '0.00'}
+                </Text>
+                <Text style={styles.donationDetail}>
+                  <Text style={styles.detailLabel}>Doador: </Text>
+                  {user?.name || 'Usuário'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[styles.cancelButton, isDonating && styles.disabledButton]}
+              onPress={closeDonationModal}
+              disabled={isDonating}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.confirmButton, isDonating && styles.disabledButton]}
+              onPress={handleProcessDonation}
+              disabled={isDonating}
+            >
+              {isDonating ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.confirmButtonText}>
+                  Confirmar Doação
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const renderHeader = () => (
     <View style={[styles.header, isDesktop && styles.headerDesktop]}>
@@ -366,7 +664,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.shareButton}
           onPress={() => {
-            // TODO: Compartilhar perfil
             console.log('Compartilhar perfil');
           }}
           accessible={true}
@@ -384,10 +681,8 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
 
     return (
       <View style={[styles.institutionInfo, isDesktop && styles.institutionInfoDesktop]}>
-        {/* Imagem de capa */}
         <Image source={{ uri: institution.coverImage }} style={styles.coverImage} />
         
-        {/* Logo e informações principais */}
         <View style={styles.mainInfo}>
           <View style={styles.logoContainer}>
             <Image source={{ uri: institution.logo }} style={styles.logo} />
@@ -403,7 +698,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
             <Text style={styles.institutionCategory}>{institution.category}</Text>
             <Text style={styles.institutionLocation}>📍 {institution.location}</Text>
             
-            {/* Estatísticas */}
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{formatNumber(institution.stats.followers)}</Text>
@@ -421,10 +715,8 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Descrição */}
         <Text style={styles.institutionDescription}>{institution.description}</Text>
 
-        {/* Botões de ação */}
         <View style={styles.actionButtons}>
           {viewerType === 'doador' ? (
             <>
@@ -448,7 +740,7 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
 
               <TouchableOpacity
                 style={styles.donateButton}
-                onPress={handleDonate}
+                onPress={() => openDonationModal()} // Doação geral para a instituição
                 accessible={true}
                 accessibilityLabel="Fazer doação"
                 accessibilityRole="button"
@@ -511,7 +803,12 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
   const renderCurrentNeeds = () => (
     <View style={styles.needsList}>
       {currentNeeds.map((need) => (
-        <View key={need.id} style={styles.needItemContainer}>
+        <TouchableOpacity
+          key={need.id}
+          style={styles.needItemContainer}
+          onPress={() => handleNeedPress(need)}
+          activeOpacity={0.7}
+        >
           <NeedCard
             need={{
               ...need,
@@ -524,7 +821,6 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
             onPress={() => handleNeedPress(need)}
           />
           
-          {/* Barra de progresso para necessidades */}
           {isOwnProfile && (
             <View style={styles.needProgress}>
               <View style={styles.progressInfo}>
@@ -546,7 +842,7 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
               </Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -658,6 +954,7 @@ const InstitutionProfileScreen = ({ route, navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
       {isDesktop ? renderDesktopLayout() : renderMobileLayout()}
+      {renderDonationModal()}
     </SafeAreaView>
   );
 };
@@ -1118,6 +1415,193 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // Modal de Doação
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.secondary,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: colors.textPrimary,
+    fontWeight: 'bold',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  needInfo: {
+    flexDirection: 'row',
+    backgroundColor: colors.backgroundLight,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+  },
+  needImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.secondary,
+  },
+  needDetails: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  needTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  needDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  amountInput: {
+    borderWidth: 1,
+    borderColor: colors.secondary,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    backgroundColor: colors.white,
+  },
+  messageInput: {
+    borderWidth: 1,
+    borderColor: colors.secondary,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 14,
+    backgroundColor: colors.white,
+    textAlignVertical: 'top',
+  },
+  quickAmounts: {
+    marginTop: 10,
+  },
+  quickAmountsLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  quickAmountButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickAmountButton: {
+    flex: 1,
+    backgroundColor: colors.secondary,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  quickAmountText: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: '500',
+  },
+  donationInfo: {
+    backgroundColor: colors.backgroundLight,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  donationInfoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  donationDetails: {
+    gap: 8,
+  },
+  donationDetail: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  detailLabel: {
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.secondary,
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  confirmButton: {
+    flex: 2,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
 

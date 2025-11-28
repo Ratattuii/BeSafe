@@ -1,5 +1,5 @@
 /**
- * Utilitários para respostas HTTP padronizadas
+ * Utilitários para respostas HTTP
  */
 
 /**

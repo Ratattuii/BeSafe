@@ -2,6 +2,7 @@ const { query, queryOne } = require('../database/db');
 const { success, errors } = require('../utils/responses');
 const { validateRequired } = require('../utils/validation');
 
+
 /**
  * Busca perfil de uma instituição
  * GET /institutions/:id
@@ -87,7 +88,7 @@ async function getInstitutionNeeds(req, res) {
         SUM(CASE WHEN d.status IN ('confirmada', 'entregue') THEN d.quantity ELSE 0 END) as total_received
       FROM needs n
       LEFT JOIN donations d ON n.id = d.need_id
-      WHERE n.institution_id = ?
+      WHERE n.institution_id = ? AND n.status != 'concluida'  -- ⬅️ AQUI: Excluir necessidades concluídas
     `;
     
     const params = [id];
@@ -115,8 +116,8 @@ async function getInstitutionNeeds(req, res) {
     
     const needs = await query(sql, params);
     
-    // Query para contar total
-    let countSql = 'SELECT COUNT(*) as total FROM needs WHERE institution_id = ?';
+    // Query para contar total - TAMBÉM EXCLUIR CONCLUÍDAS
+    let countSql = 'SELECT COUNT(*) as total FROM needs WHERE institution_id = ? AND status != "concluida"';
     const countParams = [id];
     
     if (status && ['ativa', 'em_andamento', 'concluida', 'cancelada'].includes(status)) {
@@ -484,12 +485,12 @@ async function getInstitutionStats(req, res) {
       return errors.notFound(res, 'Instituição não encontrada');
     }
     
-    // Estatísticas gerais
+    // Estatísticas gerais - INCLUIR CONCLUÍDAS AQUI
     const [generalStats] = await query(`
       SELECT 
         COUNT(DISTINCT n.id) as total_needs,
         COUNT(DISTINCT CASE WHEN n.status = 'ativa' THEN n.id END) as active_needs,
-        COUNT(DISTINCT CASE WHEN n.status = 'concluida' THEN n.id END) as completed_needs,
+        COUNT(DISTINCT CASE WHEN n.status = 'concluida' THEN n.id END) as completed_needs,  -- ⬅️ AQUI
         COUNT(DISTINCT f.id) as total_followers
       FROM users u
       LEFT JOIN needs n ON u.id = n.institution_id
@@ -508,24 +509,26 @@ async function getInstitutionStats(req, res) {
       WHERE d.institution_id = ?
     `, [id]);
     
-    // Necessidades por categoria
+    // Necessidades por categoria - INCLUIR TODOS OS STATUS
     const needsByCategory = await query(`
       SELECT 
         n.category,
         COUNT(*) as count,
-        SUM(CASE WHEN n.status = 'ativa' THEN 1 ELSE 0 END) as active_count
+        SUM(CASE WHEN n.status = 'ativa' THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN n.status = 'concluida' THEN 1 ELSE 0 END) as completed_count  -- ⬅️ AQUI
       FROM needs n
       WHERE n.institution_id = ?
       GROUP BY n.category
       ORDER BY count DESC
     `, [id]);
     
-    // Necessidades por urgência
+    // Necessidades por urgência - INCLUIR TODOS OS STATUS
     const needsByUrgency = await query(`
       SELECT 
         n.urgency,
         COUNT(*) as count,
-        SUM(CASE WHEN n.status = 'ativa' THEN 1 ELSE 0 END) as active_count
+        SUM(CASE WHEN n.status = 'ativa' THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN n.status = 'concluida' THEN 1 ELSE 0 END) as completed_count  -- ⬅️ AQUI
       FROM needs n
       WHERE n.institution_id = ?
       GROUP BY n.urgency

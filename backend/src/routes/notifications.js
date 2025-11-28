@@ -5,7 +5,10 @@ const {
   markAsRead, 
   markAllAsRead, 
   deleteNotification,
-  getNotificationStats 
+  getNotificationStats,
+  createManualNotification,
+  debugCreateTestNotification,
+  debugGetFollowers
 } = require('../controllers/notificationsController');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -18,7 +21,7 @@ router.get('/', authenticateToken, getNotifications);
 
 /**
  * GET /notifications/stats
- * Retorna estatísticas de notificações do usuário logado
+ * Retorna estatísticas de notificações
  */
 router.get('/stats', authenticateToken, getNotificationStats);
 
@@ -39,5 +42,23 @@ router.put('/read-all', authenticateToken, markAllAsRead);
  * Remove uma notificação
  */
 router.delete('/:id', authenticateToken, deleteNotification);
+
+/**
+ * POST /notifications/manual
+ * Cria uma notificação manualmente (admin/sistema)
+ */
+router.post('/manual', authenticateToken, createManualNotification);
+
+/**
+ * DEBUG: Testar criação de notificação
+ * POST /notifications/debug/test
+ */
+router.post('/debug/test', authenticateToken, debugCreateTestNotification);
+
+/**
+ * DEBUG: Verificar seguidores
+ * GET /notifications/debug/followers/:institutionId
+ */
+router.get('/debug/followers/:institutionId', authenticateToken, debugGetFollowers);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { queryOne } = require('../database/db');
 
-const JWT_SECRET_HARDCODED = process.env.JWT_SECRET || 'sua_chave_secreta_aqui';
+const JWT_SECRET_HARDCODED = process.env.JWT_SECRET || 'besafe_token';
 
 function generateToken(user) {
   return jwt.sign(

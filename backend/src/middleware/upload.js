@@ -60,7 +60,7 @@ const needUpload = multer({
   storage: needStorage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB máximo
+    fileSize: 5 * 1024 * 1024,
   }
 });
 
@@ -68,7 +68,7 @@ const institutionUpload = multer({
   storage: institutionStorage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB máximo
+    fileSize: 5 * 1024 * 1024,
   }
 });
 
@@ -76,7 +76,7 @@ const donationUpload = multer({
   storage: donationStorage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB máximo
+    fileSize: 5 * 1024 * 1024,
   }
 });
 

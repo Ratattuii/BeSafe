@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../styles/globalStyles'; 
 import PostCard from '../components/PostCard';
 import DonationOfferCard from '../components/DonationOfferCard';
+import FollowedInstitution from '../components/FollowedInstitution';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 
@@ -54,6 +55,22 @@ const Home = () => {
   const [commentsModal, setCommentsModal] = useState({ visible: false, needId: null, comments: [] });
   const [commentText, setCommentText] = useState('');
 
+  // Função para formatar contexto da necessidade para o chat
+  const formatNeedContextForChat = (need) => {
+    return {
+      id: need.id,
+      title: need.title || 'Necessidade sem título',
+      description: need.description || 'Sem descrição disponível',
+      urgency: need.urgency || 'media',
+      category: need.category || 'outros',
+      quantity: need.quantity || 1,
+      unit: need.unit || 'unidade',
+      institution_id: need.institution_id,
+      institution_name: need.institution_name || 'Instituição',
+      created_at: need.created_at
+    };
+  };
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -77,10 +94,15 @@ const Home = () => {
           api.getNeeds({ limit: 20 }),
           api.getFollowedInstitutions()
         ]);
+        
         if (response.success) {
           setFeedData(response.data.needs || []);
         } else {
           setError(response.message || 'Erro ao carregar necessidades');
+        }
+
+        if (followedResponse.success) {
+          setFollowedInstitutions(followedResponse.data.institutions || []);
         }
       }
 
@@ -102,15 +124,12 @@ const Home = () => {
         }
         setNeedStats(statsMap);
       }
-
-      if (!isInstitution && followedResponse.success) {
-        setFollowedInstitutions(followedResponse.data.institutions || []);
-      }
       
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       setError('Erro ao carregar dados. Tente novamente.');
       setFeedData([]);
+      setFollowedInstitutions([]);
     } finally {
       setLoading(false);
     }
@@ -126,7 +145,34 @@ const Home = () => {
     setRefreshing(false);
   };
 
-  // 🔥 NOVA FUNÇÃO: Para instituições visualizarem detalhes da oferta
+  // 🔥 FUNÇÃO PRINCIPAL: Iniciar chat a partir de uma necessidade
+  const handleStartChatFromNeed = async (need) => {
+    try {
+      console.log('DEBUG: Iniciando chat para necessidade:', need);
+      
+      // Formatar o contexto da necessidade
+      const needContext = formatNeedContextForChat(need);
+
+      // Navegar para a tela de chat com os dados da necessidade
+      navigation.navigate('Chat', {
+        contact: {
+          id: need.institution_id,
+          name: need.institution_name || 'Instituição',
+          avatar: need.institution_avatar,
+          type: 'institution',
+          isOnline: true
+        },
+        needContext: needContext,
+        chatId: `need_${need.id}_${need.institution_id}_${user.id}`,
+        chatType: 'need_donation'
+      });
+
+    } catch (error) {
+      console.error('Erro ao iniciar chat:', error);
+      Alert.alert('Erro', 'Não foi possível iniciar a conversa.');
+    }
+  };
+
   const handleViewOfferDetails = (offer) => {
     Alert.alert(
       offer.title || 'Oferta sem título',
@@ -140,7 +186,7 @@ const Home = () => {
       [
         { 
           text: 'Iniciar Chat', 
-          onPress: () => handleStartChat(offer),
+          onPress: () => handleAcceptOffer(offer),
           style: 'default'
         },
         { text: 'OK', style: 'cancel' }
@@ -148,55 +194,42 @@ const Home = () => {
     );
   };
 
-  // 🔥 NOVA FUNÇÃO: Iniciar chat direto com o doador
-  const handleStartChat = async (offer) => {
-    try {
-      // Primeiro aceita a oferta
-      const acceptResponse = await api.acceptDonationOffer(offer.id);
-      
-      if (acceptResponse.success) {
-        // Navega para o chat com o doador
-        navigation.navigate('Chat', { 
-          userId: offer.donor_id,
-          userName: offer.donor_name || 'Doador',
-          userAvatar: offer.donor_avatar,
-          offerId: offer.id,
-          offerTitle: offer.title
-        });
-        
-        Alert.alert(
-          'Chat Iniciado! 🎉',
-          `Você aceitou a oferta "${offer.title}" e pode agora conversar diretamente com ${offer.donor_name || 'o doador'} para combinar os detalhes da doação.`,
-          [{ text: 'Ótimo!', style: 'default' }]
-        );
-        
-        // Recarrega os dados para atualizar o status
-        loadData();
-      } else {
-        Alert.alert('Erro', acceptResponse.message || 'Não foi possível aceitar a oferta.');
-      }
-    } catch (error) {
-      console.error('Erro ao iniciar chat:', error);
-      Alert.alert('Erro', 'Não foi possível iniciar o chat com o doador.');
-    }
-  };
-
-  // 🔥 FUNÇÃO: Aceitar oferta e iniciar chat
   const handleAcceptOffer = async (offer) => {
-    Alert.alert(
-      'Aceitar Oferta e Iniciar Chat',
-      `Deseja aceitar a oferta "${offer.title}" e iniciar uma conversa direta com ${offer.donor_name || 'o doador'}?`,
-      [
-        { 
-          text: 'Cancelar', 
-          style: 'cancel' 
+    try {
+      console.log('DEBUG: Aceitando oferta:', offer.id);
+      
+      // Navega direto para o chat com o doador
+      navigation.navigate('Chat', { 
+        contact: {
+          id: offer.donor_id,
+          name: offer.donor_name || 'Doador',
+          avatar: offer.donor_avatar,
+          type: 'donor',
+          isOnline: true
         },
-        { 
-          text: 'Aceitar e Conversar', 
-          onPress: () => handleStartChat(offer)
-        }
-      ]
-    );
+        offerId: offer.id,
+        offerTitle: offer.title,
+        chatId: `offer_${offer.id}_${offer.donor_id}_${user.id}`
+      });
+      
+      loadData();
+      
+    } catch (error) {
+      console.error('DEBUG: Erro inesperado:', error);
+      
+      navigation.navigate('Chat', { 
+        contact: {
+          id: offer.donor_id,
+          name: offer.donor_name || 'Doador',
+          avatar: offer.donor_avatar,
+          type: 'donor',
+          isOnline: true
+        },
+        offerId: offer.id,
+        offerTitle: offer.title,
+        chatId: `offer_${offer.id}_${offer.donor_id}_${user.id}`
+      });
+    }
   };
 
   const getUrgencyColor = (urgency) => {
@@ -252,6 +285,27 @@ const Home = () => {
     }
   };
 
+  // Função para deixar de seguir instituição
+  const handleUnfollowInstitution = async (institutionId) => {
+    try {
+      const response = await api.unfollowInstitution(institutionId);
+      
+      if (response.success) {
+        // Remove a instituição da lista localmente
+        setFollowedInstitutions(prev => 
+          prev.filter(inst => inst.id !== institutionId)
+        );
+        
+        Alert.alert('Sucesso', 'Você deixou de seguir esta instituição.');
+      } else {
+        Alert.alert('Erro', response.message || 'Não foi possível deixar de seguir.');
+      }
+    } catch (error) {
+      console.error('Erro ao deixar de seguir:', error);
+      Alert.alert('Erro', 'Não foi possível processar a ação.');
+    }
+  };
+
   // Funções dos filtros (SÓ EXECUTAM SE FOR DOADOR)
   const handleUrgencySelect = async (urgency) => {
     if (isInstitution) return;
@@ -275,7 +329,6 @@ const Home = () => {
       
       const filters = {};
       
-      // Mapeia opções para valores da API
       if (urgency !== 'Todos') {
         const urgencyMap = {
           'Urgente': 'critica',
@@ -302,7 +355,6 @@ const Home = () => {
       if (response.success) {
         setFeedData(response.data.needs || []);
         
-        // Atualiza as estatísticas também
         const needs = response.data.needs || [];
         const statsMap = {};
         for (const need of needs) {
@@ -335,12 +387,10 @@ const Home = () => {
     if (isInstitution) return;
     
     try {
-      // Atualização otimista
       const previousStats = { ...needStats };
       const previousLikedState = needStats[postId]?.userLiked || false;
       const previousLikesCount = needStats[postId]?.likes || 0;
       
-      // Atualiza o estado local imediatamente
       setNeedStats(prev => ({
         ...prev,
         [postId]: {
@@ -350,11 +400,9 @@ const Home = () => {
         }
       }));
       
-      // Chama a API
       const response = await api.toggleNeedLike(postId);
       
       if (!response.success) {
-        // Reverte se a API falhar
         setNeedStats(prev => ({
           ...prev,
           [postId]: previousStats[postId]
@@ -372,7 +420,6 @@ const Home = () => {
     if (isInstitution) return;
     
     try {
-      // Busca os comentários atuais
       const commentsResponse = await api.getNeedComments(postId);
       
       if (commentsResponse.success) {
@@ -395,11 +442,9 @@ const Home = () => {
     if (isInstitution) return;
     
     try {
-      // Registra o compartilhamento na API
       const response = await api.shareNeed(postId);
       
       if (response.success) {
-        // Atualiza o contador local
         setNeedStats(prev => ({
           ...prev,
           [postId]: {
@@ -432,9 +477,8 @@ const Home = () => {
     }
     
     try {
-      // Adiciona o comentário localmente (otimista)
       const newComment = {
-        id: Date.now(), // ID temporário
+        id: Date.now(),
         user_name: user?.name || 'Você',
         user_avatar: user?.avatar,
         comment: text,
@@ -449,11 +493,9 @@ const Home = () => {
       
       setCommentText('');
       
-      // Envia para a API
       const response = await api.addNeedComment(needId, text);
       
       if (!response.success) {
-        // Remove o comentário local se a API falhar
         setCommentsModal(prev => ({
           ...prev,
           comments: prev.comments.filter(comment => comment.id !== newComment.id)
@@ -472,28 +514,21 @@ const Home = () => {
         Alert.alert('Aviso', 'A instituição não pode doar para esta necessidade.');
         return;
     }
-    navigation.navigate('PostDonation', { 
-      needId: need.id,
-      institutionId: need.institution_id, 
-      institutionName: need.institution_name,
-      needTitle: need.title
-    });
+    // Agora usa a nova função de chat
+    handleStartChatFromNeed(need);
   };
 
   const handleInstitutionPress = (item) => {
     if (isInstitution) {
-        // Instituição clica em uma oferta, navegamos para o perfil público do doador
         navigation.navigate('DonorProfile', { userId: item.donor_id });
     } else {
-        // Doador clica em uma necessidade, navegamos para o perfil público da instituição
         navigation.navigate('InstitutionProfile', { institutionId: item.institution_id });
     }
   };
 
   const handleSidebarInstitutionPress = (institution) => {
     navigation.navigate('InstitutionProfile', { 
-      institutionId: institution.id,
-      institutionName: institution.name 
+      institutionId: institution.id
     });
   };
 
@@ -504,9 +539,9 @@ const Home = () => {
   // LÓGICA DO BOTÃO FAB
   const handlePost = () => {
     if (isInstitution) {
-      navigation.navigate('PostNeed'); // Instituição: Postar Necessidade
+      navigation.navigate('PostNeed');
     } else {
-      navigation.navigate('PostDonation'); // Doador: Postar Doação
+      navigation.navigate('PostDonation');
     }
   };
 
@@ -529,17 +564,16 @@ const Home = () => {
 
   const renderFeedCard = ({ item }) => {
     if (isInstitution) {
-        // Instituição vê Ofertas de Doação (DonationOfferCard)
-        return (
-            <DonationOfferCard
-                offer={item}
-                onDetails={() => handleViewOfferDetails(item)} 
-                onEdit={() => handleAcceptOffer(item)}
-                onViewDonorProfile={handleViewDonorProfile}
-            />
-        );
+      return (
+          <DonationOfferCard
+              offer={item}
+              onDetails={() => handleViewOfferDetails(item)} 
+              onAccept={() => handleAcceptOffer(item)}
+              onViewDonorProfile={handleViewDonorProfile}
+              isInstitutionView={true}
+          />
+      );
     } else {
-        // Doador vê Necessidades (PostCard)
         const stats = needStats[item.id] || { likes: 0, comments: 0, shares: 0, userLiked: false };
         
         return (
@@ -612,24 +646,26 @@ const Home = () => {
           </Text>
         )}
       </View>
-      
-      <View style={styles.centerContent}>
-        <View style={styles.nav}>
-          <TouchableOpacity style={styles.navItem} onPress={() => handleNavigation('Início')}>
-            <Text style={[styles.navText, styles.activeNavText]}>Início</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => handleNavigation('Doações')}>
-            <Text style={styles.navText}>Doações</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => handleNavigation('Instituições')}>
-            <Text style={styles.navText}>Instituições</Text>
+
+      {isDesktop && ( 
+        <View style={styles.centerContent}>
+          <View style={styles.nav}>
+            <TouchableOpacity style={styles.navItem} onPress={() => handleNavigation('Início')}>
+              <Text style={[styles.navText, styles.activeNavText]}>Início</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navItem} onPress={() => handleNavigation('Doações')}>
+              <Text style={styles.navText}>Doações</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navItem} onPress={() => handleNavigation('Instituições')}>
+              <Text style={styles.navText}>Instituições</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity style={styles.searchContainer} onPress={handleSearchPress}>
+            <Text style={styles.searchPlaceholder}>🔍 Buscar {isInstitution ? 'doações ou doadores' : 'necessidades ou instituições'}...</Text>
           </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity style={styles.searchContainer} onPress={handleSearchPress}>
-          <Text style={styles.searchPlaceholder}>🔍 Buscar {isInstitution ? 'doações ou doadores' : 'necessidades ou instituições'}...</Text>
-        </TouchableOpacity>
-      </View>
+      )}
       
       <View style={styles.headerRight}>
         <TouchableOpacity style={styles.iconButton} onPress={handleNotificationsPress}>
@@ -645,7 +681,6 @@ const Home = () => {
     </View>
   );
 
-  // LÓGICA DE RENDERING CONDICIONAL DOS FILTROS
   const renderFilters = () => (
     <View style={styles.filtersContainer}>
       <Text style={styles.filterTitle}>
@@ -829,23 +864,35 @@ const Home = () => {
         </TouchableOpacity>
       </View>
       
-      {followedInstitutions.map((institution) => (
-        <TouchableOpacity 
-          key={institution.id} 
-          style={styles.institutionItem}
-          onPress={() => handleSidebarInstitutionPress(institution)}
-        >
-          <View style={styles.institutionIcon}>
-            <View style={[styles.urgencyDot, { backgroundColor: '#4CAF50' }]} />
-          </View>
-          <View style={styles.institutionDetails}>
-            <Text style={styles.institutionItemName}>{institution.name}</Text>
-            <Text style={[styles.institutionUrgency, { color: '#4CAF50' }]}>
-              {institution.active_needs_count || 0} necessidades ativas
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ))}
+      {followedInstitutions.length > 0 ? (
+        <FlatList
+          data={followedInstitutions}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <FollowedInstitution
+              institution={item}
+              onPress={handleSidebarInstitutionPress}
+              onUnfollow={handleUnfollowInstitution}
+            />
+          )}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.followedListContent}
+        />
+      ) : (
+        <View style={styles.emptySidebar}>
+          <Text style={styles.emptySidebarIcon}>🏢</Text>
+          <Text style={styles.emptySidebarTitle}>Nenhuma instituição seguida</Text>
+          <Text style={styles.emptySidebarText}>
+            Comece a seguir instituições para ver suas atualizações aqui
+          </Text>
+          <TouchableOpacity 
+            style={styles.exploreButton}
+            onPress={() => navigation.navigate('InstitutionList')}
+          >
+            <Text style={styles.exploreButtonText}>Explorar Instituições</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 
@@ -1115,19 +1162,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  institutionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  institutionAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F9FAFB',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 12,
-  },
-  urgencyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   institutionDetails: {
     flex: 1,
@@ -1138,9 +1178,42 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 2,
   },
-  institutionUrgency: {
+  institutionInfo: {
     fontSize: 12,
-    fontWeight: '500',
+    color: '#6B7280',
+  },
+  emptySidebar: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptySidebarIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+    opacity: 0.6,
+  },
+  emptySidebarTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySidebarText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  exploreButton: {
+    backgroundColor: '#FF1434',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  exploreButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
@@ -1315,6 +1388,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+  },
+  followedListContent: {
+    paddingVertical: 8,
   },
 });
 

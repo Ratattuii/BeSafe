@@ -1,6 +1,7 @@
 const { query, queryOne } = require('../database/db');
 const { success, errors } = require('../utils/responses');
 const { validateRequired } = require('../utils/validation');
+const { createMessageNotification } = require('./notificationsController');
 
 /**
  * Lista conversas do usuário logado
@@ -163,9 +164,8 @@ async function sendMessage(req, res) {
       WHERE m.id = ?
     `, [result.insertId]);
     
-    // TODO: Criar notificação para o destinatário
-    // TODO: Emitir via WebSocket se implementado
-    
+    await createMessageNotification(sender_id, receiver_id, message);
+
     return success(res, 'Mensagem enviada com sucesso', { message: newMessage }, 201);
     
   } catch (error) {

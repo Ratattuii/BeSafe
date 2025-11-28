@@ -8,7 +8,7 @@ const SocketService = require('./services/socketService');
 const { testConnection } = require('./database/db');
 const { success, errors } = require('./utils/responses');
 
-// Carrega as rotas do nosso app
+// Carrega as rotas app
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const needsRoutes = require('./routes/needs');
@@ -21,23 +21,23 @@ const institutionsRoutes = require('./routes/institutions');
 const reviewsRoutes = require('./routes/reviews');
 const adminRoutes = require('./routes/admin');
 const mapRoutes = require('./routes/map');
-const offerRoutes = require('./routes/offers'); // <-- ADICIONADO AQUI
+const offerRoutes = require('./routes/offers');
 
-// Configura nossa aplicação Express
+// Express
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// JWT secret do .env (com fallback para desenvolvimento)
+// JWT secret do .env
 if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = 'besafe_jwt_secret_2024_desenvolvimento';
+  process.env.JWT_SECRET = 'besafe_token';
   console.warn('⚠️  JWT_SECRET não definido no .env, usando valor padrão (apenas para desenvolvimento)');
 }
 
 // Configurações básicas do servidor
-app.use(cors()); // Libera CORS pra não dar problema no frontend
-app.use(express.json()); // Entende JSON nas requisições
-app.use(express.urlencoded({ extended: true })); // Entende formulários também
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Pasta onde ficam os uploads dos usuários
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -62,23 +62,8 @@ app.use('/reviews', reviewsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/map', mapRoutes);
 app.use('/', followsRoutes); // Para /me/follows
-app.use('/offers', offerRoutes); // <-- ADICIONADO AQUI
+app.use('/offers', offerRoutes);
 
-// Rota inicial - mostra se tá tudo funcionando
-app.get('/', (req, res) => {
-  return success(res, 'BeSafe API está funcionando', {
-    version: '1.0.0',
-    availableRoutes: [
-      'POST /auth/register - Criar nova conta',
-      'POST /auth/login - Entrar no app',
-      // ... (outras rotas) ...
-      'POST /offers - Criar oferta de doação', // Rota nova
-      'GET /offers/my-offers - Minhas ofertas de doação', // Rota nova
-      // ... (outras rotas) ...
-      'GET /admin/reports/donations - Relatório CSV de doações (admin)'
-    ]
-  });
-});
 
 // Middleware para rotas não encontradas
 app.use('*', (req, res) => {
@@ -95,9 +80,9 @@ app.use((error, req, res, next) => {
 let socketService;
 try {
   socketService = new SocketService(server);
-  console.log('✅ Socket.io inicializado');
+  console.log('Socket.io inicializado');
 } catch (error) {
-  console.error('⚠️  Erro ao inicializar Socket.io:', error.message);
+  console.error('Erro ao inicializar Socket.io:', error.message);
 }
 
 // Testa conexão e inicia servidor
@@ -108,9 +93,9 @@ testConnection().then(connected => {
   }
   
   server.listen(PORT, () => {
-    console.log(`✅ Servidor rodando na porta ${PORT}`);
-    console.log(`📡 URL: http://localhost:${PORT}`);
-    console.log(`🔌 Socket.io disponível`);
+    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`URL: http://localhost:${PORT}`);
+    console.log(`Socket.io disponível`);
   });
 }).catch(error => {
   console.error('Erro ao iniciar servidor:', error.message);

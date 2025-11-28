@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta_aqui';
+const JWT_SECRET = process.env.JWT_SECRET || 'besafe_token';
 
 module.exports = (io) => {
   io.use((socket, next) => {
@@ -9,7 +9,7 @@ module.exports = (io) => {
       socket.handshake.headers?.authorization;
 
     if (!token) {
-      console.log('❌ Token não enviado no socket');
+      console.log('Token não enviado no socket');
       return next(new Error('TOKEN_REQUIRED'));
     }
 
@@ -19,12 +19,12 @@ module.exports = (io) => {
 
     jwt.verify(extractedToken, JWT_SECRET, (err, decoded) => {
       if (err) {
-        console.log('❌ JWT inválido no socket:', err.message);
+        console.log('JWT inválido no socket:', err.message);
         return next(new Error('INVALID_TOKEN'));
       }
 
       socket.user = decoded; // Igual ao req.user
-      console.log('✔️ Socket autenticado:', decoded.id);
+      console.log('Socket autenticado:', decoded.id);
       next();
     });
   });

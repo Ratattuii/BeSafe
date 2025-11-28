@@ -5,11 +5,13 @@ const {
   getNeedTypes, 
   getNeedById, 
   createNeed,
+  updateNeed,
   toggleLike,
   getComments,
   addComment,
   registerShare,
-  getNeedStats
+  getNeedStats,
+  finalizeNeed
 } = require('../controllers/needsController');
 const { authenticateToken } = require('../middleware/auth');
 const { handleMultipleUploadError } = require('../middleware/upload');
@@ -18,7 +20,6 @@ const { validateRequest } = require('../utils/validation');
 /**
  * GET /needs
  * Lista necessidades com filtros opcionais
- * Query params: ?urgency=alta&type=alimento&location=São Paulo&limit=20&offset=0
  */
 router.get('/', getNeedsWithFilters);
 
@@ -37,10 +38,15 @@ router.get('/:id', getNeedById);
 /**
  * POST /needs
  * Cria nova necessidade (protegido por autenticação)
- * Body: { title, description, urgency, type, quantity, unit?, location?, goal_quantity? }
- * File: image (opcional)
  */
 router.post('/', authenticateToken, handleMultipleUploadError, validateRequest('need'), createNeed);
+
+/**
+ * PUT /needs/:id
+ * Atualiza uma necessidade existente (protegido por autenticação)
+ * Body: { title, description, urgency, category, quantity, unit, location, status, goal_value, pix_key }
+ */
+router.put('/:id', authenticateToken, validateRequest('need'), updateNeed);
 
 /**
  * POST /needs/:id/like
@@ -74,5 +80,10 @@ router.post('/:id/share', authenticateToken, registerShare);
  */
 router.get('/:id/stats', getNeedStats);
 
-module.exports = router;
+/**
+ * POST /needs/:id/finalize
+ * Finaliza uma necessidade (marca como concluída)
+ */
+router.post('/:id/finalize', authenticateToken, finalizeNeed);
 
+module.exports = router;

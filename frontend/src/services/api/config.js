@@ -3,13 +3,11 @@ import { API_BASE_URL } from '@env';
 
 // Configurações da API
 export const API_CONFIG = {
-  // URL da API configurável via variáveis de ambiente
-  BASE_URL: API_BASE_URL || 'http://localhost:3000/api', // Fallback para desenvolvimento local
+  BASE_URL: API_BASE_URL || 'http://localhost:3000/api',
   
   TIMEOUT: 10000, // 10 segundos
   
   ENDPOINTS: {
-    // Autenticação
     AUTH: {
       LOGIN: '/auth/login',
       REGISTER: '/auth/register',
@@ -121,8 +119,8 @@ export const API_CONFIG = {
 // Configurações de desenvolvimento
 export const DEV_CONFIG = {
   ENABLE_LOGS: process.env.NODE_ENV === 'development',
-  MOCK_DELAY: 1000, // Delay para simular requisições (em ms)
-  USE_MOCK_DATA: false, // Se deve usar dados mockados
+  MOCK_DELAY: 1000,
+  USE_MOCK_DATA: false,
 };
 
 export default API_CONFIG;

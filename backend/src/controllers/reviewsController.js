@@ -3,7 +3,7 @@ const { success, errors } = require('../utils/responses');
 const { validateRequired } = require('../utils/validation');
 
 /**
- * Cria uma nova avaliação
+ * Cria uma nova avaliação para uma donation_offer
  * POST /reviews
  */
 async function createReview(req, res) {
@@ -11,7 +11,7 @@ async function createReview(req, res) {
     const { donation_id, reviewed_id, rating, comment, review_type } = req.body;
     const reviewer_id = req.user.id;
 
-    // Validações
+    // Validações básicas
     const validationError = validateRequired(
       ['donation_id', 'reviewed_id', 'rating', 'review_type'],
       { donation_id, reviewed_id, rating, review_type }
@@ -29,43 +29,59 @@ async function createReview(req, res) {
       return errors.badRequest(res, 'Você não pode se avaliar');
     }
 
-    // Verifica se a doação existe e se o usuário tem permissão para avaliar
-    const donation = await queryOne(`
-      SELECT d.*, n.title as need_title
-      FROM donations d
-      LEFT JOIN needs n ON d.need_id = n.id
-      WHERE d.id = ? AND d.status = 'entregue'
+    // Verifica se a donation_offer existe e está finalizada
+    const donationOffer = await queryOne(`
+      SELECT * FROM donation_offers 
+      WHERE id = ? AND status IN ('donated', 'entregue', 'concluido', 'doado')
     `, [donation_id]);
 
-    if (!donation) {
-      return errors.notFound(res, 'Doação não encontrada ou não entregue');
+    if (!donationOffer) {
+      return errors.notFound(res, 'Oferta de doação não encontrada ou não foi finalizada');
     }
 
     // Verifica se o usuário tem permissão para avaliar esta doação
-    const canReview = await queryOne(`
-      SELECT 1 FROM donations 
-      WHERE id = ? AND (donor_id = ? OR institution_id = ?)
-    `, [donation_id, reviewer_id, reviewer_id]);
+    let canReview = false;
+
+    if (review_type === 'donor_to_institution') {
+      // Doador avaliando instituição - deve ser o donor da oferta
+      canReview = donationOffer.donor_id === reviewer_id;
+    } else if (review_type === 'institution_to_donor') {
+      // Instituição avaliando doador - deve ser a institution da oferta
+      canReview = donationOffer.institution_id === reviewer_id;
+    } else {
+      return errors.badRequest(res, 'Tipo de avaliação inválido');
+    }
 
     if (!canReview) {
       return errors.forbidden(res, 'Você não tem permissão para avaliar esta doação');
     }
 
-    // Verifica se já existe uma avaliação deste tipo
+    // Verifica se o usuário avaliado existe
+    const reviewedUser = await queryOne('SELECT id, name, role FROM users WHERE id = ?', [reviewed_id]);
+    
+    if (!reviewedUser) {
+      return errors.notFound(res, 'Usuário a ser avaliado não encontrado');
+    }
+
+    // Verifica se já existe uma avaliação para esta donation_offer deste tipo
     const existingReview = await queryOne(`
       SELECT id FROM reviews 
-      WHERE donation_id = ? AND reviewer_id = ? AND review_type = ?
+      WHERE donation_offer_id = ? AND reviewer_id = ? AND review_type = ?
     `, [donation_id, reviewer_id, review_type]);
 
     if (existingReview) {
-      return errors.conflict(res, 'Você já avaliou esta doação com este tipo de avaliação');
+      return errors.conflict(res, 'Você já avaliou esta oferta de doação');
     }
 
     // Cria a avaliação
     const result = await query(`
-      INSERT INTO reviews (donation_id, reviewer_id, reviewed_id, rating, comment, review_type)
+      INSERT INTO reviews (donation_offer_id, reviewer_id, reviewed_id, rating, comment, review_type)
       VALUES (?, ?, ?, ?, ?, ?)
     `, [donation_id, reviewer_id, reviewed_id, rating, comment, review_type]);
+
+    if (result.affectedRows === 0) {
+      return errors.serverError(res, 'Erro ao salvar avaliação no banco de dados');
+    }
 
     // Busca a avaliação criada
     const newReview = await queryOne(`
@@ -75,14 +91,14 @@ async function createReview(req, res) {
         reviewer.avatar as reviewer_avatar,
         reviewed.name as reviewed_name,
         reviewed.avatar as reviewed_avatar,
-        d.quantity as donation_quantity,
-        d.unit as donation_unit,
-        n.title as need_title
+        do.title as donation_title,
+        do.quantity as donation_quantity,
+        do.category as donation_category,
+        do.description as donation_description
       FROM reviews r
       LEFT JOIN users reviewer ON r.reviewer_id = reviewer.id
       LEFT JOIN users reviewed ON r.reviewed_id = reviewed.id
-      LEFT JOIN donations d ON r.donation_id = d.id
-      LEFT JOIN needs n ON d.need_id = n.id
+      LEFT JOIN donation_offers do ON r.donation_offer_id = do.id
       WHERE r.id = ?
     `, [result.insertId]);
 
@@ -90,12 +106,23 @@ async function createReview(req, res) {
 
   } catch (error) {
     console.error('Erro ao criar avaliação:', error.message);
+    
+    // Verificar se é erro de constraint única
+    if (error.code === 'ER_DUP_ENTRY') {
+      return errors.conflict(res, 'Você já avaliou esta oferta de doação');
+    }
+    
+    // Verificar se é erro de chave estrangeira
+    if (error.code === 'ER_NO_REFERENCED_ROW' || error.code === 'ER_NO_REFERENCED_ROW_2') {
+      return errors.badRequest(res, 'Dados inválidos para criar avaliação');
+    }
+    
     return errors.serverError(res);
   }
 }
 
 /**
- * Lista avaliações de uma doação específica
+ * Lista avaliações de uma donation_offer específica
  * GET /reviews/donation/:donationId
  */
 async function getDonationReviews(req, res) {
@@ -103,7 +130,7 @@ async function getDonationReviews(req, res) {
     const { donationId } = req.params;
 
     if (!donationId || isNaN(donationId)) {
-      return errors.badRequest(res, 'ID de doação inválido');
+      return errors.badRequest(res, 'ID de oferta inválido');
     }
 
     const reviews = await query(`
@@ -114,18 +141,20 @@ async function getDonationReviews(req, res) {
         reviewer.role as reviewer_role,
         reviewed.name as reviewed_name,
         reviewed.avatar as reviewed_avatar,
-        reviewed.role as reviewed_role
+        reviewed.role as reviewed_role,
+        do.title as donation_title
       FROM reviews r
       LEFT JOIN users reviewer ON r.reviewer_id = reviewer.id
       LEFT JOIN users reviewed ON r.reviewed_id = reviewed.id
-      WHERE r.donation_id = ? AND r.is_public = TRUE
+      LEFT JOIN donation_offers do ON r.donation_offer_id = do.id
+      WHERE r.donation_offer_id = ? AND r.is_public = TRUE
       ORDER BY r.created_at DESC
     `, [donationId]);
 
     return success(res, 'Avaliações encontradas', { reviews });
 
   } catch (error) {
-    console.error('Erro ao buscar avaliações da doação:', error.message);
+    console.error('Erro ao buscar avaliações da oferta:', error.message);
     return errors.serverError(res);
   }
 }
@@ -149,13 +178,12 @@ async function getUserReceivedReviews(req, res) {
         reviewer.name as reviewer_name,
         reviewer.avatar as reviewer_avatar,
         reviewer.role as reviewer_role,
-        d.quantity as donation_quantity,
-        d.unit as donation_unit,
-        n.title as need_title
+        do.title as donation_title,
+        do.quantity as donation_quantity,
+        do.category as donation_category
       FROM reviews r
       LEFT JOIN users reviewer ON r.reviewer_id = reviewer.id
-      LEFT JOIN donations d ON r.donation_id = d.id
-      LEFT JOIN needs n ON d.need_id = n.id
+      LEFT JOIN donation_offers do ON r.donation_offer_id = do.id
       WHERE r.reviewed_id = ? AND r.is_public = TRUE
       ORDER BY r.created_at DESC
       LIMIT ? OFFSET ?
@@ -208,13 +236,12 @@ async function getUserGivenReviews(req, res) {
         reviewed.name as reviewed_name,
         reviewed.avatar as reviewed_avatar,
         reviewed.role as reviewed_role,
-        d.quantity as donation_quantity,
-        d.unit as donation_unit,
-        n.title as need_title
+        do.title as donation_title,
+        do.quantity as donation_quantity,
+        do.category as donation_category
       FROM reviews r
       LEFT JOIN users reviewed ON r.reviewed_id = reviewed.id
-      LEFT JOIN donations d ON r.donation_id = d.id
-      LEFT JOIN needs n ON d.need_id = n.id
+      LEFT JOIN donation_offers do ON r.donation_offer_id = do.id
       WHERE r.reviewer_id = ? AND r.is_public = TRUE
       ORDER BY r.created_at DESC
       LIMIT ? OFFSET ?
@@ -287,10 +314,12 @@ async function updateReview(req, res) {
         reviewer.name as reviewer_name,
         reviewer.avatar as reviewer_avatar,
         reviewed.name as reviewed_name,
-        reviewed.avatar as reviewed_avatar
+        reviewed.avatar as reviewed_avatar,
+        do.title as donation_title
       FROM reviews r
       LEFT JOIN users reviewer ON r.reviewer_id = reviewer.id
       LEFT JOIN users reviewed ON r.reviewed_id = reviewed.id
+      LEFT JOIN donation_offers do ON r.donation_offer_id = do.id
       WHERE r.id = ?
     `, [id]);
 
@@ -336,11 +365,76 @@ async function deleteReview(req, res) {
   }
 }
 
+/**
+ * Lista todas as avaliações (para admin)
+ * GET /reviews
+ */
+async function getAllReviews(req, res) {
+  try {
+    const { limit = 50, offset = 0, rating, review_type } = req.query;
+
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+
+    if (rating && !isNaN(rating)) {
+      whereClause += ' AND r.rating = ?';
+      params.push(parseInt(rating));
+    }
+
+    if (review_type) {
+      whereClause += ' AND r.review_type = ?';
+      params.push(review_type);
+    }
+
+    params.push(parseInt(limit), parseInt(offset));
+
+    const reviews = await query(`
+      SELECT 
+        r.*,
+        reviewer.name as reviewer_name,
+        reviewer.avatar as reviewer_avatar,
+        reviewer.role as reviewer_role,
+        reviewed.name as reviewed_name,
+        reviewed.avatar as reviewed_avatar,
+        reviewed.role as reviewed_role,
+        do.title as donation_title,
+        do.status as offer_status
+      FROM reviews r
+      LEFT JOIN users reviewer ON r.reviewer_id = reviewer.id
+      LEFT JOIN users reviewed ON r.reviewed_id = reviewed.id
+      LEFT JOIN donation_offers do ON r.donation_offer_id = do.id
+      ${whereClause}
+      ORDER BY r.created_at DESC
+      LIMIT ? OFFSET ?
+    `, params);
+
+    // Total de avaliações
+    const [countResult] = await query(`
+      SELECT COUNT(*) as total FROM reviews r ${whereClause}
+    `, params.slice(0, -2)); // Remove limit e offset
+
+    return success(res, 'Avaliações encontradas', {
+      reviews,
+      pagination: {
+        total: countResult.total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: (parseInt(offset) + parseInt(limit)) < countResult.total
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao buscar todas as avaliações:', error.message);
+    return errors.serverError(res);
+  }
+}
+
 module.exports = {
   createReview,
   getDonationReviews,
   getUserReceivedReviews,
   getUserGivenReviews,
   updateReview,
-  deleteReview
+  deleteReview,
+  getAllReviews
 };

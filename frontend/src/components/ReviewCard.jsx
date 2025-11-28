@@ -129,8 +129,6 @@ const styles = StyleSheet.create({
   ratingContainer: {
     alignItems: 'flex-end',
   },
-
-  // Comentário
   comment: {
     fontSize: 14,
     color: '#424242',
@@ -142,8 +140,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 8,
   },
-
-  // Informações da Doação
   donationInfo: {
     backgroundColor: '#F5F5F5',
     borderRadius: 8,
@@ -167,8 +163,6 @@ const styles = StyleSheet.create({
     color: '#FF1434',
     fontWeight: '500',
   },
-
-  // Data
   date: {
     fontSize: 12,
     color: '#9E9E9E',

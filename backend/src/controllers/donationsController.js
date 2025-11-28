@@ -1,6 +1,7 @@
 const { query, queryOne } = require('../database/db');
 const { success, errors } = require('../utils/responses');
 const { validateRequired } = require('../utils/validation');
+const { createDonationNotification } = require('./notificationsController');
 
 /**
  * Lista todas as doações com filtros opcionais
@@ -223,7 +224,7 @@ async function createDonation(req, res) {
       WHERE d.id = ?
     `, [result.insertId]);
     
-    // TODO: Criar notificação para a instituição
+    await createDonationNotification(donor_id, institution_id, donationId, item_name);
     
     return success(res, 'Doação criada com sucesso', { donation: newDonation }, 201);
     

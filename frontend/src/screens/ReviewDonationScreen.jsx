@@ -1,3 +1,4 @@
+// screens/ReviewDonationScreen.jsx
 import React, { useState } from 'react';
 import {
   View,
@@ -7,57 +8,103 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
-  Alert,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-// Não precisamos mais do Toast, mas se ele estiver importado no seu ambiente, 
-// a lógica abaixo irá ignorá-lo e usar o Alert.
 
-const ReviewDonationScreen = ({ route, navigation }) => {
-  const { donation } = route.params;
+const ReviewDonationScreen = () => {
+  const route = useRoute();
+  const { donation } = route.params || {};
+  const navigation = useNavigation();
   const { user } = useAuth();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Estados para o modal customizado
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState('info'); // 'info', 'success', 'error'
+
+  const safeDonation = donation || {};
+  const needTitle = safeDonation.need_title || safeDonation.title || 'Doação não especificada';
+  const quantity = safeDonation.quantity || 'N/A';
+  const unit = safeDonation.unit || 'unidades';
+  const institutionName = safeDonation.institution_name || 'Instituição não especificada';
+  const deliveredAt = safeDonation.delivered_at || safeDonation.updated_at || new Date().toISOString();
+  const donationId = safeDonation.id;
+  const institutionId = safeDonation.institution_id || safeDonation.accepted_by || 1;
+
+  // Função para mostrar modal
+  const showCustomAlert = (title, message, type = 'info') => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalType(type);
+    setShowModal(true);
+  };
+
+  // Função para fechar modal e opcionalmente navegar
+  const closeModal = (shouldNavigateBack = false) => {
+    setShowModal(false);
+    if (shouldNavigateBack) {
+      navigation.goBack();
+    }
+  };
+
+  React.useEffect(() => {
+    if (!donation) {
+      showCustomAlert('Erro', 'Dados da doação não encontrados.', 'error');
+    }
+  }, [donation, navigation]);
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Erro', 'Por favor, selecione uma nota');
+      showCustomAlert('Atenção', 'Por favor, selecione uma nota', 'info');
+      return;
+    }
+
+    if (!donationId) {
+      showCustomAlert('Erro', 'ID da doação não encontrado.', 'error');
+      return;
+    }
+
+    if (!institutionId) {
+      showCustomAlert('Erro', 'ID da instituição não encontrado.', 'error');
       return;
     }
 
     setLoading(true);
+    
     try {
       const reviewData = {
-        donation_id: donation.id,
-        reviewed_id: donation.institution_id,
+        donation_id: donationId,
+        reviewed_id: institutionId,
         rating: rating,
         comment: comment.trim(),
         review_type: 'donor_to_institution'
       };
 
       const response = await api.post('/reviews', reviewData);
-      
-      // 🟢 MUDANÇA: REVERTENDO PARA ALERT.ALERT (Com navegação goBack)
+
       if (response.success) {
-        Alert.alert(
-          'Sucesso', 
-          'Avaliação enviada com sucesso!',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
+        showCustomAlert('Sucesso!', 'Avaliação enviada com sucesso!', 'success');
       } else {
-        // Lógica de erro para conflito (409) ou falha de API
-        Alert.alert('Erro', response.message || 'Erro ao enviar avaliação');
+        showCustomAlert('Erro', response.message || 'Erro ao enviar avaliação', 'error');
       }
+
     } catch (error) {
-      console.error('Erro ao enviar avaliação:', error);
-      // Lógica de erro de conexão
-      Alert.alert('Erro', 'Erro de conexão. Tente novamente.');
+      showCustomAlert('Erro', 'Erro de conexão. Tente novamente.', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStarPress = (star) => {
+    setRating(star);
   };
 
   const renderStars = () => {
@@ -66,7 +113,7 @@ const ReviewDonationScreen = ({ route, navigation }) => {
         {[1, 2, 3, 4, 5].map((star) => (
           <TouchableOpacity
             key={star}
-            onPress={() => setRating(star)}
+            onPress={() => handleStarPress(star)}
             style={styles.starButton}
             accessible={true}
             accessibilityLabel={`Avaliar com ${star} estrela${star > 1 ? 's' : ''}`}
@@ -83,6 +130,61 @@ const ReviewDonationScreen = ({ route, navigation }) => {
       </View>
     );
   };
+
+  const getModalStyles = () => {
+    switch (modalType) {
+      case 'success':
+        return {
+          headerColor: '#4CAF50',
+          buttonColor: '#4CAF50'
+        };
+      case 'error':
+        return {
+          headerColor: '#F44336',
+          buttonColor: '#F44336'
+        };
+      default:
+        return {
+          headerColor: '#2196F3',
+          buttonColor: '#2196F3'
+        };
+    }
+  };
+
+  const modalStyles = getModalStyles();
+
+  if (!donation) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" backgroundColor="#F2F2F2" />
+        
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Avaliar Doação</Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>Dados não encontrados</Text>
+          <Text style={styles.errorDescription}>
+            Não foi possível carregar as informações da doação.
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryButtonText}>Voltar</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -107,12 +209,12 @@ const ReviewDonationScreen = ({ route, navigation }) => {
         {/* Informações da Doação */}
         <View style={styles.donationCard}>
           <Text style={styles.donationTitle}>Doação realizada</Text>
-          <Text style={styles.donationItem}>{donation.need_title}</Text>
+          <Text style={styles.donationItem}>{needTitle}</Text>
           <Text style={styles.donationQuantity}>
-            {donation.quantity} {donation.unit}
+            {quantity} {unit}
           </Text>
           <Text style={styles.donationDate}>
-            Entregue em: {new Date(donation.delivered_at).toLocaleDateString('pt-BR')}
+            Entregue em: {new Date(deliveredAt).toLocaleDateString('pt-BR')}
           </Text>
         </View>
 
@@ -120,7 +222,7 @@ const ReviewDonationScreen = ({ route, navigation }) => {
         <View style={styles.reviewCard}>
           <Text style={styles.reviewTitle}>Como foi sua experiência?</Text>
           <Text style={styles.reviewSubtitle}>
-            Avalie a instituição {donation.institution_name}
+            Avalie a instituição {institutionName}
           </Text>
 
           {/* Estrelas */}
@@ -164,7 +266,7 @@ const ReviewDonationScreen = ({ route, navigation }) => {
           accessible={true}
           accessibilityLabel={loading ? "Enviando avaliação" : "Enviar avaliação"}
           accessibilityRole="button"
-          accessibilityState={{ busy: loading }}
+          accessibilityState={{ disabled: rating === 0 || loading, busy: loading }}
         >
           <Text style={[
             styles.submitButtonText,
@@ -174,6 +276,35 @@ const ReviewDonationScreen = ({ route, navigation }) => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal Customizado */}
+      <Modal
+        visible={showModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalHeader, { backgroundColor: modalStyles.headerColor }]}>
+              <Text style={styles.modalHeaderText}>{modalTitle}</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalMessage}>{modalMessage}</Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: modalStyles.buttonColor }]}
+                onPress={() => closeModal(modalType === 'success')}
+              >
+                <Text style={styles.modalButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -183,8 +314,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F2',
   },
-  
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -216,13 +345,45 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-
   content: {
     flex: 1,
     padding: 20,
   },
-
-  // Card da Doação
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#212121',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorDescription: {
+    fontSize: 16,
+    color: '#757575',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#FF1434',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   donationCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -256,8 +417,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#757575',
   },
-
-  // Card da Avaliação
   reviewCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -280,8 +439,6 @@ const styles = StyleSheet.create({
     color: '#757575',
     marginBottom: 24,
   },
-
-  // Rating
   ratingContainer: {
     alignItems: 'center',
     marginBottom: 24,
@@ -314,8 +471,6 @@ const styles = StyleSheet.create({
     color: '#757575',
     fontWeight: '600',
   },
-
-  // Comentário
   commentContainer: {
     marginBottom: 20,
   },
@@ -336,8 +491,6 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-
-  // Botão Enviar
   submitButton: {
     backgroundColor: '#FF1434',
     borderRadius: 8,
@@ -355,6 +508,61 @@ const styles = StyleSheet.create({
   },
   submitButtonTextDisabled: {
     color: '#757575',
+  },
+  // Estilos do Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalHeader: {
+    padding: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  modalHeaderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#212121',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  modalButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

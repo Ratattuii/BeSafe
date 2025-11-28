@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +20,7 @@ import api from '../services/api';
 // ===================================================================
 // COMPONENTE 1: Formulário Simples (para responder a um post)
 // ===================================================================
-const SimpleDonationForm = ({ route, onConfirm, loading }) => {
+const SimpleDonationForm = ({ route, onConfirm, loading, showCustomAlert }) => {
   const { institutionName, needTitle } = route.params || {};
   
   const [quantity, setQuantity] = useState('');
@@ -41,6 +42,7 @@ const SimpleDonationForm = ({ route, onConfirm, loading }) => {
       unit: unit || 'unidades',
       notes: notes,
     };
+    
     onConfirm(simpleData);
   };
 
@@ -116,7 +118,19 @@ const SimpleDonationForm = ({ route, onConfirm, loading }) => {
 // ===================================================================
 // COMPONENTE 2: Formulário Complexo (para publicar uma oferta)
 // ===================================================================
-const ComplexDonationForm = ({ formData, updateFormData, errors, categories, conditions, availabilityOptions, isDesktop, onImagePick, loading, onSubmit }) => {
+const ComplexDonationForm = ({ 
+  formData, 
+  updateFormData, 
+  errors, 
+  categories, 
+  conditions, 
+  availabilityOptions, 
+  isDesktop, 
+  onImagePick, 
+  loading, 
+  onSubmit,
+  showCustomAlert 
+}) => {
   
   const renderFormField = (label, value, onChangeText, placeholder, multiline = false, error = null, optional = false) => (
     <View style={styles.fieldContainer}>
@@ -329,9 +343,51 @@ const PostDonationScreen = ({ route, navigation }) => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
+  // Estados para o modal customizado
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState('info'); // 'info', 'success', 'error'
+
   const { needId, institutionName, needTitle, offerToEdit } = route.params || {};
   const isSpecificDonation = !!needId;
   const isEditMode = !!offerToEdit;
+
+  // Função para mostrar modal
+  const showCustomAlert = (title, message, type = 'info') => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalType(type);
+    setShowModal(true);
+  };
+
+  // Função para fechar modal e opcionalmente navegar
+  const closeModal = (shouldNavigateBack = false) => {
+    setShowModal(false);
+    if (shouldNavigateBack) {
+      navigation.goBack();
+    }
+  };
+
+  const getModalStyles = () => {
+    switch (modalType) {
+      case 'success':
+        return {
+          headerColor: '#4CAF50',
+          buttonColor: '#4CAF50'
+        };
+      case 'error':
+        return {
+          headerColor: '#F44336',
+          buttonColor: '#F44336'
+        };
+      default:
+        return {
+          headerColor: '#2196F3',
+          buttonColor: '#2196F3'
+        };
+    }
+  };
 
   // CORREÇÃO: Carregar dados da oferta para edição
   useEffect(() => {
@@ -422,10 +478,11 @@ const PostDonationScreen = ({ route, navigation }) => {
 
     setErrors(newErrors);
     
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    
+    return isValid;
   };
 
-  // CORREÇÃO: Função handleSubmit simplificada
   const handleSubmit = async (simpleData = null) => {
     setLoading(true);
     
@@ -433,7 +490,7 @@ const PostDonationScreen = ({ route, navigation }) => {
       if (isSpecificDonation) {
         // --- Cenário 1: Respondendo a um Post (Formulário Simples) ---
         if (!simpleData) {
-          Alert.alert('Erro', 'Dados da doação não encontrados.');
+          showCustomAlert('Erro', 'Dados da doação não encontrados.', 'error');
           setLoading(false);
           return;
         }
@@ -445,23 +502,20 @@ const PostDonationScreen = ({ route, navigation }) => {
           notes: simpleData.notes,
         };
 
-        console.log('Enviando doação (simples):', donationData);
         const response = await api.createDonation(donationData);
 
         if (response.success) {
-          Alert.alert(
-            'Sucesso!', 
-            `Sua doação foi registrada com sucesso!`,
-            [{ text: 'OK', onPress: () => navigation.goBack() }]
-          );
+          showCustomAlert('Sucesso!', `Sua doação foi registrada com sucesso!`, 'success');
         } else {
-          Alert.alert('Erro', response.message || 'Não foi possível registrar a doação.');
+          showCustomAlert('Erro', response.message || 'Não foi possível registrar a doação.', 'error');
         }
 
       } else {
         // --- Cenário 2: Criando ou Editando uma Oferta (Formulário Complexo) ---
-        if (!validateComplexForm()) {
-          Alert.alert('Erro no Formulário', 'Por favor, corrija os erros destacados.');
+        const isValid = validateComplexForm();
+        
+        if (!isValid) {
+          showCustomAlert('Erro no Formulário', 'Por favor, corrija os erros destacados.', 'error');
           setLoading(false);
           return;
         }
@@ -476,8 +530,9 @@ const PostDonationScreen = ({ route, navigation }) => {
           availability: formData.availability,
           expiryDate: formData.expiryDate,
         };
-
+        
         let response;
+        
         if (isEditMode) {
           response = await api.updateDonationOffer(offerToEdit.id, offerData);
         } else {
@@ -485,22 +540,14 @@ const PostDonationScreen = ({ route, navigation }) => {
         }
 
         if (response.success) {
-          const details = response.data.offer || response.data;
-          Alert.alert(
-            'Sucesso!', 
-            isEditMode 
-              ? `Sua oferta "${details.title}" foi atualizada com sucesso!`
-              : `Sua oferta "${details.title}" foi publicada com sucesso!`,
-            [{ text: 'OK', onPress: () => navigation.goBack() }]
-          );
+          showCustomAlert('Sucesso!', isEditMode ? 'Oferta atualizada com sucesso!' : 'Oferta publicada com sucesso!', 'success');
         } else {
-          Alert.alert('Erro', response.message || 'Não foi possível publicar a oferta.');
+          showCustomAlert('Erro', response.message || `Não foi possível ${isEditMode ? 'atualizar' : 'publicar'} a oferta.`, 'error');
         }
       }
       
     } catch (error) {
-      console.error('Erro:', error);
-      Alert.alert('Erro', 'Não foi possível completar a operação. Tente novamente.');
+      showCustomAlert('Erro', 'Não foi possível completar a operação. Tente novamente.', 'error');
     } finally {
       setLoading(false);
     }
@@ -514,7 +561,6 @@ const PostDonationScreen = ({ route, navigation }) => {
         (selectedImage) => {
           if (selectedImage) {
             setImages(prev => [...prev, selectedImage]);
-            console.log('Imagem selecionada:', selectedImage.uri);
           }
         },
         {
@@ -523,8 +569,7 @@ const PostDonationScreen = ({ route, navigation }) => {
         }
       );
     } catch (e) {
-      console.error("Erro ao importar ImagePicker:", e);
-      Alert.alert("Erro", "Não foi possível abrir a galeria de imagens.");
+      showCustomAlert("Erro", "Não foi possível abrir a galeria de imagens.", "error");
     }
   };
 
@@ -594,7 +639,8 @@ const PostDonationScreen = ({ route, navigation }) => {
         <SimpleDonationForm 
           route={route} 
           onConfirm={handleSubmit}
-          loading={loading} 
+          loading={loading}
+          showCustomAlert={showCustomAlert}
         />
       );
     }
@@ -612,6 +658,7 @@ const PostDonationScreen = ({ route, navigation }) => {
           onImagePick={handleImagePicker}
           loading={loading}
           onSubmit={handleSubmit}
+          showCustomAlert={showCustomAlert}
         />
         {renderSubmitButtons()}
       </>
@@ -640,15 +687,46 @@ const PostDonationScreen = ({ route, navigation }) => {
     </View>
   );
 
+  const modalStyles = getModalStyles();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
       {isDesktop ? renderDesktopLayout() : renderMobileLayout()}
+
+      {/* Modal Customizado */}
+      <Modal
+        visible={showModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.modalHeader, { backgroundColor: modalStyles.headerColor }]}>
+              <Text style={styles.modalHeaderText}>{modalTitle}</Text>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.modalMessage}>{modalMessage}</Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: modalStyles.buttonColor }]}
+                onPress={() => closeModal(modalType === 'success')}
+              >
+                <Text style={styles.modalButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-// Mantenha os estilos existentes...
+// Estilos atualizados com modal
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -974,6 +1052,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
+  },
+
+  // Estilos do Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalHeader: {
+    padding: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  modalHeaderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#212121',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  modalButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

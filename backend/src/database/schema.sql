@@ -1,10 +1,3 @@
--- ==============================================
--- BeSafe Database Schema
--- ==============================================
--- Script para criar todas as tabelas necessárias do projeto BeSafe
--- Autor: BeSafe Team
--- Data: 2024
-
 -- Criar banco de dados (se não existir)
 CREATE DATABASE IF NOT EXISTS besafe_db;
 USE besafe_db;
@@ -472,56 +465,9 @@ CREATE TABLE IF NOT EXISTS user_settings (
     UNIQUE KEY unique_user_settings (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Configurações dos usuários';
 
--- ==============================================
--- INSERIR DADOS INICIAIS (SEED)
--- ==============================================
-
--- Inserir usuário administrador (opcional)
-INSERT IGNORE INTO users (name, email, password, role, is_verified, is_active) VALUES 
-('Administrador BeSafe', 'admin@besafe.com', '$2b$10$example.hash.here', 'institution', TRUE, TRUE);
-
--- Inserir algumas categorias e tipos padrão seria feito via enum já definido nas tabelas
-
--- ==============================================
--- VIEWS ÚTEIS
--- ==============================================
-
--- View para necessidades com dados da instituição
-CREATE OR REPLACE VIEW needs_with_institution AS
-SELECT 
-    n.*,
-    u.name as institution_name,
-    u.avatar as institution_avatar,
-    u.phone as institution_phone,
-    u.address as institution_location,
-    u.institution_type as institution_type,
-    u.activity_area as institution_activity_area,
-    u.description as institution_description,
-    u.website as institution_website,
-    u.is_verified as institution_verified,
-    COUNT(d.id) as total_donations,
-    SUM(d.quantity) as total_donated
-FROM needs n
-LEFT JOIN users u ON n.institution_id = u.id
-LEFT JOIN donations d ON n.id = d.need_id AND d.status IN ('confirmada', 'entregue')
-GROUP BY n.id;
-
--- View para estatísticas de doações por usuário
-CREATE OR REPLACE VIEW user_donation_stats AS
-SELECT 
-    u.id,
-    u.name,
-    u.role,
-    COUNT(d.id) as total_donations,
-    SUM(d.quantity) as total_quantity_donated,
-    MAX(d.created_at) as last_donation_date
-FROM users u
-LEFT JOIN donations d ON u.id = d.donor_id AND d.status IN ('confirmada', 'entregue')
-WHERE u.role = 'donor'
-GROUP BY u.id;
-
 SELECT * FROM users;
 SELECT * FROM follows;
+SELECT * FROM notifications ORDER BY created_at DESC LIMIT 10;
 SELECT * FROM needs;
 SELECT * FROM user_donation_stats;
 SELECT * FROM needs_with_institution;

@@ -16,10 +16,7 @@ const InstitutionCard = ({ institution, onPress }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  // --- CORREÇÃO AQUI ---
-  // Esta função agora é segura e lida com 'urgency' sendo null ou undefined
   const getUrgencyColor = (urgency) => {
-    // Se 'urgency' for null, undefined, ou uma string vazia, retorna uma cor padrão
     if (!urgency) {
       return colors.gray300; // Cor para "sem necessidades" ou "urgência baixa"
     }
@@ -80,7 +77,6 @@ const InstitutionCard = ({ institution, onPress }) => {
         {/* Informações de Necessidade */}
         <View style={styles.needsInfo}>
           <View style={[styles.urgencyDot, { 
-            // Esta chamada agora é segura
             backgroundColor: getUrgencyColor(institution.highest_urgency) 
           }]} />
           <Text style={styles.needsText}>
@@ -120,9 +116,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     overflow: 'hidden',
-  },
-  cardMobile: {
-    // Estilos específicos para mobile, se houver
   },
   coverImage: {
     width: '100%',
@@ -192,7 +185,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 16,
-    flexShrink: 1, // Para o texto de localização não quebrar o layout
+    flexShrink: 1,
   },
   statText: {
     fontSize: 12,

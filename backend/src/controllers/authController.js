@@ -13,7 +13,7 @@ async function register(req, res) {
   try {
     const { name, email, password, role } = req.body;
 
-    // Validações usando utilitários
+    // Validações
     const validationError = runValidations(
       validateRequired(['name', 'email', 'password'], { name, email, password }),
       validateEmail(email),
@@ -45,7 +45,7 @@ async function register(req, res) {
       [name, email, hashedPassword, role, avatarPath]
     );
 
-    // Busca o usuário criado (sem a senha)
+    // Busca o usuário criado
     const newUser = await queryOne(
       'SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?',
       [result.insertId]
@@ -70,7 +70,7 @@ async function login(req, res) {
   try {
     const { email, password } = req.body;
 
-    // Validações usando utilitários
+    // Validações
     const validationError = validateRequired(['email', 'password'], { email, password });
     if (validationError) {
       return errors.badRequest(res, validationError);
@@ -137,20 +137,6 @@ async function loginWithFirebase(req, res) {
       'SELECT id, name, email, role, avatar FROM users WHERE email = ?',
       [email]
     );
-
-    if (!user) {
-      // Cria novo usuário se não existir
-      const avatarPath = picture ? picture : null;
-      const result = await query(
-        'INSERT INTO users (name, email, password, role, avatar, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
-        [name || email.split('@')[0], email, 'firebase_auth', role, avatarPath, email_verified]
-      );
-
-      user = await queryOne(
-        'SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?',
-        [result.insertId]
-      );
-    }
 
     // Gera token JWT para compatibilidade
     const token = generateToken(user);

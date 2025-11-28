@@ -1,6 +1,3 @@
-// Modelo de necessidade em memória - stub inicial
-// TODO: Migrar para banco de dados quando definido
-
 // Armazenamento em memória temporário
 let needs = [];
 let nextId = 1;
@@ -14,13 +11,13 @@ class Need {
     this.title = title;
     this.description = description;
     this.quantity = quantity;
-    this.urgency = urgency; // 'baixa', 'media', 'alta', 'critica'
-    this.category = category; // Ex: 'alimentos', 'roupas', 'medicamentos', 'abrigo'
-    this.userId = userId; // ID do receptor que postou
+    this.urgency = urgency;
+    this.category = category;
+    this.userId = userId;
     this.location = location;
-    this.status = 'ativa'; // 'ativa', 'atendida', 'cancelada'
-    this.donations = []; // Array de doações recebidas
-    this.images = []; // Array de URLs de imagens
+    this.status = 'ativa';
+    this.donations = [];
+    this.images = [];
     this.createdAt = new Date();
     this.updatedAt = new Date();
   }

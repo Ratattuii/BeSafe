@@ -1,5 +1,6 @@
 const { query, queryOne } = require('../database/db');
 const { success, errors } = require('../utils/responses');
+const { createFollowNotification } = require('./notificationsController');
 
 /**
  * Lista instituições seguidas pelo usuário logado
@@ -7,12 +8,26 @@ const { success, errors } = require('../utils/responses');
  */
 async function getFollowedInstitutions(req, res) {
   try {
-    // Em produção, pegar user_id do token JWT (req.user.id)
-    // Para teste, usar user_id = 1
     const user_id = req.user?.id || 1;
     
-    // Retorna array vazio temporariamente já que follows não está implementado
-    const institutions = [];
+    const institutions = await query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.description,
+        u.avatar,
+        u.address as location,
+        u.is_verified,
+        u.institution_type,
+        u.activity_area,
+        COUNT(n.id) as active_needs_count
+      FROM users u
+      INNER JOIN follows f ON u.id = f.institution_id
+      LEFT JOIN needs n ON u.id = n.institution_id AND n.status = 'ativa'
+      WHERE f.follower_id = ? AND u.role = 'institution' AND u.is_active = TRUE
+      GROUP BY u.id, u.name, u.description, u.avatar, u.address, u.is_verified, u.institution_type, u.activity_area
+      ORDER BY u.name
+    `, [user_id]);
     
     return success(res, 'Instituições seguidas', { institutions });
     
@@ -33,7 +48,7 @@ async function followInstitution(req, res) {
     
     // Verifica se a instituição existe
     const institution = await queryOne(`
-      SELECT id FROM institutions WHERE id = ? AND is_active = TRUE
+      SELECT id FROM users WHERE id = ? AND role = 'institution' AND is_active = TRUE
     `, [institution_id]);
     
     if (!institution) {
@@ -42,7 +57,7 @@ async function followInstitution(req, res) {
     
     // Verifica se já segue
     const existingFollow = await queryOne(`
-      SELECT id FROM follows WHERE user_id = ? AND institution_id = ?
+      SELECT id FROM follows WHERE follower_id = ? AND institution_id = ?
     `, [user_id, institution_id]);
     
     if (existingFollow) {
@@ -51,9 +66,11 @@ async function followInstitution(req, res) {
     
     // Cria o relacionamento
     await query(`
-      INSERT INTO follows (user_id, institution_id) VALUES (?, ?)
+      INSERT INTO follows (follower_id, institution_id) VALUES (?, ?)
     `, [user_id, institution_id]);
     
+    await createFollowNotification(follower_id, institutionId);
+
     return success(res, 'Instituição seguida com sucesso');
     
   } catch (error) {
@@ -72,7 +89,7 @@ async function unfollowInstitution(req, res) {
     const user_id = req.user?.id || 1;
     
     const result = await query(`
-      DELETE FROM follows WHERE user_id = ? AND institution_id = ?
+      DELETE FROM follows WHERE follower_id = ? AND institution_id = ?
     `, [user_id, institution_id]);
     
     if (result.affectedRows === 0) {
@@ -97,22 +114,24 @@ async function getAllInstitutions(req, res) {
     
     const institutions = await query(`
       SELECT 
-        i.id,
-        i.name,
-        i.description,
-        i.avatar,
-        i.location,
-        i.is_verified,
+        u.id,
+        u.name,
+        u.description,
+        u.avatar,
+        u.address as location,
+        u.is_verified,
+        u.institution_type,
+        u.activity_area,
         COUNT(n.id) as active_needs_count,
         EXISTS(
           SELECT 1 FROM follows f 
-          WHERE f.institution_id = i.id AND f.user_id = ?
+          WHERE f.institution_id = u.id AND f.follower_id = ?
         ) as is_followed
-      FROM institutions i
-      LEFT JOIN needs n ON i.id = n.institution_id AND n.status = 'ativa'
-      WHERE i.is_active = TRUE
-      GROUP BY i.id, i.name, i.description, i.avatar, i.location, i.is_verified
-      ORDER BY active_needs_count DESC, i.name
+      FROM users u
+      LEFT JOIN needs n ON u.id = n.institution_id AND n.status = 'ativa'
+      WHERE u.role = 'institution' AND u.is_active = TRUE
+      GROUP BY u.id, u.name, u.description, u.avatar, u.address, u.is_verified, u.institution_type, u.activity_area
+      ORDER BY active_needs_count DESC, u.name
       LIMIT ? OFFSET ?
     `, [req.user?.id || 1, parseInt(limit), parseInt(offset)]);
     

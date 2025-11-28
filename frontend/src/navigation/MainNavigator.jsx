@@ -18,6 +18,8 @@ import PostNeedScreen from '../screens/PostNeedScreen';
 import PostDonationScreen from '../screens/PostDonationScreen';
 import ReviewDonationScreen from '../screens/ReviewDonationScreen';
 import EditProfileScreen from '../screens/EditProfileScreen.jsx';
+import EditNeedScreen from '../screens/EditNeedScreen.jsx';
+import EditDonationOffer from '../screens/EditDonationOfferScreen.jsx';
 
 // Components
 import TabBar from '../components/TabBar';
@@ -45,6 +47,8 @@ const HomeStackNavigator = () => (
     <Stack.Screen name="PostNeed" component={PostNeedScreen} />
     <Stack.Screen name="PostDonation" component={PostDonationScreen} />
     <Stack.Screen name="Chat" component={ChatScreen} />
+    <Stack.Screen name="EditNeedScreen" component={EditNeedScreen} />
+    <Stack.Screen name="EditDonationOffer" component={EditDonationOffer} />
   </Stack.Navigator>
 );
 
@@ -70,6 +74,9 @@ const ProfileStackNavigator = () => (
     <Stack.Screen name="ProfileTab" component={ProfileScreen} />
     <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     <Stack.Screen name="PublicDonorProfile" component={PublicDonorProfileScreen} />
+    <Stack.Screen name="EditNeedScreen" component={EditNeedScreen} />
+    <Stack.Screen name="EditDonationOffer" component={EditDonationOffer} />
+    <Stack.Screen name="ReviewDonation" component={ReviewDonationScreen} />
   </Stack.Navigator>
 );
 

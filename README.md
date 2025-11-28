@@ -116,16 +116,6 @@ npm run dev
 - ✅ **iOS** - iPhone/iPad (via Expo)
 - ✅ **Android** - Smartphones/tablets (via Expo)
 
-## 🚧 Status do Projeto
-
-- ✅ **Frontend**: Interface completa e funcional
-- ✅ **Autenticação**: Sistema completo com simulação
-- ✅ **Navegação**: Fluxo completo implementado
-- ⚠️ **Backend**: APIs em desenvolvimento
-- ⚠️ **Banco de Dados**: Schema criado, população pendente
-
 ## 👥 Desenvolvedores
 
 Ratatui - https://github.com/Ratattuii
-
-Projeto desenvolvido para **Projeto de Pesquisa 2024**.

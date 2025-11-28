@@ -99,11 +99,6 @@ const SearchScreen = ({ navigation }) => {
         filters.urgency = urgencyMap[selectedUrgency] || selectedUrgency;
       }
       
-      if (selectedLocation !== 'todos') {
-        // TODO: Implementar filtro de localização
-        // filters.location = selectedLocation;
-      }
-      
       // Mapeia ordenação
       const sortMap = {
         'recentes': 'recentes',
@@ -154,7 +149,6 @@ const SearchScreen = ({ navigation }) => {
     navigation?.goBack?.();
   };
 
-  // ✅ Função renderNeedItem no lugar correto
   const renderNeedItem = ({ item }) => (
     <NeedCard
       need={item}
@@ -175,7 +169,7 @@ const SearchScreen = ({ navigation }) => {
           `Urgência: ${need.urgency}`
         );
       }}
-      isClickable={true} // 🔥 IMPORTANTE: Torna o card clicável
+      isClickable={true}
     />
   );
 

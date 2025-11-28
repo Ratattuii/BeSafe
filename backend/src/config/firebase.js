@@ -3,7 +3,6 @@ const admin = require('firebase-admin');
 const path = require('path');
 const fs = require('fs');
 
-// Inicializa Firebase Admin SDK
 let firebaseApp = null;
 
 function initializeFirebase() {
@@ -12,7 +11,6 @@ function initializeFirebase() {
   }
 
   try {
-    // Prioridade 1: Usar arquivo de service account via caminho no .env
     if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
       const serviceAccountPath = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
       
@@ -27,18 +25,16 @@ function initializeFirebase() {
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID
       });
-      console.log('✅ Firebase Admin SDK inicializado com arquivo de service account');
+      console.log('Firebase Admin SDK inicializado com arquivo de service account');
     }
-    // Prioridade 2: Usar JSON string na variável de ambiente
     else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
       firebaseApp = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID
       });
-      console.log('✅ Firebase Admin SDK inicializado com chave de variável de ambiente');
+      console.log('Firebase Admin SDK inicializado com chave de variável de ambiente');
     }
-    // Prioridade 3: Tentar arquivo padrão (fallback)
     else {
       const defaultPath = path.resolve(__dirname, '../../serviceAccountKey.json');
       if (fs.existsSync(defaultPath)) {
@@ -47,18 +43,18 @@ function initializeFirebase() {
           credential: admin.credential.cert(serviceAccount),
           projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID
         });
-        console.log('✅ Firebase Admin SDK inicializado com arquivo padrão');
+        console.log('Firebase Admin SDK inicializado com arquivo padrão');
       } else {
-        console.warn('⚠️  Firebase não configurado. Configure FIREBASE_SERVICE_ACCOUNT_PATH no .env');
-        console.warn('   Ou coloque o arquivo serviceAccountKey.json na raiz do backend/');
+        console.warn('Firebase não configurado. Configure FIREBASE_SERVICE_ACCOUNT_PATH no .env');
+        console.warn('Ou coloque o arquivo serviceAccountKey.json na raiz do backend/');
         return null;
       }
     }
 
     return firebaseApp;
   } catch (error) {
-    console.error('❌ Erro ao inicializar Firebase Admin SDK:', error.message);
-    console.error('   Verifique se o arquivo de service account está correto.');
+    console.error('Erro ao inicializar Firebase Admin SDK:', error.message);
+    console.error('Verifique se o arquivo de service account está correto.');
     return null;
   }
 }

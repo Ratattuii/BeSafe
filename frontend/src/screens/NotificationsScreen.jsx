@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,131 +10,57 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
-  Platform,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../styles/globalStyles';
-import useWebScroll from '../utils/useWebScroll';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 
 const NotificationsScreen = ({ navigation }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState('todas'); // todas, nao_lidas, lidas
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('todas');
   
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
+  const { user } = useAuth();
+
+  // DEBUG: Log inicial do componente
+  console.log('🔍 [NOTIFICATIONS SCREEN] ===== COMPONENTE INICIADO =====');
+  console.log('🔍 [NOTIFICATIONS SCREEN] User:', user ? `ID: ${user.id}, Role: ${user.role}` : 'Nenhum usuário');
+  console.log('🔍 [NOTIFICATIONS SCREEN] Estado inicial - loading:', loading, 'notifications:', notifications.length);
 
   // Tipos de notificação
   const notificationTypes = {
-    new_need: {
-      icon: '🆘',
-      color: colors.urgent,
-      title: 'Nova necessidade',
-    },
-    new_message: {
-      icon: '💬',
-      color: colors.info,
-      title: 'Nova mensagem',
-    },
-    donation_received: {
+    donation: {
       icon: '🎁',
       color: colors.success,
-      title: 'Doação recebida',
+      title: 'Doação recebida'
     },
-    need_updated: {
-      icon: '📝',
-      color: colors.warning,
-      title: 'Necessidade atualizada',
+    message: {
+      icon: '💬',
+      color: colors.info,
+      title: 'Nova mensagem'
     },
-    new_follower: {
+    follow: {
       icon: '👥',
       color: colors.primary,
-      title: 'Novo seguidor',
+      title: 'Novo seguidor'
     },
-    need_fulfilled: {
-      icon: '✅',
-      color: colors.success,
-      title: 'Necessidade atendida',
+    need_update: {
+      icon: '📝',
+      color: colors.warning,
+      title: 'Atualização de necessidade'
     },
+    system: {
+      icon: '🔔',
+      color: colors.secondary,
+      title: 'Notificação do sistema'
+    }
   };
-
-  // Dados mockados de notificações
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'new_need',
-      title: 'Nova necessidade urgente',
-      message: 'Hospital São Lucas postou uma necessidade crítica: "Medicamentos para UTI"',
-      timestamp: '2023-10-01T10:30:00Z',
-      isRead: false,
-      avatar: 'https://via.placeholder.com/40x40/4CAF50/white?text=HS',
-      actionData: {
-        needId: 123,
-        institutionId: 456,
-      }
-    },
-    {
-      id: 2,
-      type: 'new_message',
-      title: 'Mensagem de Cruz Vermelha',
-      message: 'Obrigado pela doação! Os medicamentos chegaram em perfeitas condições.',
-      timestamp: '2023-10-01T09:15:00Z',
-      isRead: false,
-      avatar: 'https://via.placeholder.com/40x40/FF1434/white?text=CV',
-      actionData: {
-        chatId: 789,
-      }
-    },
-    {
-      id: 3,
-      type: 'donation_received',
-      title: 'Doação confirmada',
-      message: 'Sua doação de "Alimentos não perecíveis" foi confirmada pelo Abrigo Esperança',
-      timestamp: '2023-09-30T16:45:00Z',
-      isRead: true,
-      avatar: 'https://via.placeholder.com/40x40/9C27B0/white?text=AE',
-      actionData: {
-        donationId: 321,
-      }
-    },
-    {
-      id: 4,
-      type: 'need_updated',
-      title: 'Necessidade atualizada',
-      message: 'Lar dos Idosos atualizou a necessidade "Roupas de inverno" - 80% do objetivo atingido',
-      timestamp: '2023-09-30T14:20:00Z',
-      isRead: true,
-      avatar: 'https://via.placeholder.com/40x40/2196F3/white?text=LI',
-      actionData: {
-        needId: 654,
-      }
-    },
-    {
-      id: 5,
-      type: 'new_follower',
-      title: 'Novo seguidor',
-      message: 'João Silva começou a seguir suas doações',
-      timestamp: '2023-09-29T11:10:00Z',
-      isRead: true,
-      avatar: 'https://via.placeholder.com/40x40/FF9800/white?text=JS',
-      actionData: {
-        userId: 987,
-      }
-    },
-    {
-      id: 6,
-      type: 'need_fulfilled',
-      title: 'Objetivo alcançado!',
-      message: 'A necessidade "Água potável" que você ajudou foi 100% atendida',
-      timestamp: '2023-09-28T08:30:00Z',
-      isRead: true,
-      avatar: 'https://via.placeholder.com/40x40/4A90E2/white?text=CV',
-      actionData: {
-        needId: 111,
-      }
-    },
-  ];
 
   const filters = [
     { id: 'todas', label: 'Todas' },
@@ -142,114 +68,306 @@ const NotificationsScreen = ({ navigation }) => {
     { id: 'lidas', label: 'Lidas' },
   ];
 
-  // Habilitar scroll do mouse no web
-  useWebScroll('notifications-scroll');
+  // Função para obter avatar padrão
+  const getDefaultAvatar = (notification) => {
+    const initials = notification.related_user_name 
+      ? notification.related_user_name.charAt(0).toUpperCase()
+      : 'U';
+    
+    return `https://via.placeholder.com/40x40/4A90E2/FFFFFF?text=${initials}`;
+  };
 
-  useEffect(() => {
-    loadNotifications();
+  // Função para obter dados de ação
+  const getActionData = (notification) => {
+    switch (notification.type) {
+      case 'donation':
+        return { donationId: notification.related_id };
+      case 'message':
+        return { userId: notification.related_id };
+      case 'follow':
+        return { userId: notification.related_id };
+      case 'need_update':
+        return { needId: notification.related_id };
+      default:
+        return {};
+    }
+  };
+
+  // Formatar notificações da API
+  const formatNotifications = (apiNotifications) => {
+    console.log('🔍 [NOTIFICATIONS SCREEN] Formatando notificações da API...');
+    
+    if (!apiNotifications) {
+      console.log('❌ [NOTIFICATIONS SCREEN] apiNotifications é undefined/null');
+      return [];
+    }
+    
+    if (!Array.isArray(apiNotifications)) {
+      console.log('❌ [NOTIFICATIONS SCREEN] apiNotifications não é array:', typeof apiNotifications);
+      return [];
+    }
+    
+    console.log(`🔍 [NOTIFICATIONS SCREEN] Recebidas ${apiNotifications.length} notificações da API`);
+    
+    const formatted = apiNotifications.map(notification => {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Processando notificação:', {
+        id: notification.id,
+        type: notification.type,
+        title: notification.title,
+        is_read: notification.is_read
+      });
+      
+      return {
+        id: notification.id,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        timestamp: notification.created_at,
+        isRead: notification.is_read,
+        readAt: notification.read_at,
+        avatar: notification.related_user_avatar || getDefaultAvatar(notification),
+        actionData: getActionData(notification),
+        relatedUserId: notification.related_id,
+        relatedUserName: notification.related_user_name
+      };
+    });
+    
+    console.log('🔍 [NOTIFICATIONS SCREEN] Notificações formatadas:', formatted.length);
+    return formatted;
+  };
+
+  // Carregar notificações
+  const loadNotifications = useCallback(async () => {
+    console.log('🔍 [NOTIFICATIONS SCREEN] ===== INICIANDO CARREGAMENTO =====');
+    console.log('🔍 [NOTIFICATIONS SCREEN] User no loadNotifications:', user ? `ID: ${user.id}` : 'Nenhum usuário');
+    
+    try {
+      setError(null);
+      setLoading(true);
+      
+      console.log('🔍 [NOTIFICATIONS SCREEN] Fazendo requisição para API...');
+      const response = await api.getNotifications();
+      
+      console.log('🔍 [NOTIFICATIONS SCREEN] Resposta da API:', {
+        success: response?.success,
+        message: response?.message,
+        dataExists: !!response?.data,
+        notificationsCount: response?.data?.notifications?.length
+      });
+      
+      if (response && response.success) {
+        console.log('✅ [NOTIFICATIONS SCREEN] API retornou sucesso');
+        console.log(`📨 [NOTIFICATIONS SCREEN] ${response.data.notifications?.length} notificações recebidas`);
+        
+        const formattedNotifications = formatNotifications(response.data.notifications);
+        
+        console.log('🔍 [NOTIFICATIONS SCREEN] Definindo estado com notificações...');
+        setNotifications(formattedNotifications);
+        
+        // DEBUG: Log detalhado das notificações
+        if (formattedNotifications.length > 0) {
+          console.log('📋 [NOTIFICATIONS SCREEN] DETALHES DAS NOTIFICAÇÕES:');
+          formattedNotifications.forEach((notif, index) => {
+            console.log(`   ${index + 1}. ${notif.title} (${notif.type}) - ${notif.isRead ? 'LIDA' : 'NÃO LIDA'}`);
+          });
+        } else {
+          console.log('ℹ️ [NOTIFICATIONS SCREEN] Nenhuma notificação para exibir');
+        }
+        
+      } else {
+        console.log('❌ [NOTIFICATIONS SCREEN] API retornou erro:', response?.message);
+        throw new Error(response?.message || 'Erro ao carregar notificações');
+      }
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS SCREEN] Erro no carregamento:', {
+        message: error.message,
+        stack: error.stack
+      });
+      setError(error.message);
+      setNotifications([]);
+    } finally {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Finalizando carregamento, loading: false');
+      setLoading(false);
+    }
   }, []);
 
-  const loadNotifications = async () => {
-    setLoading(true);
+  // Carregar notificações iniciais
+  useEffect(() => {
+    console.log('🔍 [NOTIFICATIONS SCREEN] useEffect executado');
+    console.log('🔍 [NOTIFICATIONS SCREEN] User no useEffect:', user ? `ID: ${user.id}` : 'Nenhum usuário');
     
-    // TODO: Implementar carregamento real
-    // GET /notifications
-    
-    // Simula carregamento
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    setNotifications(mockNotifications);
-    setLoading(false);
-  };
+    if (user) {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Usuário autenticado, carregando notificações...');
+      loadNotifications();
+    } else {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Nenhum usuário, pulando carregamento');
+      setLoading(false);
+    }
+  }, [user, loadNotifications]);
+
+  // DEBUG: Log quando o estado muda
+  useEffect(() => {
+    console.log('🔍 [NOTIFICATIONS SCREEN] Estado atualizado - notifications:', notifications.length, 'loading:', loading, 'error:', error);
+  }, [notifications, loading, error]);
 
   const handleRefresh = async () => {
+    console.log('🔍 [NOTIFICATIONS SCREEN] ===== INICIANDO REFRESH =====');
     setRefreshing(true);
-    await loadNotifications();
-    setRefreshing(false);
+    try {
+      await loadNotifications();
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS SCREEN] Erro no refresh:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar as notificações');
+    } finally {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Finalizando refresh');
+      setRefreshing(false);
+    }
   };
 
+  // Marcar notificação como lida
   const markAsRead = async (notificationId) => {
-    // TODO: Implementar marcação como lida
-    // PUT /notifications/${notificationId}/read
-    
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId 
-          ? { ...notif, isRead: true }
-          : notif
-      )
-    );
+    console.log('🔍 [NOTIFICATIONS SCREEN] Marcando notificação como lida:', notificationId);
+    try {
+      const response = await api.markNotificationAsRead(notificationId);
+      
+      if (response.success) {
+        console.log('✅ [NOTIFICATIONS SCREEN] Notificação marcada como lida com sucesso');
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId 
+              ? { ...notif, isRead: true }
+              : notif
+          )
+        );
+      } else {
+        console.log('❌ [NOTIFICATIONS SCREEN] Erro na API ao marcar como lida:', response.message);
+        throw new Error(response.message || 'Erro ao marcar como lida');
+      }
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS SCREEN] Erro ao marcar notificação como lida:', error);
+      Alert.alert('Erro', 'Não foi possível marcar a notificação como lida');
+    }
   };
 
+  // Marcar todas como lidas
   const markAllAsRead = async () => {
-    // TODO: Implementar marcação em massa
-    // PUT /notifications/mark-all-read
-    
-    setNotifications(prev => 
-      prev.map(notif => ({ ...notif, isRead: true }))
-    );
+    console.log('🔍 [NOTIFICATIONS SCREEN] Marcando TODAS as notificações como lidas');
+    try {
+      const response = await api.markAllNotificationsAsRead();
+      
+      if (response.success) {
+        console.log('✅ [NOTIFICATIONS SCREEN] Todas as notificações marcadas como lidas');
+        setNotifications(prev => 
+          prev.map(notif => ({ ...notif, isRead: true }))
+        );
+        Alert.alert('Sucesso', 'Todas as notificações foram marcadas como lidas');
+      } else {
+        console.log('❌ [NOTIFICATIONS SCREEN] Erro na API ao marcar todas:', response.message);
+        throw new Error(response.message || 'Erro ao marcar todas como lidas');
+      }
+    } catch (error) {
+      console.error('❌ [NOTIFICATIONS SCREEN] Erro ao marcar todas as notificações como lidas:', error);
+      Alert.alert('Erro', 'Não foi possível marcar todas as notificações como lidas');
+    }
   };
 
-  const handleNotificationPress = (notification) => {
-    // Marcar como lida
+  const handleNotificationPress = async (notification) => {
+    console.log('🔍 [NOTIFICATIONS SCREEN] Clicou na notificação:', {
+      id: notification.id,
+      title: notification.title,
+      type: notification.type,
+      isRead: notification.isRead
+    });
+
+    // Marcar como lida se não estiver lida
     if (!notification.isRead) {
-      markAsRead(notification.id);
+      console.log('🔍 [NOTIFICATIONS SCREEN] Notificação não lida, marcando como lida...');
+      await markAsRead(notification.id);
     }
 
-    // Navegar baseado no tipo
+    // Navegação simplificada para evitar erros
+    console.log('🔍 [NOTIFICATIONS SCREEN] Navegando para tela baseada no tipo:', notification.type);
     switch (notification.type) {
-      case 'new_need':
-      case 'need_updated':
-      case 'need_fulfilled':
-        // TODO: Navegar para detalhes da necessidade
-        console.log('Ver necessidade:', notification.actionData.needId);
+      case 'donation':
+        navigation.navigate('MyDonations');
         break;
-      case 'new_message':
-        // TODO: Navegar para chat
-        console.log('Abrir chat:', notification.actionData.chatId);
+      case 'message':
+        navigation.navigate('Conversations');
         break;
-      case 'donation_received':
-        // TODO: Navegar para detalhes da doação
-        console.log('Ver doação:', notification.actionData.donationId);
+      case 'follow':
+        if (user?.role === 'institution') {
+          navigation.navigate('Donors');
+        } else {
+          navigation.navigate('Institutions');
+        }
         break;
-      case 'new_follower':
-        // TODO: Navegar para perfil do usuário
-        console.log('Ver perfil:', notification.actionData.userId);
+      case 'need_update':
+        navigation.navigate('Needs');
         break;
       default:
-        console.log('Ação não definida para tipo:', notification.type);
+        Alert.alert(notification.title, notification.message);
     }
   };
 
   const getFilteredNotifications = () => {
-    switch (filter) {
-      case 'nao_lidas':
-        return notifications.filter(notif => !notif.isRead);
-      case 'lidas':
-        return notifications.filter(notif => notif.isRead);
-      default:
-        return notifications;
-    }
+    const filtered = filter === 'nao_lidas' 
+      ? notifications.filter(notif => !notif.isRead)
+      : filter === 'lidas' 
+      ? notifications.filter(notif => notif.isRead)
+      : notifications;
+
+    console.log('🔍 [NOTIFICATIONS SCREEN] Filtro aplicado:', {
+      filter,
+      total: notifications.length,
+      filtered: filtered.length,
+      naoLidas: notifications.filter(notif => !notif.isRead).length,
+      lidas: notifications.filter(notif => notif.isRead).length
+    });
+
+    return filtered;
   };
 
   const getUnreadCount = () => {
-    return notifications.filter(notif => !notif.isRead).length;
+    const count = notifications.filter(notif => !notif.isRead).length;
+    console.log('🔍 [NOTIFICATIONS SCREEN] Contagem de não lidas:', count);
+    return count;
   };
 
   const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now - date) / (1000 * 60 * 60);
+    if (!timestamp) return 'Data não disponível';
+    
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInMs = now - date;
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-    if (diffInHours < 1) {
-      return 'Agora há pouco';
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)}h atrás`;
-    } else if (diffInHours < 48) {
-      return 'Ontem';
-    } else {
-      return date.toLocaleDateString('pt-BR');
+      if (diffInMinutes < 1) {
+        return 'Agora há pouco';
+      } else if (diffInMinutes < 60) {
+        return `${diffInMinutes}min atrás`;
+      } else if (diffInHours < 24) {
+        return `${diffInHours}h atrás`;
+      } else if (diffInDays === 1) {
+        return 'Ontem';
+      } else if (diffInDays < 7) {
+        return `${diffInDays}d atrás`;
+      } else {
+        return date.toLocaleDateString('pt-BR');
+      }
+    } catch (error) {
+      return 'Data inválida';
     }
+  };
+
+  const getNotificationConfig = (type) => {
+    return notificationTypes[type] || {
+      icon: '🔔',
+      color: colors.primary,
+      title: 'Notificação'
+    };
   };
 
   const renderHeader = () => (
@@ -257,22 +375,27 @@ const NotificationsScreen = ({ navigation }) => {
       <View style={styles.headerLeft}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessible={true}
-          accessibilityLabel="Voltar"
-          accessibilityRole="button"
+          onPress={() => {
+            console.log('🔍 [NOTIFICATIONS SCREEN] Voltando...');
+            navigation.goBack();
+          }}
         >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notificações</Text>
+        {getUnreadCount() > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{getUnreadCount()}</Text>
+          </View>
+        )}
       </View>
       {getUnreadCount() > 0 && (
         <TouchableOpacity
           style={styles.markAllButton}
-          onPress={markAllAsRead}
-          accessible={true}
-          accessibilityLabel="Marcar todas como lidas"
-          accessibilityRole="button"
+          onPress={() => {
+            console.log('🔍 [NOTIFICATIONS SCREEN] Clicou em "Marcar todas como lidas"');
+            markAllAsRead();
+          }}
         >
           <Text style={styles.markAllButtonText}>Marcar todas como lidas</Text>
         </TouchableOpacity>
@@ -289,11 +412,10 @@ const NotificationsScreen = ({ navigation }) => {
             styles.filterButton,
             filter === filterOption.id && styles.filterButtonActive
           ]}
-          onPress={() => setFilter(filterOption.id)}
-          accessible={true}
-          accessibilityLabel={`Filtrar por ${filterOption.label}`}
-          accessibilityRole="radio"
-          accessibilityState={{ selected: filter === filterOption.id }}
+          onPress={() => {
+            console.log('🔍 [NOTIFICATIONS SCREEN] Alterando filtro para:', filterOption.id);
+            setFilter(filterOption.id);
+          }}
         >
           <Text style={[
             styles.filterButtonText,
@@ -310,7 +432,13 @@ const NotificationsScreen = ({ navigation }) => {
   );
 
   const renderNotificationItem = (notification) => {
-    const typeConfig = notificationTypes[notification.type];
+    const typeConfig = getNotificationConfig(notification.type);
+
+    console.log('🔍 [NOTIFICATIONS SCREEN] Renderizando item:', {
+      id: notification.id,
+      title: notification.title,
+      type: notification.type
+    });
 
     return (
       <TouchableOpacity
@@ -321,23 +449,20 @@ const NotificationsScreen = ({ navigation }) => {
           isDesktop && styles.notificationItemDesktop,
         ]}
         onPress={() => handleNotificationPress(notification)}
-        accessible={true}
-        accessibilityLabel={`${notification.title}: ${notification.message}`}
-        accessibilityHint={notification.isRead ? 'Lida' : 'Não lida'}
-        accessibilityRole="button"
       >
-        {/* Indicador não lida */}
         {!notification.isRead && <View style={styles.unreadIndicator} />}
 
-        {/* Avatar e ícone do tipo */}
         <View style={styles.avatarContainer}>
-          <Image source={{ uri: notification.avatar }} style={styles.avatar} />
+          <Image 
+            source={{ uri: notification.avatar }} 
+            style={styles.avatar}
+            onError={() => console.log('❌ [NOTIFICATIONS SCREEN] Erro ao carregar avatar da notificação:', notification.id)}
+          />
           <View style={[styles.typeIcon, { backgroundColor: typeConfig.color }]}>
             <Text style={styles.typeIconText}>{typeConfig.icon}</Text>
           </View>
         </View>
 
-        {/* Conteúdo da notificação */}
         <View style={styles.notificationContent}>
           <View style={styles.notificationHeader}>
             <Text style={[
@@ -358,19 +483,14 @@ const NotificationsScreen = ({ navigation }) => {
             {notification.message}
           </Text>
 
-          {/* Tipo da notificação */}
           <Text style={styles.notificationType}>
             {typeConfig.title}
           </Text>
         </View>
 
-        {/* Botão de ação */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleNotificationPress(notification)}
-          accessible={true}
-          accessibilityLabel="Ver detalhes"
-          accessibilityRole="button"
         >
           <Text style={styles.actionButtonText}>Ver</Text>
         </TouchableOpacity>
@@ -381,7 +501,16 @@ const NotificationsScreen = ({ navigation }) => {
   const renderNotificationsList = () => {
     const filteredNotifications = getFilteredNotifications();
 
-    if (loading) {
+    console.log('🔍 [NOTIFICATIONS SCREEN] Renderizando lista - estado:', {
+      loading,
+      refreshing,
+      error,
+      filteredCount: filteredNotifications.length,
+      totalCount: notifications.length
+    });
+
+    if (loading && !refreshing) {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Mostrando loading...');
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -390,7 +519,22 @@ const NotificationsScreen = ({ navigation }) => {
       );
     }
 
+    if (error && !refreshing) {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Mostrando erro:', error);
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>⚠️</Text>
+          <Text style={styles.emptyTitle}>Erro ao carregar</Text>
+          <Text style={styles.emptyDescription}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     if (filteredNotifications.length === 0) {
+      console.log('🔍 [NOTIFICATIONS SCREEN] Mostrando estado vazio com filtro:', filter);
       return (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🔔</Text>
@@ -405,13 +549,16 @@ const NotificationsScreen = ({ navigation }) => {
               : 'Tente selecionar outro filtro'
             }
           </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Recarregar</Text>
+          </TouchableOpacity>
         </View>
       );
     }
 
+    console.log('🔍 [NOTIFICATIONS SCREEN] Renderizando lista com', filteredNotifications.length, 'notificações');
     return (
       <ScrollView 
-        nativeID="notifications-scroll"
         style={styles.notificationsList}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -427,32 +574,37 @@ const NotificationsScreen = ({ navigation }) => {
     );
   };
 
-  const renderMobileLayout = () => (
-    <View style={styles.container}>
-      {renderHeader()}
-      {renderFilters()}
-      {renderNotificationsList()}
-    </View>
-  );
+  console.log('🔍 [NOTIFICATIONS SCREEN] ===== RENDERIZANDO COMPONENTE =====');
+  console.log('🔍 [NOTIFICATIONS SCREEN] Estado final - notifications:', notifications.length, 'loading:', loading, 'error:', error);
 
-  const renderDesktopLayout = () => (
-    <View style={styles.desktopContainer}>
-      <View style={styles.desktopContent}>
-        {renderHeader()}
-        {renderFilters()}
-        {renderNotificationsList()}
-      </View>
-    </View>
-  );
+  if (isDesktop) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <View style={styles.desktopContainer}>
+          <View style={styles.desktopContent}>
+            {renderHeader()}
+            {renderFilters()}
+            {renderNotificationsList()}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      {isDesktop ? renderDesktopLayout() : renderMobileLayout()}
+      <View style={styles.container}>
+        {renderHeader()}
+        {renderFilters()}
+        {renderNotificationsList()}
+      </View>
     </SafeAreaView>
   );
 };
 
+// ESTILOS (mantenha os mesmos)
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -461,8 +613,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
-  // Desktop Layout
   desktopContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -480,10 +630,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     overflow: 'hidden',
-    maxHeight: '90vh',
+    maxHeight: '90%',
   },
-
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -518,6 +666,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textPrimary,
   },
+  badge: {
+    backgroundColor: colors.urgent,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 6,
+  },
   markAllButton: {
     backgroundColor: colors.secondary,
     paddingHorizontal: 12,
@@ -529,8 +692,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-
-  // Filtros
   filtersContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -546,8 +707,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: colors.secondary,
-    minHeight: 36,
-    justifyContent: 'center',
   },
   filterButtonActive: {
     backgroundColor: colors.primary,
@@ -560,18 +719,9 @@ const styles = StyleSheet.create({
   filterButtonTextActive: {
     color: colors.white,
   },
-
-  // Lista de notificações
   notificationsList: {
     flex: 1,
     backgroundColor: colors.white,
-  },
-  webNotificationsList: {
-    flex: 1,
-    backgroundColor: colors.white,
-    overflow: 'auto',
-    maxHeight: '100%',
-    padding: 8,
   },
   notificationItem: {
     flexDirection: 'row',
@@ -579,27 +729,20 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.secondary,
-    position: 'relative',
-    minHeight: 80,
   },
   notificationItemDesktop: {
     paddingHorizontal: 24,
   },
   unreadNotification: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.primaryLight + '20',
   },
   unreadIndicator: {
-    position: 'absolute',
-    left: 8,
-    top: '50%',
-    marginTop: -3,
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.primary,
+    marginRight: 10,
   },
-
-  // Avatar e ícone
   avatarContainer: {
     position: 'relative',
     marginRight: 12,
@@ -625,8 +768,6 @@ const styles = StyleSheet.create({
   typeIconText: {
     fontSize: 8,
   },
-
-  // Conteúdo
   notificationContent: {
     flex: 1,
     marginRight: 12,
@@ -665,24 +806,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
-
-  // Botão de ação
   actionButton: {
     backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     alignSelf: 'flex-start',
-    minHeight: 28,
-    justifyContent: 'center',
   },
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.white,
   },
-
-  // Estados vazios
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -718,6 +853,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     marginTop: 16,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

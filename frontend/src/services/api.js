@@ -108,6 +108,15 @@ class ApiService {
   }
 
   /**
+   * Faz requisição DELETE
+   * @param {string} endpoint - Endpoint da API
+   * @returns {Promise} Resposta da API
+   */
+  async delete(endpoint) {
+    return this.request(endpoint, { method: 'DELETE' });
+  }
+
+  /**
    * Upload de arquivo (FormData)
    * @param {string} endpoint - Endpoint da API
    * @param {FormData} formData - Dados do formulário
@@ -198,7 +207,6 @@ class ApiService {
     
     // Adiciona dados do usuário
     Object.keys(userData).forEach(key => {
-      // 👇 LINHA MODIFICADA 👇
       if (userData[key] !== undefined) {
         formData.append(key, userData[key]);
       }
@@ -273,15 +281,15 @@ class ApiService {
     return this.get('/donations/stats');
   }
 
-  // ===== MÉTODOS DE OFERTAS DE DOAÇÃO (NOVOS) =====
+  // ===== MÉTODOS DE OFERTAS DE DOAÇÃO (CORRIGIDOS) =====
 
   /**
-   * Cria uma nova oferta de doação (publicada por um doador)
-   * @param {object} offerData - Dados da oferta
+   * Busca uma oferta de doação específica
+   * @param {number} offerId - ID da oferta
    * @returns {Promise} Resposta da API
    */
-  async createDonationOffer(offerData) {
-    return this.post('/offers', offerData);
+  async getDonationOffer(offerId) {
+    return this.get(`/offers/${offerId}`);
   }
 
   /**
@@ -293,13 +301,22 @@ class ApiService {
   }
 
   /**
- * Lista ofertas de doação de um usuário específico
- * @param {number} userId - ID do usuário
- * @returns {Promise} Resposta da API
- */
-    async getUserDonationOffers(userId) {
-      return this.get(`/offers/user/${userId}`);
-    }
+   * Lista ofertas de doação de um usuário específico
+   * @param {number} userId - ID do usuário
+   * @returns {Promise} Resposta da API
+   */
+  async getUserDonationOffers(userId) {
+    return this.get(`/offers/user/${userId}`);
+  }
+
+  /**
+   * Cria uma nova oferta de doação (publicada por um doador)
+   * @param {object} offerData - Dados da oferta
+   * @returns {Promise} Resposta da API
+   */
+  async createDonationOffer(offerData) {
+    return this.post('/offers', offerData);
+  }
 
   /**
    * Atualiza uma oferta de doação existente
@@ -308,8 +325,16 @@ class ApiService {
    * @returns {Promise} Resposta da API
    */
   async updateDonationOffer(id, offerData) {
-    // Esta é a função que estava faltando
     return this.put(`/offers/${id}`, offerData);
+  }
+
+  /**
+   * Exclui uma oferta de doação
+   * @param {number} id - ID da oferta
+   * @returns {Promise} Resposta da API
+   */
+  async deleteDonationOffer(id) {
+    return this.delete(`/offers/${id}`);
   }
 
   /**
@@ -456,7 +481,7 @@ class ApiService {
    * @returns {Promise} Resposta da API
    */
   async deleteNotification(notificationId) {
-    return this.request(`/notifications/${notificationId}`, { method: 'DELETE' });
+    return this.delete(`/notifications/${notificationId}`);
   }
 
   /**
@@ -648,23 +673,23 @@ class ApiService {
     return this.get('/me/follows');
   }
 
-  /**
-   * Segue uma instituição
-   * @param {number} institutionId - ID da instituição
-   * @returns {Promise} Resposta da API
-   */
-  async followInstitution(institutionId) {
-    return this.post(`/institutions/${institutionId}/follow`);
-  }
+/**
+ * Segue uma instituição
+ * @param {number} institutionId - ID da instituição
+ * @returns {Promise} Resposta da API
+ */
+async followInstitution(institutionId) {
+  return this.post(`/institutions/${institutionId}/follow`);
+}
 
-  /**
-   * Deixa de seguir uma instituição
-   * @param {number} institutionId - ID da instituição
-   * @returns {Promise} Resposta da API
-   */
-  async unfollowInstitution(institutionId) {
-    return this.request(`/institutions/${institutionId}/follow`, { method: 'DELETE' });
-  }
+/**
+ * Deixa de seguir uma instituição
+ * @param {number} institutionId - ID da instituição
+ * @returns {Promise} Resposta da API
+ */
+async unfollowInstitution(institutionId) {
+  return this.delete(`/institutions/${institutionId}/follow`);
+}
 
   // ===== MÉTODOS DE NECESSIDADES (ENHANCED) =====
 
@@ -715,6 +740,30 @@ class ApiService {
       return this.post('/needs', needData); 
     }
   }
+
+  /**
+ * Atualiza uma necessidade existente
+ * @param {number} needId - ID da necessidade
+ * @param {object} needData - Dados da necessidade
+ * @param {File} imageFile - Nova imagem (opcional)
+ * @returns {Promise} Resposta da API
+ */
+async updateNeed(needId, needData, imageFile = null) {
+      if (imageFile) {
+        const formData = new FormData();
+        
+        Object.keys(needData).forEach(key => {
+          if (needData[key] !== null && needData[key] !== undefined) {
+            formData.append(key, needData[key]);
+          }
+        });
+        
+        formData.append('image', imageFile);
+        return this.upload(`/needs/${needId}`, formData, 'PUT');
+      } else {
+        return this.put(`/needs/${needId}`, needData);
+      }
+    } 
 
   /**
    * Lista tipos de necessidades disponíveis
@@ -778,9 +827,48 @@ class ApiService {
   async getNeedStats(needId) {
     return this.get(`/needs/${needId}/stats`);
   }
+
+  /**
+   * Finaliza uma necessidade
+  */
+  async finalizeNeed(needId) {
+    try {
+      console.log('🔄 [API] Finalizando necessidade ID:', needId);
+        
+      const response = await this.post(`/needs/${needId}/finalize`);
+        
+      console.log('✅ [API] Resposta da finalização:', response.data);
+      return response.data;
+        
+    } catch (error) {
+      console.error('❌ [API] Erro ao finalizar necessidade:', error);
+      throw error;
+    }
+  }  
+
+  /**
+ * Finaliza uma oferta de doação
+ * @param {number} offerId - ID da oferta
+ * @returns {Promise} Resposta da API
+ */
+async finalizeDonationOffer(offerId) {
+  try {
+    console.log('🔄 [API] Finalizando oferta de doação ID:', offerId);
+    
+    const response = await this.post(`/offers/${offerId}/finalize`);
+    
+    console.log('✅ [API] Resposta da finalização da oferta:', response);
+    return response;
+    
+  } catch (error) {
+    console.error('❌ [API] Erro ao finalizar oferta:', error);
+    throw error;
+  }
+}
 }
 
-// Instância única da API
+
+
 const api = new ApiService();
 
 export default api;

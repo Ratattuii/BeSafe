@@ -18,12 +18,12 @@ class PushNotificationService {
       
       if (firebaseApp && admin.apps.length > 0) {
         this.messaging = admin.messaging();
-        console.log('✅ FCM inicializado com sucesso');
+        console.log('FCM inicializado com sucesso');
       } else {
-        console.error('❌ Firebase Admin não foi inicializado. Verifique as configurações.');
+        console.error('Firebase Admin não foi inicializado. Verifique as configurações.');
       }
     } catch (error) {
-      console.error('❌ Erro ao inicializar FCM:', error.message);
+      console.error('Erro ao inicializar FCM:', error.message);
     }
   }
 
@@ -292,7 +292,6 @@ class PushNotificationService {
   }
 }
 
-// Instância singleton do serviço
 const pushNotificationService = new PushNotificationService();
 
 module.exports = pushNotificationService;

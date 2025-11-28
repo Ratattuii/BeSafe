@@ -1,7 +1,7 @@
 const { query, queryOne } = require('../database/db');
 const pushNotifications = require('../services/pushNotifications');
 
-// --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIO ---
+// USUÁRIO
 
 const getAllUsers = async (req, res) => {
   try {
@@ -37,7 +37,6 @@ const deleteUser = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Adicionar lógica para deletar dependências (doações, necessidades, etc.) se necessário (ON DELETE CASCADE)
     const result = await query('DELETE FROM users WHERE id = ?', [id]);
     if (!result || result.affectedRows === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado.' });
@@ -49,7 +48,7 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// --- FUNÇÕES DE ESTATÍSTICAS ---
+// ESTATÍSTICAS
 
 const getAdminStats = async (req, res) => {
   try {
@@ -70,9 +69,8 @@ const getAdminStats = async (req, res) => {
   }
 };
 
-// --- FUNÇÕES DE ALERTA DE DESASTRE ---
+// ALERTA DE DESASTRE
 
-// IMPORTANTE: O nome da função é "sendGlobalDisasterAlert"
 const sendGlobalDisasterAlert = async (req, res) => {
   const { title, body } = req.body;
   
@@ -86,16 +84,14 @@ const sendGlobalDisasterAlert = async (req, res) => {
         title: `🚨 ALERTA BESAFE: ${title}`,
         body: body,
       },
-      topic: 'all_users', // Envia para todos os usuários inscritos no tópico
+      topic: 'all_users',
     };
 
-    // Salva o alerta no banco de dados
     const result = await query(
       'INSERT INTO disaster_alerts (title, message, sent_by) VALUES (?, ?, ?)',
       [title, body, req.user.id] // req.user.id vem do middleware authenticateToken
     );
     
-    // Envia a notificação push
     const response = await pushNotifications.sendPushNotification(message);
 
     res.status(201).json({ 
@@ -136,13 +132,12 @@ const getAlertStats = async (req, res) => {
 };
 
 
-// IMPORTANTE: A EXPORTAÇÃO no final do arquivo
 module.exports = {
   getAllUsers,
   updateUserRole,
   deleteUser,
   getAdminStats,
-  sendGlobalDisasterAlert, // <-- Nome correto (com "Global")
+  sendGlobalDisasterAlert,
   getAlertHistory,
   getAlertStats
 };  

@@ -1,6 +1,3 @@
-// Modelo de usuário em memória - stub inicial
-// TODO: Migrar para banco de dados quando definido
-
 // Armazenamento em memória temporário
 let users = [];
 let nextId = 1;
@@ -13,8 +10,8 @@ class User {
     this.id = nextId++;
     this.name = name;
     this.email = email;
-    this.password = password; // TODO: Hash da senha quando implementar auth
-    this.role = role; // 'doador' ou 'receptor'
+    this.password = password;
+    this.role = role;
     this.phone = phone;
     this.address = address;
     this.createdAt = new Date();
@@ -23,7 +20,7 @@ class User {
     
     // Campos específicos para receptores/instituições
     if (role === 'receptor') {
-      this.institutionType = null; // Ex: 'hospital', 'escola', 'abrigo'
+      this.institutionType = null;
       this.description = null;
       this.followers = [];
     }

@@ -52,7 +52,6 @@ class ApiClient {
     // Adicionar body apenas se não for GET
     if (body && method !== 'GET') {
       if (body instanceof FormData) {
-        // Para upload de arquivos, remover Content-Type para que o browser defina automaticamente
         delete requestConfig.headers['Content-Type'];
         requestConfig.body = body;
       } else {
@@ -61,7 +60,7 @@ class ApiClient {
     }
 
     if (DEV_CONFIG.ENABLE_LOGS) {
-      console.log('🌐 API Request:', {
+      console.log('API Request:', {
         url,
         method,
         headers: requestConfig.headers,
@@ -70,7 +69,6 @@ class ApiClient {
     }
 
     try {
-      // Implementar timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -82,19 +80,17 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (DEV_CONFIG.ENABLE_LOGS) {
-        console.log('📡 API Response:', {
+        console.log('API Response:', {
           url,
           status: response.status,
           ok: response.ok,
         });
       }
 
-      // Verificar se a resposta foi bem-sucedida
       if (!response.ok) {
         await this.handleErrorResponse(response);
       }
 
-      // Tentar parsear JSON, se não conseguir retornar texto
       let data;
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -112,7 +108,7 @@ class ApiClient {
 
     } catch (error) {
       if (DEV_CONFIG.ENABLE_LOGS) {
-        console.error('❌ API Error:', {
+        console.error('API Error:', {
           url,
           error: error.message,
         });

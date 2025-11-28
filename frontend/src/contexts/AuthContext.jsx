@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../services/api'; // ADICIONADO
+import api from '../services/api';
 
 // 1. Criação do Contexto
 const AuthContext = createContext(null);
@@ -9,7 +9,7 @@ const AuthContext = createContext(null);
 // 2. Provedor do Contexto
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Começa true para verificar o storage
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Efeito para carregar usuário do AsyncStorage na inicialização
@@ -24,14 +24,14 @@ export const AuthProvider = ({ children }) => {
           const parsedUser = JSON.parse(storedUser);
           console.log('[AuthContext] Usuário carregado do Storage:', parsedUser.email);
           setUser(parsedUser);
-          api.setToken(storedToken); // Configura o token na API
+          api.setToken(storedToken);
         } else {
           console.log('[AuthContext] Nenhum usuário no Storage.');
         }
       } catch (e) {
         console.error('[AuthContext] Erro ao carregar usuário do Storage:', e);
         setError('Erro ao carregar sessão.');
-        await logout(); // Limpa em caso de erro de parsing
+        await logout();
       } finally {
         setLoading(false);
       }
@@ -91,7 +91,6 @@ export const AuthProvider = ({ children }) => {
       if (response.success && response.data.user && response.data.token) {
         const { user: newUserData, token } = response.data;
 
-        // Atualiza o estado e armazena (mesma lógica do login)
         setUser(newUserData);
         api.setToken(token);
         await AsyncStorage.setItem('user', JSON.stringify(newUserData));
@@ -118,13 +117,10 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       console.log('[AuthContext] Fazendo logout...');
-      // 1. Limpa o estado global
       setUser(null);
       
-      // 2. Limpa o token da API
       api.clearToken();
       
-      // 3. Remove do AsyncStorage
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('token');
       
@@ -137,7 +133,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ADICIONADO: Função de Atualizar Perfil
   const updateProfile = async (userData, avatarFile = null) => {
     if (!user) {
       setError('Usuário não autenticado');
@@ -148,7 +143,6 @@ export const AuthProvider = ({ children }) => {
     setError(null);
 
     try {
-      // A função api.updateUser já deve lidar com FormData
       const response = await api.updateUser(user.id, userData, avatarFile);
 
       if (response.success && response.data.user) {
@@ -182,8 +176,8 @@ export const AuthProvider = ({ children }) => {
     register,
     loading,
     error,
-    setUser, // Expondo setUser caso seja necessário (ex: refresh manual)
-    updateProfile, // ADICIONADO
+    setUser,
+    updateProfile,
   };
 
   return (
@@ -193,7 +187,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// 4. Hook customizado para consumir o Contexto
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

@@ -63,35 +63,53 @@ const ProfileScreen = ({ route }) => {
       if (isInstitution) {
         // Carregar necessidades da instituição
         const needsResponse = await api.get(`/institutions/${user.id}/needs`);
-        console.log('Necessidades da instituição:', needsResponse);
-
+        console.log('DEBUG: Resposta completa das necessidades:', needsResponse);
+        
         if (needsResponse.success && needsResponse.data?.needs) {
-          const activeNeedsList = needsResponse.data.needs.filter(
-            (need) => need.status === 'active' || need.status === 'pending' || !need.status
+          const allNeeds = needsResponse.data.needs;
+          
+          // Filtrar necessidades ativas
+          const activeNeedsList = allNeeds.filter(
+            (need) => need.status === 'ativa' || need.status === 'pendente' || !need.status
           );
+          
+          console.log('DEBUG: Necessidades ativas:', activeNeedsList.length);
           setActiveNeeds(activeNeedsList);
+        } else {
+          console.log('DEBUG: Nenhuma necessidade encontrada ou erro na resposta');
+          setActiveNeeds([]);
         }
       } else {
-        // Carregar dados do doador
-        const [offersResponse, historyResponse] = await Promise.all([
-          api.getMyDonationOffers(),
-          api.getUserDonations({ status: 'entregue' }) 
-        ]);
+        // Carregar dados do doador - DADOS REAIS DA API
+        console.log('🔄 Buscando dados reais do doador...');
+        
+        const offersResponse = await api.getMyDonationOffers();
+        console.log('📦 Resposta completa das ofertas:', offersResponse);
 
+        // Processar ofertas ativas (status 'available' ou 'disponivel')
         if (offersResponse.success && offersResponse.data?.offers) {
           const availableOffers = offersResponse.data.offers.filter(
-            (offer) => offer.status === 'available'
+            (offer) => offer.status === 'available' || offer.status === 'disponivel'
           );
+          console.log('✅ Ofertas ativas encontradas:', availableOffers.length);
           setActiveDonations(availableOffers);
-        }
 
-        if (historyResponse.success && historyResponse.data?.donations) {
-          setDonationHistory(historyResponse.data.donations);
+          // HISTÓRICO: Ofertas finalizadas (status 'donated', 'entregue', 'concluido')
+          const completedOffers = offersResponse.data.offers.filter(
+            (offer) => offer.status === 'donated' || offer.status === 'entregue' || offer.status === 'concluido' || offer.status === 'doado'
+          );
+          console.log('✅ Ofertas concluídas no histórico:', completedOffers.length);
+          console.log('📊 Detalhes das ofertas concluídas:', completedOffers);
+          setDonationHistory(completedOffers);
+        } else {
+          console.log('❌ Nenhuma oferta encontrada');
+          setActiveDonations([]);
+          setDonationHistory([]);
         }
       }
 
     } catch (error) {
-      console.error('Erro ao carregar dados do perfil:', error);
+      console.error('❌ Erro ao carregar dados do perfil:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados do perfil.');
     } finally {
       setLoading(false);
@@ -102,6 +120,7 @@ const ProfileScreen = ({ route }) => {
   useFocusEffect(
     useCallback(() => {
       if (!isInitialLoad.current) {
+        console.log('🔄 Recarregando dados do perfil...');
         loadProfileData(); 
       }
     }, [loadProfileData])
@@ -113,6 +132,7 @@ const ProfileScreen = ({ route }) => {
   }, [loadProfileData]);
 
   const handleRefresh = () => {
+    console.log('🔄 Atualizando dados...');
     setRefreshing(true);
     loadProfileData();
   };
@@ -133,11 +153,9 @@ const ProfileScreen = ({ route }) => {
     }
   };
 
-  // 🔥 NOVAS FUNÇÕES ADICIONADAS
   const handleViewDonorProfile = (offer) => {
     console.log('DEBUG: Tentando ver perfil do doador:', offer);
     
-    // Verificar se temos informações do doador
     if (!offer || (!offer.donor_id && !offer.user_id)) {
       Alert.alert('Informação', 'Dados do doador não disponíveis.');
       return;
@@ -146,9 +164,6 @@ const ProfileScreen = ({ route }) => {
     const donorId = offer.donor_id || offer.user_id;
     const donorName = offer.donor_name || 'Doador';
     
-    console.log('DEBUG: Navegando para perfil do usuário:', donorId);
-    
-    // Navegar para o perfil do doador
     navigation.navigate('UserProfile', { 
       userId: donorId,
       userName: donorName
@@ -177,7 +192,6 @@ const ProfileScreen = ({ route }) => {
   };
 
   const handleEditOffer = (offer) => {
-    // Navegar para edição da oferta
     navigation.navigate('EditDonationOffer', { offerId: offer.id });
   };
 
@@ -186,15 +200,63 @@ const ProfileScreen = ({ route }) => {
   };
 
   const handleEditNeed = (need) => {
-    navigation.navigate('EditNeed', { needId: need.id });
+    navigation.navigate('EditNeedScreen', { needId: need.id });
   };
+
+  const handleFinalizeNeed = async (need) => {
+    console.log('🟡 Finalizando necessidade ID:', need.id);
+    
+    try {
+      await api.finalizeNeed(need.id);
+      setActiveNeeds(prevNeeds => prevNeeds.filter(n => n.id !== need.id));
+      console.log('✅ Necessidade finalizada e removida da lista');
+    } catch (error) {
+      console.error('❌ Erro:', error);
+      Alert.alert('Erro', 'Não foi possível finalizar a necessidade');
+    }
+  };  
 
   const handleViewDonationDetails = (donation) => {
-    navigation.navigate('DonationDetails', { donationId: donation.id });
+    // Para donation_offers, usamos os detalhes da própria oferta
+    Alert.alert(
+      donation.title || 'Doação sem título',
+      `📋 Descrição: ${donation.description || 'Sem descrição disponível'}\n\n` +
+      `📦 Quantidade: ${donation.quantity || 'Não especificada'}\n` +
+      `🏷️ Categoria: ${donation.category || 'Geral'}\n` +
+      `🔧 Condição: ${donation.conditions || 'Não especificada'}\n` +
+      `📍 Localização: ${donation.location || 'Não informada'}\n` +
+      `📅 Finalizada em: ${donation.updated_at ? new Date(donation.updated_at).toLocaleDateString('pt-BR') : 'Data não disponível'}`,
+      [{ text: 'OK', style: 'cancel' }]
+    );
+  };
+  
+  const handleReviewDonation = (donationItem) => {
+    console.log('DEBUG: Navegando para ReviewDonation com:', donationItem);
+    
+    if (!donationItem) {
+      Alert.alert('Erro', 'Dados da doação não disponíveis.');
+      return;
+    }
+  
+    navigation.navigate('ReviewDonation', { 
+      donation: donationItem 
+    });
   };
 
-  const handleReviewDonation = (donation) => {
-    navigation.navigate('ReviewDonation', { donationId: donation.id });
+  const handleFinalizeOffer = async (offer) => {
+    console.log('🟡 Finalizando oferta ID:', offer.id);
+    
+    try {
+      await api.finalizeDonationOffer(offer.id);
+      // Remove da lista ativa e adiciona ao histórico
+      setActiveDonations(prevOffers => prevOffers.filter(o => o.id !== offer.id));
+      // Recarrega os dados para atualizar o histórico
+      loadProfileData();
+      console.log('✅ Oferta finalizada e movida para o histórico');
+    } catch (error) {
+      console.error('❌ Erro:', error);
+      Alert.alert('Erro', 'Não foi possível finalizar a oferta');
+    }
   };
 
   // ----- COMPONENTES DE RENDERIZAÇÃO -----
@@ -353,7 +415,9 @@ const ProfileScreen = ({ route }) => {
               need={item}
               onDetails={() => handleViewNeedDetails(item)}
               onEdit={() => handleEditNeed(item)}
+              onFinalize={handleFinalizeNeed}
               isInstitutionView={true}
+              isClickable={false}
             />
           )}
           ListEmptyComponent={
@@ -363,7 +427,9 @@ const ProfileScreen = ({ route }) => {
               description="Necessidades que você publicar aparecerão aqui."
             />
           }
-          contentContainerStyle={styles.listPadding}
+          contentContainerStyle={activeNeeds.length === 0 ? styles.emptyListContent : styles.listContent}
+          showsVerticalScrollIndicator={true}
+          style={styles.flatList}
         />
       );
     } else {
@@ -375,9 +441,10 @@ const ProfileScreen = ({ route }) => {
             renderItem={({ item }) => (
               <DonationOfferCard
                 offer={item}
-                onDetails={() => handleViewOfferDetails(item)}
                 onEdit={() => handleEditOffer(item)}
-                onViewDonorProfile={handleViewDonorProfile} // ✅ AGORA ESTÁ PASSANDO A FUNÇÃO
+                onFinalize={handleFinalizeOffer}
+                onViewDonorProfile={handleViewDonorProfile}
+                isInstitutionView={false}
               />
             )}
             ListEmptyComponent={
@@ -387,10 +454,13 @@ const ProfileScreen = ({ route }) => {
                 description="Itens que você publicar para doação aparecerão aqui."
               />
             }
-            contentContainerStyle={styles.listPadding}
+            contentContainerStyle={activeDonations.length === 0 ? styles.emptyListContent : styles.listContent}
+            showsVerticalScrollIndicator={true}
+            style={styles.flatList}
           />
         );
       } else {
+        // ABA HISTÓRICO - Ofertas finalizadas (donation_offers com status donated)
         return (
           <FlatList
             data={donationHistory}
@@ -406,18 +476,20 @@ const ProfileScreen = ({ route }) => {
             ListEmptyComponent={
               <EmptyListMessage
                 icon="archive-outline"
-                title="Nenhum histórico"
-                description="Doações que você fizer e forem entregues aparecerão aqui."
+                title="Nenhuma doação concluída"
+                description="Ofertas que você finalizar aparecerão aqui."
               />
             }
-            contentContainerStyle={styles.listPadding}
+            contentContainerStyle={donationHistory.length === 0 ? styles.emptyListContent : styles.listContent}
+            showsVerticalScrollIndicator={true}
+            style={styles.flatList}
           />
         );
       }
     }
   };
 
-  // Layout
+  // LAYOUT MOBILE
   const renderMobileLayout = () => (
     <ScrollView
       style={styles.container}
@@ -429,13 +501,17 @@ const ProfileScreen = ({ route }) => {
           tintColor={colors.primary}
         />
       }
+      contentContainerStyle={styles.scrollContent}
     >
       {renderProfileInfo()}
       {renderTabs()}
-      {renderTabContent()}
+      <View style={styles.tabContent}>
+        {renderTabContent()}
+      </View>
     </ScrollView>
   );
 
+  // LAYOUT DESKTOP
   const renderDesktopLayout = () => (
     <View style={styles.desktopContainer}>
       <View style={styles.desktopLeftColumn}>
@@ -443,7 +519,9 @@ const ProfileScreen = ({ route }) => {
       </View>
       <View style={styles.desktopRightColumn}>
         {renderTabs()}
-        {renderTabContent()}
+        <View style={styles.desktopTabContent}>
+          {renderTabContent()}
+        </View>
       </View>
     </View>
   );
@@ -494,7 +572,6 @@ const ProfileScreen = ({ route }) => {
   );
 };
 
-// ... (mantenha os mesmos estilos)
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -502,6 +579,27 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  tabContent: {
+    minHeight: 400,
+  },
+  desktopTabContent: {
+    flex: 1,
+  },
+  flatList: {
+    flex: 1,
+  },
+  listContent: {
+    flexGrow: 1,
+    padding: 16,
+  },
+  emptyListContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: 300,
   },
   loadingContainer: {
     flex: 1,
@@ -696,9 +794,6 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: colors.white,
     fontWeight: '600',
-  },
-  listPadding: {
-    padding: 16,
   },
   emptyContainer: {
     flex: 1,

@@ -1,6 +1,7 @@
 const { query, queryOne } = require('../database/db');
 const { success, errors } = require('../utils/responses');
 const { validateRequired } = require('../utils/validation');
+const { createOfferAcceptedNotification } = require('./notificationsController');
 
 /**
  * Cria uma nova oferta de doação (um item postado por um doador)
@@ -162,8 +163,7 @@ async function getMyOffers(req, res) {
 async function getAvailableOffers(req, res) {
   try {
     const { category, urgency } = req.query;
-    
-    // 🔥 Construir filtros dinâmicos
+
     let whereClause = 'WHERE status = "available"';
     const params = [];
     
@@ -228,7 +228,7 @@ async function acceptOffer(req, res) {
       [institution_id, id]
     );
 
-    // 3. 🔥 Cria uma conversa entre a instituição e o doador
+    // 3. Cria uma conversa entre a instituição e o doador
     const conversationResult = await query(
       `INSERT INTO conversations 
        (user1_id, user2_id, offer_id, created_at) 
@@ -236,7 +236,7 @@ async function acceptOffer(req, res) {
       [institution_id, offer.donor_id, id]
     );
 
-    // 4. 🔥 Envia uma mensagem automática de boas-vindas
+    // 4. Envia uma mensagem automática de boas-vindas
     await query(
       `INSERT INTO messages 
        (conversation_id, sender_id, message, message_type, created_at) 
@@ -261,19 +261,7 @@ async function acceptOffer(req, res) {
       [id]
     );
 
-    // 6. Cria notificação para o doador
-    await query(
-      `INSERT INTO notifications 
-       (user_id, title, message, type, related_id, created_at) 
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [
-        offer.donor_id,
-        'Oferta Aceita! 🎉',
-        `Sua oferta "${offer.title}" foi aceita. Uma conversa foi iniciada para combinar os detalhes.`,
-        'offer_accepted',
-        id
-      ]
-    );
+    await createOfferAcceptedNotification(id, institution_id, offer.user_id);
 
     return success(res, 'Oferta aceita com sucesso! Chat iniciado com o doador.', { 
       offer: updatedOffer,
@@ -306,7 +294,6 @@ async function rejectOffer(req, res) {
     }
 
     // 2. Atualiza o status para "rejected" (ou mantém como available se preferir)
-    // Aqui você pode escolher entre rejeitar ou apenas "ignorar" mantendo disponível
     await query(
       `UPDATE donation_offers SET 
        status = 'rejected',
@@ -324,6 +311,73 @@ async function rejectOffer(req, res) {
   }
 }
 
+/**
+ * Finaliza uma oferta de doação (marca como doada)
+ * POST /offers/:id/finalize
+ */
+async function finalizeDonationOffer(req, res) {
+  try {
+    const { id } = req.params;
+    
+    console.log('🔄 [FINALIZE OFFER] Iniciando finalização da oferta ID:', id);
+    console.log('👤 [FINALIZE OFFER] Usuário:', req.user);
+
+    // Verifica se a oferta existe e pertence ao usuário (usando donor_id)
+    const existingOffer = await queryOne(`
+      SELECT * FROM donation_offers WHERE id = ? AND donor_id = ?
+    `, [id, req.user.id]);
+
+    if (!existingOffer) {
+      console.log('❌ [FINALIZE OFFER] Oferta não encontrada ou sem permissão');
+      return res.status(404).json({
+        success: false,
+        message: 'Oferta não encontrada ou você não tem permissão para finalizá-la'
+      });
+    }
+
+    console.log('✅ [FINALIZE OFFER] Oferta encontrada:', {
+      id: existingOffer.id,
+      title: existingOffer.title,
+      status: existingOffer.status
+    });
+
+    // Marcar como doada (status deve ser 'donated' conforme a tabela)
+    const result = await query(`
+      UPDATE donation_offers 
+      SET status = 'donated', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ? AND donor_id = ?
+    `, [id, req.user.id]);
+
+    if (result.affectedRows === 0) {
+      console.log('❌ [FINALIZE OFFER] Nenhuma linha afetada');
+      return res.status(404).json({
+        success: false,
+        message: 'Oferta não encontrada ou nenhuma alteração realizada'
+      });
+    }
+
+    console.log('✅ [FINALIZE OFFER] Oferta finalizada com sucesso. Linhas afetadas:', result.affectedRows);
+
+    return res.json({
+      success: true,
+      message: 'Oferta finalizada com sucesso',
+      data: {
+        offerId: id,
+        action: 'finalized'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [FINALIZE OFFER] Erro ao finalizar oferta:', error);
+    console.error('🔍 [FINALIZE OFFER] Stack trace:', error.stack);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor ao finalizar oferta',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
 module.exports = {
   createOffer,
   updateOffer,
@@ -331,4 +385,5 @@ module.exports = {
   getAvailableOffers,
   acceptOffer,
   rejectOffer,
+  finalizeDonationOffer
 };
