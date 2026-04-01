@@ -132,7 +132,7 @@ This project was developed as part of a research-based technical program. Contri
 
 ---
 
-## 📌 Author
+## 👤 Author
 
 Developed by Arthur Fritsch Selegar  
 GitHub: https://github.com/Ratattuii
