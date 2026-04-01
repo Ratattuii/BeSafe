@@ -134,5 +134,5 @@ This project was developed as part of a research-based technical program. Contri
 
 ## 👤 Author
 
-Developed by Arthur Fritsch Selegar  
+Developed by Arthur Selegar Fritsch  
 GitHub: https://github.com/Ratattuii
