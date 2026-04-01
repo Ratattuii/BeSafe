@@ -1,121 +1,138 @@
-# 🚨 BeSafe - Plataforma de Conexão para Doadores e Receptores
+# BeSafe
 
-## 📋 Descrição
+**BeSafe** is a digital platform designed to connect donors, individuals, and institutions affected by climate-related disasters, enabling faster and more efficient access to essential resources, information, and support.
 
-BeSafe é uma plataforma web/mobile desenvolvida em React Native que conecta doadores e instituições receptoras em situações de emergência e desastres. O sistema facilita a coordenação de ajuda humanitária permitindo que doadores encontrem instituições que precisam de doações específicas.
+---
 
-## ✨ Funcionalidades
+## 🌍 Overview
 
-### 🎯 Para Doadores
-- ✅ Cadastro e login de doadores
-- ✅ Visualização de necessidades urgentes
-- ✅ Sistema de busca e filtros
-- ✅ Perfil personalizado com histórico de doações
-- ✅ Chat direto com instituições
+In recent years, the impact of extreme climate events has significantly increased, especially affecting vulnerable communities exposed to floods, landslides, and other disasters.
 
-### 🏥 Para Instituições
-- ✅ Cadastro e login de instituições
-- ✅ Publicação de necessidades
-- ✅ Gestão de doações recebidas
-- ✅ Perfil institucional completo
-- ✅ Sistema de seguidores
+BeSafe was created to address this problem by providing a centralized platform where users can:
 
-### 🌐 Geral
-- ✅ Interface responsiva (web e mobile)
-- ✅ Sistema de autenticação completo
-- ✅ Navegação intuitiva
-- ✅ Splash screen personalizada
-- ✅ Notificações em tempo real
+- Request and offer donations (both financial and physical resources)
+- Access important information during emergencies
+- Communicate directly with other users
+- Build support networks in critical situations
 
-## 🏗️ Arquitetura
+The project is based on a **3-year research study**, including data collection and analysis from individuals affected by real climate disasters.
 
-```
-BeSafe/
-├── frontend/          # React Native (Expo)
-│   ├── src/
-│   │   ├── screens/   # Telas da aplicação
-│   │   ├── contexts/  # Context API (AuthContext)
-│   │   ├── components/# Componentes reutilizáveis
-│   │   ├── navigation/# Configuração de navegação
-│   │   ├── services/  # APIs e serviços
-│   │   ├── styles/    # Estilos globais
-│   │   └── utils/     # Utilitários
-│   └── App.js         # Entrada principal
-└── backend/           # Node.js + Express + PostgreSQL
-    ├── src/
-    │   ├── controllers/
-    │   ├── database/
-    │   ├── middleware/
-    │   └── routes/
-    └── server.js
-```
+---
 
-## 🚀 Como Executar
+## 📊 Research Insights
 
-### Frontend (React Native)
+The platform was designed based on real data collected from affected individuals:
 
-```bash
-cd frontend
-npm install
-npx expo start web
-```
+- **97%** of respondents had been affected by natural disasters  
+- **87%** stated they would use a platform like BeSafe  
+- Most requested features:
+  - Real-time alerts  
+  - Risk maps  
+  - Direct contact with support teams  
+  - Donation systems  
+  - Communication tools  
 
-### Backend (Node.js)
+These insights directly shaped the platform’s functionality and design.
 
-```bash
-cd backend
-npm install
-npm run dev
-```
+---
 
-## 🔐 Sistema de Autenticação
+## 🚀 Key Features
 
-- **Doadores**: Cadastro com email/senha
-- **Instituições**: Cadastro com CNPJ e verificação
-- **Persistência**: AsyncStorage para manter login
-- **Simulação**: Login funcional para desenvolvimento
+- 👤 **User Profiles**
+  - Separate accounts for donors and receivers (institutions or individuals)
 
-## 🎨 Telas Principais
+- 📢 **Post Needs & Donations**
+  - Institutions can publish urgent needs
+  - Donors can list available resources
 
-1. **SplashScreen** - Tela inicial com opções de login/cadastro
-2. **LoginScreen** - Autenticação de usuários
-3. **RegisterScreen** - Cadastro de doadores e instituições
-4. **Home** - Feed principal com necessidades
-5. **SearchScreen** - Busca e filtros avançados
-6. **ProfileScreens** - Perfis de doadores e instituições
-7. **ChatScreen** - Comunicação direta
-8. **NotificationsScreen** - Alertas e notificações
+- 💬 **Direct Messaging**
+  - Real-time communication between users
 
-## 🛠️ Tecnologias
+- 🔔 **Notifications**
+  - Alerts for new requests, messages, and updates
 
-### Frontend
-- **React Native** - Framework principal
-- **Expo** - Plataforma de desenvolvimento
-- **React Navigation** - Navegação entre telas
-- **AsyncStorage** - Persistência local
-- **Context API** - Gerenciamento de estado
+- ⭐ **Follow System**
+  - Donors can follow institutions and receive updates
 
-### Backend
-- **Node.js** - Runtime
-- **Express** - Framework web
-- **PostgreSQL** - Banco de dados
-- **JWT** - Autenticação
-- **Multer** - Upload de arquivos
+- 📊 **Donation Tracking**
+  - Monitor status and history of donations
 
-## 🎯 Fluxo de Uso
+- 🔍 **Search & Filters**
+  - Find institutions and resources based on needs and location
 
-1. **Início**: Usuário abre app na SplashScreen
-2. **Autenticação**: Login ou cadastro
-3. **Dashboard**: Visualiza necessidades ou publica
-4. **Interação**: Chat, doações, seguir instituições
-5. **Perfil**: Gestão de dados e histórico
+- 🤝 **Feedback System**
+  - Build trust between donors and receivers
 
-## 📱 Compatibilidade
+---
 
-- ✅ **Web** - Navegadores modernos
-- ✅ **iOS** - iPhone/iPad (via Expo)
-- ✅ **Android** - Smartphones/tablets (via Expo)
+## 🧠 Purpose
 
-## 👥 Desenvolvedores
+BeSafe goes beyond a simple donation platform.
 
-Ratatui - https://github.com/Ratattuii
+It aims to:
+
+- Improve emergency response efficiency  
+- Strengthen community support networks  
+- Provide both **material and emotional support**  
+- Increase accessibility to critical information  
+
+The platform is designed to support **prevention, response, and recovery** in disaster scenarios.
+
+---
+
+## 🛠️ Tech Stack
+
+**Frontend**
+- React
+- React Native
+
+**Backend**
+- Node.js
+- Express
+
+**Database**
+- MySQL
+
+**Other**
+- Git (version control)
+- REST API architecture
+
+---
+
+## 🔐 Security & Reliability
+
+- Data encryption for sensitive information  
+- Secure authentication systems  
+- Designed for scalability and high availability  
+- Privacy-focused user interactions  
+
+---
+
+## 📱 Platform
+
+BeSafe is designed to be accessible on:
+
+- Mobile devices (Android & iOS)
+- Web browsers
+
+---
+
+## 🔮 Future Improvements
+
+- Integration with blockchain for donation transparency  
+- Real-time alert systems  
+- Risk mapping features  
+- Expanded support for emergency services  
+
+---
+
+## 🤝 Contributing
+
+This project was developed as part of a research-based technical program. Contributions, feedback, and ideas are always welcome.
+
+---
+
+## 📌 Author
+
+Developed by Arthur Fritsch Selegar  
+GitHub: https://github.com/Ratattuii
